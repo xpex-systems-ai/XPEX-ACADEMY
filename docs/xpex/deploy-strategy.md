@@ -30,6 +30,19 @@ Para operar a plataforma completa, recomenda-se uma infraestrutura com serviços
 - Política de backup e restore
 - Monitoramento de logs e saúde dos serviços
 
+
+## JWT Secret obrigatório
+
+A variável `LEARNHOUSE_AUTH_JWT_SECRET_KEY` deve ser definida no ambiente de produção.
+
+Não use placeholders, exemplos ou valores versionados no Git. Gere uma chave forte com:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Configure o valor diretamente no provedor de deploy, como Railway, Render, Fly.io, VPS, Docker secrets ou painel equivalente. Secrets reais devem permanecer fora do Git.
+
 ## Comando de desenvolvimento local
 
 ```bash
