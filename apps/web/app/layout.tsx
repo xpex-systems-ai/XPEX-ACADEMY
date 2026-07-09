@@ -1,21 +1,13 @@
 import '../styles/globals.css'
 import React from 'react'
 import Providers from '@components/Providers'
-import { Wix_Madefor_Text } from 'next/font/google'
-
-const wixMadeforText = Wix_Madefor_Text({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-default',
-})
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html className={wixMadeforText.variable} lang="en" suppressHydrationWarning>
+    <html className="font-default" lang="en" suppressHydrationWarning>
       <head>
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}

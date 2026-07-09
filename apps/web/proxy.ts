@@ -232,6 +232,22 @@ export default async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl
   const fullhost = req.headers.get('host')
 
+  // -------------------------------------------------------------------------
+  // 0. Public institutional landing — let the App Router serve app/page.tsx.
+  //
+  //    `/` is the official public XpeX Academy landing page. It must stay
+  //    reachable at the root domain in both single-tenant and multi-tenant
+  //    deployments, so it intentionally bypasses the historical apex rewrite
+  //    to /auth/login, /home or /orgs/{slug}. Internal routes (/home, /login,
+  //    /admin, tenant-scoped paths, API, payments, editors, etc.) continue to
+  //    follow their dedicated rules below.
+  // -------------------------------------------------------------------------
+  if (pathname === '/') {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
+  }
+
   // SEO: canonicalize mixed-case top-level route names (/Login → /login). Scoped
   // to KNOWN static routes only so it never lowercases data-bearing segments
   // (org slugs, course/activity UUIDs, media paths).

@@ -65,3 +65,25 @@ O setup oficial guia domínio, banco, Redis, admin, recursos opcionais e geraç�
 2. **Fase 02:** publicar landing institucional em Vercel ou ambiente equivalente.
 3. **Fase 03+:** validar deploy full-stack com PostgreSQL, Redis, storage, domínio, e-mail e backup.
 4. **Produção:** usar Docker/Railway/Render/Fly.io/VPS com secrets reais fora do Git.
+
+## Fase 03 — Preview público e build estável
+
+A partir da Fase 03, a rota `/` é a landing pública oficial da XpeX Academy no App Router. O proxy deve permitir que essa rota seja resolvida diretamente por `apps/web/app/page.tsx`, inclusive em ambientes multi-tenant, sem reescrever o apex para `/auth/login`, `/home` ou `/orgs/default`.
+
+As rotas internas permanecem separadas:
+
+- `/home` continua sendo o hub autenticado/org picker.
+- `/login` e `/signup` continuam usando o fluxo de autenticação existente.
+- `/admin` continua sendo o painel administrativo.
+- Rotas de organização, API, pagamentos, embeds, boards e editor continuam sob as regras específicas do LearnHouse.
+
+O layout global não depende mais de `next/font/google`; a família padrão usa uma stack local/sistema via `--font-default`, evitando falhas de build em ambientes sem fetch externo para Google Fonts.
+
+Para preview/deploy, valide no mínimo:
+
+```bash
+cd apps/web && pnpm install
+cd apps/web && pnpm build
+```
+
+Depois do deploy, confira `/`, `/login`, `/home` e `/admin` no domínio de preview antes de promover para produção.
