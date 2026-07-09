@@ -11,7 +11,11 @@ Limitação: o produto completo exige API FastAPI, PostgreSQL, Redis, storage, e
 
 ## Landing pública e domínios de organização
 
-A landing institucional da XpeX Academy deve responder em `/` apenas no domínio raiz/apex da plataforma e em `localhost` para desenvolvimento. Em ambientes multi-tenant, subdomínios de organização e custom domains continuam reservados ao resolver tenant-scoped do LearnHouse, portanto a raiz `/` desses hosts deve abrir o conteúdo da organização, não a landing global.
+A landing institucional da XpeX Academy deve responder em `/` apenas em `localhost` para desenvolvimento ou no domínio raiz/apex configurado da plataforma. O proxy compara o host recebido com `frontend_domain` e `top_domain` da instância depois de normalizar protocolo, path, porta, caixa e ponto final.
+
+Em ambientes multi-tenant, subdomínios de organização e custom domains continuam reservados ao resolver tenant-scoped do LearnHouse, portanto a raiz `/` desses hosts deve abrir o conteúdo da organização, não a landing global. Em ambientes single-tenancy/self-host, um host não configurado como apex também continua no rewrite tenant-scoped para `/orgs/default/`.
+
+O layout raiz não depende mais de `next/font/google`; a aplicação usa uma stack local/sistema definida em CSS para permitir build e deploy em ambientes sem fetch externo para Google Fonts. O app web também declara `@codemirror/language` diretamente para manter o build estável com o grafo CodeMirror 6.
 
 ## Deploy completo full-stack
 

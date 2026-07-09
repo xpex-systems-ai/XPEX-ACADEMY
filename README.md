@@ -54,6 +54,12 @@ npx learnhouse@latest setup
 
 Consulte `docs/xpex/deploy-strategy.md` para a estratégia detalhada.
 
+### Landing pública, tenants e build
+
+A rota `/` exibe a landing pública somente em `localhost` ou no domínio apex configurado da instância (`frontend_domain`/`top_domain`). Hosts de organização, custom domains e hosts não configurados em single-tenancy continuam seguindo o rewrite tenant-scoped para `/orgs/{slug}/` — em self-host single-tenancy, isso preserva `/orgs/default/`.
+
+O frontend não depende mais de `next/font/google` para carregar fontes durante o build. A XpeX Academy usa uma stack local/sistema em CSS, e o app web declara `@codemirror/language` diretamente para evitar falhas de resolução no build do CodeMirror 6.
+
 ## Roadmap XpeX
 
 1. **Fase 01 — Fundação, auditoria e rebranding seguro.**
