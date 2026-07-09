@@ -4,9 +4,9 @@
 
 Auditar o fork LearnHouse, preservar compliance, criar documentação estratégica e aplicar rebranding inicial em pontos seguros.
 
-## Fase 02 — Landing institucional XpeX Academy
+## Fase 02 — Landing Premium XpeX Academy
 
-Criar a presença pública inicial com proposta de valor, módulos, CTA, identidade visual e captação.
+Criada a primeira experiência pública premium na rota `/`, com proposta de valor, módulos estratégicos, jornada do aluno, FAQ, CTA visual de lista de espera e atribuição à base técnica LearnHouse. Os módulos apresentados são estratégicos e alguns permanecem em roadmap; não foram implementadas integrações reais com IA, pagamentos, vagas, marketplace ou banco novo.
 
 ## Fase 03 — Global Skills Hub
 
