@@ -8,6 +8,11 @@ A Vercel pode ser usada para landing pages, páginas institucionais e protótipo
 
 Limitação: o produto completo exige API FastAPI, PostgreSQL, Redis, storage, e-mail e processos de backend que não devem depender apenas de um deploy estático/serverless simples.
 
+
+## Landing pública e domínios de organização
+
+A landing institucional da XpeX Academy deve responder em `/` apenas no domínio raiz/apex da plataforma e em `localhost` para desenvolvimento. Em ambientes multi-tenant, subdomínios de organização e custom domains continuam reservados ao resolver tenant-scoped do LearnHouse, portanto a raiz `/` desses hosts deve abrir o conteúdo da organização, não a landing global.
+
 ## Deploy completo full-stack
 
 Para operar a plataforma completa, recomenda-se uma infraestrutura com serviços persistentes:
