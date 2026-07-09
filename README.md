@@ -104,3 +104,18 @@ Este fork usa LearnHouse como base técnica. As atribuições obrigatórias ao p
 ## License
 
 [AGPL-3.0](LICENSE) — Enterprise features are available under a separate Enterprise License.
+
+## Fase 03 — Landing pública, proxy e build
+
+A rota `/` é a landing pública oficial da XpeX Academy e deve abrir a experiência institucional premium em ambientes local, preview e produção. O hub autenticado permanece em `/home`, enquanto `/login`, `/signup` e `/admin` continuam preservados para os fluxos internos do LearnHouse.
+
+Nesta fase, o proxy do `apps/web` foi ajustado para não reescrever `/` para login, home ou rotas de organização antes do App Router renderizar a landing. O layout global também usa uma stack de fonte local/sistema em `--font-default`, removendo a dependência obrigatória de Google Fonts durante o build.
+
+Checks recomendados para preview:
+
+```bash
+cd apps/web && pnpm install
+cd apps/web && pnpm build
+```
+
+Validação manual mínima: abrir `/` para confirmar a landing XpeX Academy, `/login` para autenticação, `/home` para o hub autenticado e `/admin` para o painel administrativo.

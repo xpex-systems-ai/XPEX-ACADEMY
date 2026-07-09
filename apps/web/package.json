@@ -145,7 +145,8 @@
     "wavesurfer.js": "^7.12.1",
     "y-prosemirror": "^1.2.12",
     "yjs": "^13.6.20",
-    "yup": "^1.7.1"
+    "yup": "^1.7.1",
+    "@codemirror/language": "^6.12.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
