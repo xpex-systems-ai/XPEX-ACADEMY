@@ -74,7 +74,10 @@ app.include_router(v1_router)
 
 @app.get("/")
 async def root():
-    return {"Message": "Welcome to LearnHouse ✨"}
+    return {
+        "Message": "Welcome to XpeX Academy ✨",
+        "description": "Learning, professional development and AI-powered growth platform.",
+    }
 
 
 if __name__ == "__main__":
