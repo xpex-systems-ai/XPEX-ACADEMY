@@ -97,20 +97,6 @@ async function resolveTenant(req: NextRequest, instance: InstanceInfo): Promise<
 }
 
 /**
- * In `multi` tenancy, ask the EE module whether this Host is a custom domain
- * (used by the `/redirect_from_auth` handler). Always false in `single`.
- */
-async function hostIsCustomDomain(host: string | null, instance: InstanceInfo): Promise<boolean> {
-  if (instance.tenancy === 'single' || !host) return false
-  try {
-    const mod = await import('./ee/services/tenancy/resolveMulti.middleware')
-    return mod.isCustomDomain(host, instance.frontend_domain)
-  } catch {
-    return false
-  }
-}
-
-/**
  * Detect the admin subdomain (multi tenancy only). In single mode there is no
  * admin subdomain — operators reach admin via /admin path.
  */
@@ -449,32 +435,20 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 10. Apex root (multi tenancy only) — login-first, then org picker.
+  // 10. Public institutional landing — apex/root domain and localhost only.
   //
-  //     The bare apex (learnhouse.io) is NOT org-scoped. An unauthenticated
-  //     visitor lands on the login page; once signed in they get the /home org
-  //     picker and choose an org — which lives on its own subdomain
-  //     ({slug}.learnhouse.io) or custom domain. Org content is ONLY served on
-  //     a subdomain/custom domain, never at the apex. Mirrors the platform's
-  //     "log in, then choose an org" flow. We branch on the non-httpOnly
-  //     LH_session marker cookie (best-effort; the page itself re-verifies).
+  //     The bare apex/default host serves `app/page.tsx` directly. Organization
+  //     subdomains and verified custom domains must NOT be captured by the
+  //     global landing: they fall through to the tenant-scoped resolver below
+  //     and continue to render `/orgs/{slug}/`. Localhost is explicitly allowed
+  //     so the marketing page remains easy to develop.
   // -------------------------------------------------------------------------
-  if (
-    instance.tenancy === 'multi'
-    && pathname === '/'
-    && fullhost
-    && !isLocalhostCheck(fullhost)
-    && !(await hostIsCustomDomain(fullhost, instance))
-  ) {
+  if (pathname === '/') {
+    const isLocalhost = fullhost ? isLocalhostCheck(fullhost) : false
     const resolved = await resolveTenant(req, instance)
-    if (resolved.source === 'default') {
-      const hasSession = !!req.cookies.get('LH_session')?.value
-      const target = hasSession ? `/home${search}` : `/auth/login${search}`
-      const requestHeaders = tenantRequestHeaders(req, resolved, instance)
-      const response = NextResponse.rewrite(new URL(target, req.url), {
-        request: { headers: requestHeaders },
-      })
-      setOrgCookies(response, resolved, instance)
+
+    if (isLocalhost || resolved.source === 'default') {
+      const response = NextResponse.next()
       setInstanceCookies(response, instance)
       return response
     }
