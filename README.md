@@ -67,6 +67,15 @@ Consulte `docs/xpex/deploy-strategy.md` para a estratégia detalhada.
 9. **Fase 09 — Comunidade, Blog e XpeX TV.**
 10. **Fase 10 — Marketplace, white-label e expansão global.**
 
+
+## Fase 02 — Landing Premium
+
+A Fase 02 adiciona a primeira landing pública premium da XpeX Academy na rota `/` do frontend `apps/web`, usando Next.js App Router. A página apresenta a proposta de valor, módulos estratégicos, jornada do aluno, FAQ e um CTA visual para lista de espera.
+
+Os módulos exibidos — Global Skills Hub, Trilhas XpeX, Professor IA, Certificados, Portfólio, Comunidade, XpeX TV, Blog e Jobs & Freelance Hub — representam a visão estratégica e o roadmap do ecossistema. Integrações reais, IA operacional, pagamentos, marketplace, vagas/freelas e captura persistente de leads ficam para fases futuras.
+
+A implementação preserva a atribuição ao LearnHouse, a licença AGPL-3.0 e não altera autenticação, banco de dados, migrações, permissões, pagamentos, API, Collab Server ou rotas internas como `/home`, `/login`, `/admin` e `/orgs`.
+
 ## Base técnica LearnHouse
 
 LearnHouse é uma plataforma open-source para experiências de aprendizagem, com recursos como cursos, editor em blocos, coleções, assignments, discussões, podcasts, analytics, playgrounds, execução de código, boards colaborativos, IA, certificados, grupos de usuários, SEO, customização, pagamentos e SSO em edições apropriadas.
