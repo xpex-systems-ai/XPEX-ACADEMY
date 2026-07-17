@@ -43,3 +43,5 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 - Sem alterações críticas sem autorização explícita.
 - Licença AGPL-3.0, atribuições LearnHouse e compatibilidade upstream devem ser preservadas.
 - Toda missão deve terminar em Pull Request revisável e aprovação humana antes de merge.
+
+- MISSION-009: [Environment and Deployment Readiness Audit](../xpex/deployment-readiness/README.md) — documented staging readiness without deploy/provider mutation.
