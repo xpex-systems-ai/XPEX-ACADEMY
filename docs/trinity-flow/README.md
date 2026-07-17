@@ -29,7 +29,7 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-001 | Concluída | Fundação, auditoria e rebranding seguro inicial. |
 | MISSION-002 | Concluída | Landing pública e estabilizações relacionadas. |
 | MISSION-003 — Trinity Governance Foundation | Em Pull Request | Fundação documental e operacional do Trinity Flow. |
-| MISSION-004 — Kelle Pilot Architecture | Prevista | Próxima missão para arquitetura do piloto Kelle Digital Lab. |
+| MISSION-004 — Kelle Pilot Architecture | Em Pull Request | Documentação arquitetural do piloto Kelle Digital Lab criada em [docs/xpex/kelle-pilot](../xpex/kelle-pilot/README.md). |
 
 ## Regras centrais
 
