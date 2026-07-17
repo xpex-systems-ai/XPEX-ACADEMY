@@ -6,7 +6,7 @@
 - Runtime: Python 3.14.3-slim image with `uv sync --frozen`.
 - Start: existing Docker entrypoint.
 - Health check: `/api/v1/health`.
-- Required secrets/config: JWT secret, SQL connection string, allowed origins, frontend/domain values, and an approved host/port binding strategy.
+- Required secrets/config: JWT secret, SQL connection string, allowed origins, frontend/domain values, and the staging configuration matrix from MISSION-011.
 
 ## Collab service
 
@@ -15,14 +15,17 @@
 - Required config: `COLLAB_INTERNAL_KEY`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY`, `LEARNHOUSE_API_URL`, `LEARNHOUSE_REDIS_URL`, `COLLAB_PORT`.
 - Collab exposes `/` and `/health` with HTTP 200 JSON; Railway still needs a configured and validated health probe against one of these endpoints.
 
-## API host/port blocker
+## API host/port readiness — MISSION-010
 
-The API is **not yet Railway-ready** because `apps/api/docker-entrypoint.sh` reads `LEARNHOUSE_PORT` with fallback to `9000`, does not directly consume the provider `PORT`, reads `HOSTNAME` before falling back to `0.0.0.0`, and the Docker health check curls fixed `localhost:9000`. Railway provisioning must wait until Option A is manually validated or Option B hardens the entrypoint in a future functional mission.
+The API host/port blocker is technically resolved in code for future Railway staging:
 
-Future options:
+- Railway/provider `PORT` has priority.
+- `LEARNHOUSE_PORT` remains supported for compatibility.
+- `9000` remains the local/container fallback.
+- Uvicorn binds explicitly to `0.0.0.0`; `HOSTNAME` no longer controls the bind address.
+- Docker health checks use `127.0.0.1` and the same effective port resolver as startup.
 
-- **Option A:** set `LEARNHOUSE_PORT=9000`, confirm Railway routes to 9000, validate bind on `0.0.0.0`, and keep the health check aligned.
-- **Option B — recommended:** open `API Container Port and Bind Hardening` to bind explicitly to `0.0.0.0`, consume provider `PORT` with fallback to `LEARNHOUSE_PORT` and `9000`, and align health checks to the same strategy.
+No Railway project, service, database, Redis instance, secret, migration or deploy was created by MISSION-010. Railway provisioning remains blocked by MISSION-011 — Staging Configuration Matrix and later provisioning/deploy missions.
 
 ## PostgreSQL and Redis
 

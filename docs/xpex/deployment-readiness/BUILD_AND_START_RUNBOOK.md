@@ -10,8 +10,8 @@
 ## API (`apps/api`)
 
 - Install: `uv sync --frozen` evidenced by Dockerfile.
-- Start: Docker entrypoint starts Uvicorn with `PORT=${LEARNHOUSE_PORT:-9000}` and `HOST=${HOSTNAME:-0.0.0.0}`; direct Python entrypoint runs `uvicorn.run("app:app", host="0.0.0.0", port=config.port)`.
-- Health: `curl -f http://localhost:9000/api/v1/health` in Dockerfile; router path is `/api/v1/health`. The health check is fixed to port 9000 and is not automatically aligned with a provider `PORT`.
+- Start: Docker entrypoint resolves the effective port as `PORT` > `LEARNHOUSE_PORT` > `9000`, validates it, and starts Uvicorn with explicit `--host 0.0.0.0`; direct Python entrypoint runs `uvicorn.run("app:app", host="0.0.0.0", port=config.port)`.
+- Health: Dockerfile runs `./docker-healthcheck.sh`; the script resolves the same effective port and curls `http://127.0.0.1:<effective_port>/api/v1/health`. Router path remains `/api/v1/health`.
 - Migration command evidence: Alembic is configured by `apps/api/alembic.ini`; remote migrations were not executed.
 
 ## Collab (`apps/collab`)
@@ -28,7 +28,19 @@
 
 ### API host/port readiness decision
 
-The API runbook is blocked for Railway until one of these future paths is approved:
+MISSION-010 selected and implemented Option B. The container startup and health check now share a small resolver with this contract:
 
-- **Option A:** keep the current entrypoint contract, set `LEARNHOUSE_PORT=9000`, configure Railway routing for port 9000, validate bind behavior on `0.0.0.0`, and keep health check expectations on `localhost:9000`.
-- **Option B — recommended:** create a functional hardening mission that changes the entrypoint to use explicit host `0.0.0.0`, consume provider `PORT` with fallback to `LEARNHOUSE_PORT` and `9000`, and align the health check with that same strategy.
+1. Use `PORT` when provided by the provider.
+2. Otherwise use `LEARNHOUSE_PORT` for LearnHouse compatibility.
+3. Otherwise use `9000` for local/container fallback.
+4. Reject non-decimal, zero, and out-of-range ports before Uvicorn starts.
+5. Bind Uvicorn to `0.0.0.0` and never use `HOSTNAME` as the bind address.
+
+Local validation can be run without PostgreSQL, Redis or external network:
+
+```bash
+bash -n apps/api/resolve-container-port.sh apps/api/docker-entrypoint.sh apps/api/docker-healthcheck.sh apps/api/tests/test_container_runtime.sh
+bash apps/api/tests/test_container_runtime.sh
+```
+
+Next readiness step: MISSION-011 — Staging Configuration Matrix.
