@@ -2,16 +2,17 @@
 
 Status: proposed governance contract for XpeX Academy staging. No provider resource, DNS record, deploy, migration, or secret is created by this document set.
 
-All endpoint values are placeholders. The approved logical topology is:
+All endpoint values are placeholders. Host/domain variables use hostnames only; URL fields use complete URLs.
 
-| Surface | Placeholder | Provider | Notes |
-|---|---|---|---|
-| Web | `https://academy-staging.example.com` | Vercel | Public frontend only. |
-| API | `https://api-academy-staging.example.com` | Railway API | Public API and health endpoint. |
-| API internal | `${RAILWAY_PRIVATE_API_URL}` | Railway API | Use only if Railway private networking is explicitly available and validated. |
-| Collab | `https://collab-academy-staging.example.com` | Railway Collab | Optional until MVP collaboration scope is approved. |
-| Storage public base | `https://media-academy-staging.example.com` | S3-compatible/CDN | Placeholder; bucket must remain private unless explicitly approved. |
-| Cookie parent | `.academy-staging.example.com` | Railway API config | Proposed only when Web/API/tenant subdomains share one controlled parent. |
+| Surface | Host/domain value | URL value when a URL is required | Provider | Notes |
+|---|---|---|---|---|
+| Web | `academy-staging.example.com` | `https://academy-staging.example.com` | Vercel | Public frontend only. |
+| API | `api.academy-staging.example.com` | `https://api.academy-staging.example.com/api/v1/` | Railway API | Versioned public API base for direct Web consumption. |
+| API internal | `${RAILWAY_PRIVATE_API_HOST}` | `${RAILWAY_PRIVATE_API_URL}/api/v1/` | Railway API | Use only if Railway private networking is explicitly available and validated. |
+| Collab | `collab.academy-staging.example.com` | `https://collab.academy-staging.example.com` | Railway Collab | Optional until MVP collaboration scope is approved. |
+| Media | `media.academy-staging.example.com` | `https://media.academy-staging.example.com` | S3-compatible/CDN | Placeholder; bucket must remain private unless explicitly approved. |
+| Tenant | `{org-slug}.academy-staging.example.com` | `https://{org-slug}.academy-staging.example.com` | Vercel/API tenancy | Pilot slug remains placeholder until provisioning. |
+| Cookie parent | `.academy-staging.example.com` | Not a URL | Railway API config | Covers Web, API, Collab, and tenant subdomains in staging only. |
 
 ## Documents
 

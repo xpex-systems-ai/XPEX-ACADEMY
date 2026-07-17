@@ -1,10 +1,10 @@
 # CORS Policy
 
-The API middleware allows credentials and computes a tenancy-aware origin regex. Therefore staging must use an explicit, narrow policy.
+The API middleware allows credentials and computes a tenancy-aware origin regex. Therefore staging must use an explicit, narrow policy. Allowed origins are complete HTTPS origins, while domain variables remain hostnames only.
 
 | Input | Staging value | Required | Rule | Evidence |
 |---|---|---|---|---|
-| `LEARNHOUSE_ALLOWED_ORIGINS` | `https://academy-staging.example.com` | Yes | CSV allowlist of approved Web origins only. | `apps/api/config/config.py` |
+| `LEARNHOUSE_ALLOWED_ORIGINS` | `https://academy-staging.example.com` | Yes | CSV allowlist of approved Web origins only; include no protocol-less hostnames here. | `apps/api/config/config.py` |
 | `LEARNHOUSE_ALLOWED_REGEXP` | `^https://([a-z0-9-]+\.)?academy-staging\.example\.com$` | Proposed for multi-tenancy | Must match only staging tenant hosts, never all Vercel previews or production. | `apps/api/src/core/middleware/cors.py` |
 | Credentials | `true` in code | Yes | No wildcard origin with credentials. | `apps/api/src/core/middleware/cors.py` |
 | Methods | `*` in code | Existing | Accepted only because origins are restricted. | `apps/api/src/core/middleware/cors.py` |

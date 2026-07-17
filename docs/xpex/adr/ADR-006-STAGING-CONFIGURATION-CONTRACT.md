@@ -10,12 +10,12 @@ XpeX Academy needs an auditable staging contract before any Vercel, Railway, Pos
 
 ## Decision
 
-Adopt the MISSION-011 matrix in `docs/xpex/staging-configuration/` as the staging configuration contract. Use placeholders only, separate public Web variables from backend secrets, keep provider placement explicit, deny automatic Vercel preview access, and require staging-only cookie/domain isolation.
+Adopt the MISSION-011 matrix in `docs/xpex/staging-configuration/` as the staging configuration contract. Use placeholders only, separate public Web variables from backend secrets, keep provider placement explicit, deny automatic Vercel preview access, and require staging-only cookie/domain isolation. The shared placeholder topology is Web `academy-staging.example.com`, API `api.academy-staging.example.com`, Collab `collab.academy-staging.example.com`, Media `media.academy-staging.example.com`, Tenant `{org-slug}.academy-staging.example.com`, and cookie parent `.academy-staging.example.com`.
 
 ## Consequences
 
 - Future provisioning can follow an ordered checklist without exposing secrets to Codex or Git.
-- Authentication, CORS, tenancy, storage, and Collab decisions are documented before provider mutation.
+- Authentication, CORS, tenancy, storage, and Collab decisions are documented before provider mutation, with URL fields using complete URLs and domain variables using hostnames only.
 - Some values remain proposed until the Operator approves actual provider projects and domains.
 
 ## Open questions

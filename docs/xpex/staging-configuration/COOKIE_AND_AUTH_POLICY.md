@@ -2,7 +2,7 @@
 
 ## Proposed topology
 
-Staging Web, API, and tenant subdomains should live under one staging-only controlled parent: `academy-staging.example.com`. This enables a staging cookie parent such as `.academy-staging.example.com` without colliding with production.
+Staging Web, API, Collab, media, and tenant subdomains should live under one staging-only controlled parent: `academy-staging.example.com`. This enables a staging cookie parent such as `.academy-staging.example.com` without colliding with production.
 
 | Attribute | Staging contract | Evidence/owner |
 |---|---|---|
@@ -13,7 +13,7 @@ Staging Web, API, and tenant subdomains should live under one staging-only contr
 | HttpOnly | Required for auth tokens where applicable. | API/auth implementation. |
 | SameSite | Must support the chosen Web/API domain topology; validate login, refresh, logout. | Architect approval. |
 | Expiration | Code-defined token/session expiry; do not document token values. | API/auth implementation. |
-| Cross-subdomain | Allowed only inside staging parent domain. | `LEARNHOUSE_COOKIE_DOMAIN`. |
+| Cross-subdomain | Allowed only inside staging parent domain; `.academy-staging.example.com` covers Web, API, Collab, and `{org-slug}` tenant hosts. | `LEARNHOUSE_COOKIE_DOMAIN`. |
 | Custom domains | Not enabled in MISSION-011. | Future custom-domain mission. |
 
 ## Auth redirect rules
