@@ -31,7 +31,9 @@ O piloto deve ser tratado como **curso livre** e **projeto educacional independe
 - [Jornadas de usuário](USER_JOURNEYS.md)
 - [Análise de lacunas](GAP_ANALYSIS.md)
 - [Roadmap de implementação](IMPLEMENTATION_ROADMAP.md)
+- [Configuração operacional do piloto](configuration/README.md)
 - [ADR-001 — Kelle Pilot Architecture](../adr/ADR-001-KELLE-PILOT-ARCHITECTURE.md)
+- [ADR-003 — Kelle Pilot Configuration](../adr/ADR-003-KELLE-PILOT-CONFIGURATION.md)
 
 ## Restrições de marca
 
@@ -42,4 +44,4 @@ O piloto deve ser tratado como **curso livre** e **projeto educacional independe
 
 ## Próximas missões
 
-A MISSION-005 recomendada é uma missão funcional pequena para configurar o MVP do piloto usando capacidades existentes: organização, responsável, user group de turma, curso inicial privado/publicável, trilha/estrutura curricular e política de certificado de curso livre, ainda sem dados pessoais reais.
+A MISSION-006 documenta a configuração operacional do piloto antes de qualquer dado real. A próxima missão funcional recomendada é validar a matriz de role da professora em ambiente controlado, sem dados pessoais reais.

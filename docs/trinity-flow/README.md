@@ -30,7 +30,8 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-002 | Concluída | Landing pública e estabilizações relacionadas. |
 | MISSION-003 — Trinity Governance Foundation | Concluída | Governança integrada na PR #7. |
 | MISSION-004 — Kelle Pilot Architecture | Concluída | Documentação arquitetural do piloto Kelle Digital Lab criada em [docs/xpex/kelle-pilot](../xpex/kelle-pilot/README.md). |
-| MISSION-005 — Learning Core Blueprint | Em Pull Request | Blueprint oficial do Learning Core criado em [docs/xpex/learning-core](../xpex/learning-core/README.md). |
+| MISSION-005 — Learning Core Blueprint | Concluída | Blueprint oficial do Learning Core criado em [docs/xpex/learning-core](../xpex/learning-core/README.md). |
+| MISSION-006 — Kelle Pilot Configuration Blueprint | Em Pull Request | Blueprint operacional documental criado em [docs/xpex/kelle-pilot/configuration](../xpex/kelle-pilot/configuration/README.md). |
 
 ## Regras centrais
 
