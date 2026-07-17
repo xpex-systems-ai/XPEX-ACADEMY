@@ -12,7 +12,6 @@ erDiagram
     USERGROUP ||--o{ USERGROUP_USER : has_members
     USER ||--o{ USERGROUP_USER : member
     USERGROUP ||--o{ USERGROUP_RESOURCE : gates_resource
-    ORGANIZATION ||--o{ PLAN : subscribes_or_references
     ORGANIZATION ||--o{ APITOKEN : scopes
     USER ||--o{ APITOKEN : creates
     ORGANIZATION ||--o{ WEBHOOK_ENDPOINT : owns
@@ -34,7 +33,6 @@ erDiagram
 | UserGroup | `apps/api/src/db/usergroups.py` | Generic grouping primitive. | Organization-owned. |
 | UserGroupUser | `apps/api/src/db/usergroup_user.py` | Membership in a group. | Must remain inside org context. |
 | UserGroupResource | `apps/api/src/db/usergroup_resources.py` | Resource gate/lock. | Connects group to tenant resource UUIDs. |
-| Plan | `apps/api/src/db/plans.py` | Product/commercial plan metadata. | Used by org plan/gating flows. |
 | API Token | `apps/api/src/db/api_tokens.py` | Org-scoped programmatic credential with rights. | Explicit `org_id`. |
 | WebhookEndpoint | `apps/api/src/db/webhooks.py` | Org webhook subscription endpoint. | Explicit `org_id`. |
 | WebhookDeliveryLog | `apps/api/src/db/webhooks.py` | Delivery attempt record. | Inherits tenant via endpoint. |
@@ -49,7 +47,7 @@ erDiagram
 - One `UserGroup` may have many users and many gated resources.
 - One API token belongs to one organization and one creating user.
 - One webhook endpoint belongs to one organization and has many delivery logs.
-- Plan relationships are operationally tied to org plan flows; exact subscription cardinality should be confirmed in a billing-focused mission before schema changes.
+- Runtime plan catalog and entitlement relationships are conceptual/runtime configuration, not a proven persisted plan entity cardinality. Organization billing state is represented through organization configuration and billing usage evidence.
 
 ## Escopo multi-tenant
 
@@ -58,4 +56,4 @@ erDiagram
 ## Inferências marcadas
 
 - **Inferência:** `Media` is shown under `Organization` because media access is used by tenant resources; follow-up should verify every media path preserves org/resource ownership.
-- **Inferência:** `Plan` cardinality is shown conceptually because org plan/payment services use plans; no new schema is introduced by this document.
+- **Inferência:** plan catalog and entitlement data are runtime/configuration concepts evidenced by plan routers, feature utilities and org plan config, not a persisted plan database entity in this registry.

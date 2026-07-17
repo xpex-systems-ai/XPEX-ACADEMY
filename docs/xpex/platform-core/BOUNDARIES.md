@@ -9,13 +9,13 @@
 | Organizations | Tenant identity, slug, membership, org config and org user administration. |
 | Multi-tenancy | `org_id` boundaries, membership checks and tenant-aware access helpers. |
 | Roles/permissions | Role, Rights, role type, RBAC dependencies, resource access and least privilege policy validation. |
-| Billing foundation | Plan, usage, Stripe/provider config and org plan gates. |
+| Billing foundation | Runtime plan catalog/configuration, billing usage, organization billing state, Stripe/provider config and org plan gates. |
 | Storage foundation | Media models, local/S3 content delivery and shared file access. |
 | Notifications foundation | Transactional email configuration and reusable email utilities. |
 | Observability | Sentry, health/monitoring routers, analytics services and event foundations. |
 | API tokens | Org-scoped API token model, hashing, rights and active/expiry lifecycle. |
 | Webhook foundation | Org webhook endpoints, encrypted secret field and delivery log records. |
-| Shared feature gating | Plan/usage helpers and commercial entitlement gates. |
+| Shared feature gating | Runtime plan/usage helpers and commercial entitlement gates. |
 
 ## O que não pertence
 

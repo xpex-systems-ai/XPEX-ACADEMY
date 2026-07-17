@@ -13,7 +13,7 @@
 
 | Capacidade | Dependência | Risco |
 |---|---|---|
-| Billing/plans | Stripe/config/provider setup | Provider and env dependent. |
+| Billing/plans | Runtime plan catalog, org billing state, billing usage events, Stripe/config/provider setup | Operational but provider/env dependent; no persisted plan entity is listed. |
 | Storage/media | Filesystem or S3-compatible backend | Lifecycle and scanning need follow-up. |
 | Observability | Sentry/Tinybird optional config | Event taxonomy and audit coverage incomplete. |
 | API tokens | Org/rights/token hashing | Rate limits and audit trail need confirmation. |
@@ -25,7 +25,7 @@
 | UserGroups | Generic group exists; cohort semantics not formal. | Média |
 | Notifications | Email utilities exist; no central notification event bus found. | Média |
 | Webhooks | Models/routers exist; delivery guarantees/retry coverage need audit. | Alta |
-| Feature Gates | Plan/usage gates exist; no general flag service. | Média |
+| Feature Gates | Runtime plan/usage entitlement gates exist; no general flag service. | Média |
 | Audit/Governance | Docs/events/logs exist; immutable audit log not proven. | Alta |
 
 ## Experimental
@@ -41,7 +41,7 @@
 |---|---|---|
 | Formal immutable audit log | Compliance and incident response remain limited. | Observability, org context, event taxonomy. |
 | Central notification event bus | Notification behavior may fragment by domain. | Email utilities, user/org preferences. |
-| Unified feature flag registry | Feature toggles may mix billing, config and local checks. | Plans, org config, RBAC. |
+| Unified feature flag registry | Feature toggles may mix billing, config and local checks. | Runtime plan config, org config, RBAC. |
 | Documented media lifecycle policy | Retention/deletion/scanning not centrally governed. | Media service, storage backend. |
 
 ## Backlog priorizado

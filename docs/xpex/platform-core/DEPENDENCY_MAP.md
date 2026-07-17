@@ -42,13 +42,13 @@ flowchart TD
 | Organizations | UserOrganization, Role, org config/cache | Learning resources, billing, API tokens, webhooks, custom domains |
 | RBAC | Role/Rights, UserOrganization, org_auth, resource_access | Courses, assignments, communities, podcasts, boards, playgrounds |
 | UserGroups | User, Organization, resource locks | Learning access locks and dashboard group management |
-| Billing/Plans | Plans, billing usage, payments config | Feature gates, SaaS/org plan screens, AI/pack entitlement checks |
+| Billing/Plans | Runtime plan catalog, billing usage events, organization config, payments config | Feature gates, SaaS/org plan screens, AI/pack entitlement checks |
 | Media | Media DB, content delivery config, file validation | Course blocks, thumbnails, org assets, community media |
 | Notifications | Mailing config, user email flows | Verification, password reset, billing emails |
 | Observability | Sentry config, analytics services, health routers | Operators, product analytics, monitoring surfaces |
 | API Tokens | Org, user, rights, token hashing | External integrations and automation |
 | Webhooks | Org, user, encrypted secret, event publishers | Zapier and external automation |
-| Feature Gates | Plans, usage, org plan | AI, packs, premium limits |
+| Feature Gates | Runtime plan configuration, usage, organization billing state | AI, packs, premium limits |
 
 ## Dependências externas
 

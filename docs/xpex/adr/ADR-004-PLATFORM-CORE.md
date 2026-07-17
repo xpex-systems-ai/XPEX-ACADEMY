@@ -37,7 +37,7 @@ Adotar a **Opção A**. O Platform Core é definido inicialmente como registro a
 - Organizations and multi-tenancy.
 - Roles, Rights, RoleType and RBAC.
 - Generic user groups as shared grouping/access primitive.
-- Billing and plans foundation.
+- Billing foundation: runtime plan catalog/configuration, billing usage, entitlements/feature limits, payment provider integration and organization billing state.
 - Storage and media foundation.
 - Notifications/email foundation.
 - Observability and analytics foundation.

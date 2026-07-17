@@ -35,12 +35,12 @@ Inclui capacidades reutilizáveis por Learning, Community, Studio AI, Career e M
 | Organizations and Multi-Tenancy | Production ready | `apps/api/src/db/organizations.py`, `apps/api/src/db/user_organizations.py`, `apps/api/src/security/org_auth.py` |
 | Roles and Permissions | Production ready | `apps/api/src/db/roles.py`, `apps/api/src/security/rbac/`, `apps/api/src/security/role_policy_validator.py` |
 | User Groups | Partial/shared | `apps/api/src/db/usergroups.py`, `apps/api/src/services/users/usergroups.py`, `apps/api/src/routers/usergroups.py` |
-| Billing and Plans | Operational | `apps/api/src/db/plans.py`, `apps/api/config/config.py`, `apps/web/services/billing/`, `apps/web/services/payments/` |
+| Billing and Plans | Operational | `apps/api/src/routers/plans.py`, `apps/api/src/security/features_utils/plans.py`, `apps/api/src/routers/orgs/org_plan.py`, `apps/api/src/db/billing_usage.py`, `apps/api/config/config.py` |
 | Storage and Media | Operational | `apps/api/src/services/media/`, `apps/api/src/routers/media/`, `apps/api/config/config.py` |
 | Notifications | Partial | `apps/api/src/services/email/`, `apps/web/services/emails/`, `apps/api/config/config.py` |
 | Observability | Operational | `apps/api/app.py`, `apps/api/config/config.py`, `apps/api/src/services/analytics/`, `apps/web/services/analytics/` |
 | API Tokens and Webhooks | Operational/partial | `apps/api/src/db/api_tokens.py`, `apps/api/src/db/webhooks.py`, `apps/api/src/routers/api_tokens.py`, `apps/api/src/routers/webhooks.py` |
-| Feature Gates | Partial | `apps/api/src/security/features_utils/`, `apps/api/src/db/plans.py`, `apps/web/services/billing/guard.ts` |
+| Feature Gates | Partial | `apps/api/src/security/features_utils/plans.py`, `apps/api/src/security/features_utils/usage.py`, `apps/web/services/billing/guard.ts` |
 | Audit and Governance | Partial/documented | `apps/api/src/db/webhooks.py`, `apps/web/services/ee/audit_logs.ts`, `docs/trinity-flow/` |
 
 ## Limites
