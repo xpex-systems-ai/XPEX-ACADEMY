@@ -1,0 +1,120 @@
+{
+  "protocol": {
+    "name": "XpeX Trinity Flow™",
+    "version": "2.0 Execution",
+    "mission_id": "MISSION-000",
+    "mission_name": "Nome da missão",
+    "status": "DRAFT",
+    "execution_agent": "OpenAI Codex",
+    "repository": "xpex-systems-ai/XPEX-ACADEMY",
+    "base_branch": "dev",
+    "execution_mode": "IMPLEMENTATION"
+  },
+  "context": {
+    "product": "XpeX Academy",
+    "technical_origin": "Fork estratégico do LearnHouse",
+    "current_state": [],
+    "strategic_priority": "",
+    "important_note": "Preservar licença AGPL-3.0, atribuições LearnHouse e compatibilidade upstream."
+  },
+  "objective": {
+    "primary": "",
+    "secondary": []
+  },
+  "scope": {
+    "allowed": [],
+    "forbidden": []
+  },
+  "allowed_files": [],
+  "forbidden_files": [],
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "description": "",
+      "expected_output": "",
+      "status": "pending"
+    }
+  ],
+  "security_constraints": {
+    "never_commit_secrets": true,
+    "preserve_multi_tenancy": true,
+    "preserve_auth_and_rbac_unless_authorized": true,
+    "preserve_license_and_attribution": true,
+    "critical_areas_require_explicit_authorization": [
+      "auth",
+      "rbac",
+      "database_models",
+      "migrations",
+      "api_contracts",
+      "multi_tenant_proxy",
+      "payments",
+      "infrastructure",
+      "dependencies",
+      "lockfiles"
+    ]
+  },
+  "tests": {
+    "required_commands_or_equivalents": [],
+    "manual_validation": [],
+    "not_required": []
+  },
+  "acceptance_criteria": [],
+  "deliverables": [
+    {
+      "path": "",
+      "purpose": "",
+      "required_content_or_behavior": []
+    }
+  ],
+  "branch_strategy": {
+    "create_new_branch": true,
+    "branch_name": "type/mission-name",
+    "start_from": "dev",
+    "one_mission_per_branch": true,
+    "do_not_reuse": []
+  },
+  "commit_strategy": {
+    "conventional_commit": true,
+    "commit_message": "type: concise mission summary",
+    "single_logical_commit_preferred": true
+  },
+  "pull_request": {
+    "create": true,
+    "base": "dev",
+    "head": "type/mission-name",
+    "title": "type: concise mission summary",
+    "body_sections": [
+      "Motivation",
+      "Scope",
+      "Files Changed",
+      "Validation",
+      "Risks",
+      "Out of Scope",
+      "Rollback Plan",
+      "Next Mission"
+    ],
+    "must_state": [
+      "Nenhum secret foi adicionado.",
+      "A licença AGPL-3.0 e as atribuições LearnHouse foram preservadas."
+    ]
+  },
+  "rollback_plan": {
+    "strategy": "Reverter o commit ou a Pull Request da missão e restaurar o comportamento anterior.",
+    "data_migration_required": false,
+    "operational_notes": []
+  },
+  "final_report": {
+    "required": true,
+    "include": [
+      "Resumo da execução",
+      "Branch criada",
+      "Arquivos adicionados ou alterados",
+      "Comandos executados",
+      "Resultado de cada validação",
+      "Confirmação de ausência de mudanças fora do escopo",
+      "Commit SHA",
+      "Número e link da Pull Request",
+      "Pendências ou limitações encontradas"
+    ]
+  }
+}
