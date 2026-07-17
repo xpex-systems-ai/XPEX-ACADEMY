@@ -47,6 +47,8 @@ A política `kelle-pilot-teacher` versão `1.0.0` permanece válida no dry-run p
 
 | Comando | Resultado |
 |---|---|
+| `python --version` | Sucesso local; retornou `Python 3.14.4`, que não atende ao intervalo exato `>=3.14.3,<3.14.4` de `apps/api/pyproject.toml`. |
+| `pyenv install -s 3.14.3` | Falha ambiental; download do Python 3.14.3 retornou HTTP 403. |
 | `python -m json.tool config/role-policies/kelle-pilot-teacher.json` | Sucesso; JSON sintaticamente válido. |
 | `pytest apps/api/src/tests/security/test_role_policy_validator.py` | Falha ambiental; ambiente local não possui dependências Python do projeto (`ModuleNotFoundError: No module named 'sqlalchemy'` ao carregar `conftest.py`). |
 | `python apps/api/scripts/validate_role_policy.py config/role-policies/kelle-pilot-teacher.json` | Falha ambiental por ausência de `pydantic`; nenhuma escrita em banco ou chamada de rede foi iniciada. |
@@ -56,7 +58,7 @@ A política `kelle-pilot-teacher` versão `1.0.0` permanece válida no dry-run p
 
 ## Quantidade de testes
 
-A suíte específica contém 17 testes unitários declarados para o validador. A execução real de pytest não completou neste container por falta das dependências Python do projeto (`sqlalchemy` no carregamento do `conftest.py`). A validação sintática dos arquivos Python passou.
+A suíte específica contém 17 testes unitários declarados para o validador. A execução real de pytest não completou neste container por falta das dependências Python do projeto (`sqlalchemy` no carregamento do `conftest.py`). Portanto, a quantidade aprovada localmente permanece indeterminada neste ambiente; a validação sintática dos arquivos Python passou.
 
 ## Confirmações de escopo
 
@@ -68,6 +70,12 @@ A suíte específica contém 17 testes unitários declarados para o validador. A
 - Nenhum frontend foi alterado.
 - O validador e o dry-run não contêm código de escrita em banco nem chamadas de rede.
 
+## Workflow de CI isolado adicionado
+
+Como o ambiente local do Codex não conseguiu provisionar Python 3.14.3 nem instalar as dependências oficiais, foi adicionado `.github/workflows/role-policy-validator.yml`. O workflow usa `actions/setup-python` com `python-version: "3.14.3"`, instala dependências oficiais via `uv sync --frozen`, executa somente a suíte do validador, executa o dry-run válido e cria/remove uma política inválida temporária com `organizations.action_update=true` para confirmar JSON estruturado e exit code `1`.
+
+O workflow não configura serviços PostgreSQL ou Redis. Os comandos executados pela suíte e pelo CLI não exigem variáveis secretas, não escrevem no banco e não persistem dados além de arquivos temporários removidos no próprio job.
+
 ## Limitações ambientais restantes
 
-Este container não possui o ambiente Python completo do projeto. As tentativas anteriores de instalar dependências foram bloqueadas por acesso ao índice de pacotes, e `uv run` não encontrou o Python exigido pelo `pyproject.toml` (`>=3.14.3,<3.14.4`). Portanto, a suíte deve ser reexecutada em um ambiente de API provisionado com as dependências do projeto.
+Este container não possui ambiente compatível com `apps/api/pyproject.toml`: o Python local é 3.14.4, enquanto o projeto exige `>=3.14.3,<3.14.4`; a tentativa de baixar Python 3.14.3 via pyenv foi bloqueada por HTTP 403; e as dependências Python oficiais não estão instaladas localmente. Portanto, os resultados obrigatórios completos devem ser obtidos pelo workflow isolado de CI adicionado nesta correção.

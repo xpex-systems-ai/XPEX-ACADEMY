@@ -1,0 +1,83 @@
+name: Role Policy Validator
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/src/security/role_policy_validator.py"
+      - "apps/api/src/tests/security/test_role_policy_validator.py"
+      - "apps/api/scripts/validate_role_policy.py"
+      - "config/role-policies/**"
+      - ".github/workflows/role-policy-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.14.3
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14.3"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: latest
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Install official API dependencies
+        run: uv sync --frozen
+        working-directory: apps/api
+
+      - name: Validate candidate policy JSON syntax
+        run: python -m json.tool config/role-policies/kelle-pilot-teacher.json >/tmp/kelle-pilot-teacher.formatted.json
+
+      - name: Run role policy validator tests
+        run: uv run pytest src/tests/security/test_role_policy_validator.py
+        working-directory: apps/api
+        env:
+          TESTING: "true"
+
+      - name: Dry-run valid Kelle teacher policy
+        run: |
+          set -o pipefail
+          uv run python scripts/validate_role_policy.py ../../config/role-policies/kelle-pilot-teacher.json | tee /tmp/kelle-valid-result.json
+          python -m json.tool /tmp/kelle-valid-result.json >/tmp/kelle-valid-result.formatted.json
+        working-directory: apps/api
+
+      - name: Dry-run invalid organization update policy
+        run: |
+          INVALID_POLICY="$(mktemp)"
+          export INVALID_POLICY
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("config/role-policies/kelle-pilot-teacher.json")
+          policy = json.loads(source.read_text(encoding="utf-8"))
+          policy["role"]["rights"]["organizations"]["action_update"] = True
+          Path(os.environ["INVALID_POLICY"]).write_text(
+              json.dumps(policy, indent=2, ensure_ascii=False),
+              encoding="utf-8",
+          )
+          PY
+          set +e
+          uv run python apps/api/scripts/validate_role_policy.py "$INVALID_POLICY" > /tmp/kelle-invalid-result.json
+          exit_code=$?
+          set -e
+          python -m json.tool /tmp/kelle-invalid-result.json >/tmp/kelle-invalid-result.formatted.json
+          rm -f "$INVALID_POLICY"
+          if [ "$exit_code" -ne 1 ]; then
+            echo "Expected invalid policy exit code 1, got $exit_code" >&2
+            exit 1
+          fi
+          echo "Invalid policy exit code: $exit_code"
