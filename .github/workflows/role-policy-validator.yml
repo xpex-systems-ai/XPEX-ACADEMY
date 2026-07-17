@@ -62,7 +62,7 @@ jobs:
           import os
           from pathlib import Path
 
-          source = Path("config/role-policies/kelle-pilot-teacher.json")
+          source = Path("../../config/role-policies/kelle-pilot-teacher.json")
           policy = json.loads(source.read_text(encoding="utf-8"))
           policy["role"]["rights"]["organizations"]["action_update"] = True
           Path(os.environ["INVALID_POLICY"]).write_text(
@@ -71,13 +71,25 @@ jobs:
           )
           PY
           set +e
-          uv run python apps/api/scripts/validate_role_policy.py "$INVALID_POLICY" > /tmp/kelle-invalid-result.json
+          uv run python scripts/validate_role_policy.py "$INVALID_POLICY" > /tmp/kelle-invalid-result.json
           exit_code=$?
           set -e
           python -m json.tool /tmp/kelle-invalid-result.json >/tmp/kelle-invalid-result.formatted.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path("/tmp/kelle-invalid-result.json").read_text(encoding="utf-8"))
+          assert result["valid"] is False
+          assert any(
+              grant["bucket"] == "organizations" and grant["action"] == "action_update"
+              for grant in result["forbidden_grants"]
+          )
+          PY
           rm -f "$INVALID_POLICY"
           if [ "$exit_code" -ne 1 ]; then
             echo "Expected invalid policy exit code 1, got $exit_code" >&2
             exit 1
           fi
           echo "Invalid policy exit code: $exit_code"
+        working-directory: apps/api

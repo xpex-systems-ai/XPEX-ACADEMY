@@ -70,6 +70,11 @@ A suíte específica contém 17 testes unitários declarados para o validador. A
 - Nenhum frontend foi alterado.
 - O validador e o dry-run não contêm código de escrita em banco nem chamadas de rede.
 
+
+## Checks da PR #11 inspecionados
+
+A aba Checks pública da PR #11 indicou falha na verificação `Role Policy Validator / validate`, especificamente no passo `Dry-run invalid organization update policy`, com `Process completed with exit code 1`. A correção aplicada nesta rodada mantém a lógica do validador intacta e ajusta somente o workflow: o dry-run inválido agora roda com `working-directory: apps/api`, chama `uv run python scripts/validate_role_policy.py`, usa o caminho correto para a política candidata (`../../config/role-policies/kelle-pilot-teacher.json`), valida que a saída é JSON estruturado com `valid=false` e confirma `organizations.action_update` em `forbidden_grants` antes de aceitar o exit code `1`.
+
 ## Workflow de CI isolado adicionado
 
 Como o ambiente local do Codex não conseguiu provisionar Python 3.14.3 nem instalar as dependências oficiais, foi adicionado `.github/workflows/role-policy-validator.yml`. O workflow usa `actions/setup-python` com `python-version: "3.14.3"`, instala dependências oficiais via `uv sync --frozen`, executa somente a suíte do validador, executa o dry-run válido e cria/remove uma política inválida temporária com `organizations.action_update=true` para confirmar JSON estruturado e exit code `1`.
