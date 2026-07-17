@@ -2,7 +2,7 @@
 
 ## Status
 
-Recomendado para MISSION-004.
+Proposto.
 
 ## Contexto
 
