@@ -60,6 +60,11 @@ A rota `/` exibe a landing pública somente em `localhost` ou no domínio apex c
 
 O frontend não depende mais de `next/font/google` para carregar fontes durante o build. A XpeX Academy usa uma stack local/sistema em CSS, e o app web declara `@codemirror/language` diretamente para evitar falhas de resolução no build do CodeMirror 6.
 
+
+## Governança operacional
+
+O método oficial de planejamento, implementação, auditoria, correção, merge e validação da XpeX Academy está documentado em `docs/trinity-flow/README.md`.
+
 ## Roadmap XpeX
 
 1. **Fase 01 — Fundação, auditoria e rebranding seguro.**
