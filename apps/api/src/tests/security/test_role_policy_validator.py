@@ -117,6 +117,68 @@ def test_missing_bucket_is_denied_by_default_warning_not_grant() -> None:
     assert "communities" in result.summary["omitted_buckets_denied"]
 
 
+def test_users_bucket_missing_standard_actions_fails() -> None:
+    policy = load_policy()
+    policy["role"]["rights"]["users"] = {"action_read": True}
+
+    result = validate_role_policy(policy)
+
+    assert result.valid is False
+    assert any("Missing actions for bucket 'users'" in error for error in result.errors)
+    assert any("action_create" in error and "action_update" in error and "action_delete" in error for error in result.errors)
+
+
+def test_courses_bucket_missing_own_delete_action_fails() -> None:
+    policy = load_policy()
+    del policy["role"]["rights"]["courses"]["action_delete_own"]
+
+    result = validate_role_policy(policy)
+
+    assert result.valid is False
+    assert "Missing actions for bucket 'courses': action_delete_own" in result.errors
+
+
+def test_dashboard_bucket_missing_access_action_fails() -> None:
+    policy = load_policy()
+    policy["role"]["rights"]["dashboard"] = {}
+
+    result = validate_role_policy(policy)
+
+    assert result.valid is False
+    assert "Missing actions for bucket 'dashboard': action_access" in result.errors
+
+
+def test_complete_schema_bucket_is_valid() -> None:
+    policy = load_policy()
+    policy["role"]["rights"] = {
+        "users": {
+            "action_create": False,
+            "action_read": True,
+            "action_update": False,
+            "action_delete": False,
+        }
+    }
+
+    result = validate_role_policy(policy)
+
+    assert result.valid is True
+    assert result.errors == []
+    assert result.summary["true_grants"] == ["users.action_read"]
+
+
+def test_omitted_bucket_is_not_required_when_deny_by_default() -> None:
+    policy = load_policy()
+    policy["role"]["rights"] = {
+        "dashboard": {"action_access": True},
+    }
+
+    result = validate_role_policy(policy)
+
+    assert result.valid is True
+    assert "users" in result.summary["omitted_buckets_denied"]
+    assert all(not grant.startswith("users.") for grant in result.summary["true_grants"])
+
+
 def test_maintainer_like_policy_fails_with_multiple_forbidden_grants() -> None:
     policy = load_policy()
     policy["role"]["rights"]["organizations"].update(

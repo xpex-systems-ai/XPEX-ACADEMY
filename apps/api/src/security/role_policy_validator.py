@@ -182,7 +182,14 @@ def validate_role_policy(policy: dict[str, Any]) -> RolePolicyValidationResult:
             continue
 
         allowed_actions = schema[bucket_name].actions
-        bucket_unknown = sorted(set(action_values) - allowed_actions)
+        provided_actions = set(action_values)
+        missing_actions = sorted(allowed_actions - provided_actions)
+        if missing_actions:
+            errors.append(
+                f"Missing actions for bucket '{bucket_name}': {', '.join(missing_actions)}"
+            )
+
+        bucket_unknown = sorted(provided_actions - allowed_actions)
         if bucket_unknown:
             unknown_actions[bucket_name] = bucket_unknown
             errors.append(
@@ -264,4 +271,4 @@ def _forbidden_reason(
         return "destructive grants are forbidden in the initial teacher policy"
     if bucket in denied_buckets or bucket in DENIED_MVP_BUCKETS:
         return "bucket is denied for the initial MVP teacher policy"
-    return forbidden_map.get(bucket, {}).get(action)
+    return forbidden_map.get(bucket, {}).get(action) or forbidden_map.get("*", {}).get(action)

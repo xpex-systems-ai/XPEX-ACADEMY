@@ -17,7 +17,7 @@ A entrada aceita pelo validador deve conter:
 
 - `metadata`: identificação, versão, escopo, status candidato, `contains_real_data=false` e `deny_by_default=true`.
 - `role`: nome descritivo, descrição e `rights` no mesmo formato semântico de `Role.rights`.
-- `constraints`: buckets negados e concessões proibidas para a política educacional inicial.
+- `constraints`: buckets negados e concessões proibidas para a política educacional inicial; `bucket="*"` é suportado para proibições globais como deletes.
 
 ## Como executar dry-run
 
@@ -31,7 +31,7 @@ Interpretação do resultado:
 - `errors`: mensagens humanas para bloquear a política candidata.
 - `warnings`: alertas não bloqueantes, como buckets omitidos que ficam negados por `deny_by_default`.
 - `unknown_buckets`: buckets não existentes no schema atual de `Rights`.
-- `unknown_actions`: ações incompatíveis com o tipo do bucket.
+- `unknown_actions`: ações incompatíveis com o tipo do bucket; buckets presentes também precisam declarar todas as ações esperadas para seu tipo.
 - `forbidden_grants`: permissões booleanas `true` bloqueadas pela política do piloto.
 - `summary`: resumo para humanos e agentes, incluindo grants `true` e buckets omitidos negados.
 
