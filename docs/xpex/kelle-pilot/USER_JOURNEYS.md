@@ -53,7 +53,8 @@ flowchart TD
 | Objeto | Estados atuais/reutilizáveis | Observação |
 |---|---|---|
 | Curso | `public`, `published` | Controla exposição e publicação |
-| Capítulo/atividade | `lock_type`, `published` | Pode restringir por autenticação/grupo |
+| Capítulo | `lock_type` | Controla bloqueio e acesso do capítulo |
+| Atividade | `lock_type`, `published` | Controla bloqueio e publicação da atividade |
 | Trail run | `STATUS_IN_PROGRESS`, `STATUS_COMPLETED`, `STATUS_PAUSED`, `STATUS_CANCELLED` | Base para progresso |
 | Assignment | `published`, grading type, submission state nos serviços | Base para evidências práticas |
 | Certificado | Configuração por curso e emissão por usuário | Exige texto de curso livre |
