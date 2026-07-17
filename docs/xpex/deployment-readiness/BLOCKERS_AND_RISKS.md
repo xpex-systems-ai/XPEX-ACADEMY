@@ -8,7 +8,7 @@
 | P1 | API container host/port strategy undecided | Railway may route to a different port than Uvicorn or the process may bind away from `0.0.0.0`; health check remains fixed on 9000 | MISSION-010 API Container Port and Bind Hardening |
 | P1 | Domain/CORS/cookie matrix undecided | Auth and multi-tenancy may fail or leak | MISSION-011 topology configuration |
 | P1 | Collab requiredness not decided | Boards/collaboration may be broken if omitted | MISSION-014 Collab decision |
-| P2 | Web and Collab lack dedicated health endpoints | Provider health monitoring less precise | Future implementation mission |
+| P3 | Provider health probes not configured or validated | Existing Web `/health` and Collab `/health` endpoints need provider/container probe configuration and validation | Deployment validation mission |
 | P2 | Observability projects not configured | Limited incident visibility | Observability provisioning mission |
 | P3 | CLI remains self-host/dev oriented | Not a staging blocker | Document after deploy mode chosen |
 

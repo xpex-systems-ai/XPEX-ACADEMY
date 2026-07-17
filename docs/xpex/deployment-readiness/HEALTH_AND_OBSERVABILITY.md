@@ -4,8 +4,9 @@
 
 - API has `GET /api/v1/health`; it checks database connectivity and returns failure when the database check fails.
 - API Dockerfile defines a curl health check against `/api/v1/health` on port 9000.
-- Web has no dedicated health endpoint evidenced.
-- Collab has no dedicated health endpoint evidenced.
+- Web has `/health`, which is rewritten to `/api/health` and returns JSON 200 from the app route.
+- Collab has `/` and `/health`, both returning HTTP 200 JSON from the Hocuspocus `onRequest` handler.
+- Provider health probes still need to be configured and validated against the existing endpoints in Vercel/containerized Web and Railway Collab environments.
 
 ## Observability
 

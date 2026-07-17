@@ -13,7 +13,7 @@
 - Deploy separately only if collaborative boards are included in MVP staging.
 - Runtime: Node 24 container running `node dist/index.js`.
 - Required config: `COLLAB_INTERNAL_KEY`, `LEARNHOUSE_AUTH_JWT_SECRET_KEY`, `LEARNHOUSE_API_URL`, `LEARNHOUSE_REDIS_URL`, `COLLAB_PORT`.
-- No dedicated health endpoint was found; Railway health policy needs a process-level check or future endpoint.
+- Collab exposes `/` and `/health` with HTTP 200 JSON; Railway still needs a configured and validated health probe against one of these endpoints.
 
 ## API host/port blocker
 

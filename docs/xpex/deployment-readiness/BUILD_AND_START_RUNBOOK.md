@@ -5,7 +5,7 @@
 - Install: `bun install --frozen-lockfile` evidenced by Dockerfile.
 - Build: `bun run build` / package script `next build`.
 - Start: package script `next start`; container uses `docker-entrypoint.sh` and Next standalone output.
-- Health: no dedicated health endpoint evidenced.
+- Health: `/health` is rewritten by `apps/web/proxy.ts` to `/api/health`, and `apps/web/app/api/health/route.ts` returns JSON 200. Future work is to configure and validate the provider/container probe against this existing endpoint.
 
 ## API (`apps/api`)
 
@@ -19,7 +19,7 @@
 - Install: Docker build uses `bun install --frozen-lockfile`; runtime image uses `npm install --omit=dev`.
 - Build: `bun run build` / `tsc`.
 - Start: container command `node dist/index.js`; package script `tsx src/index.ts` for direct start.
-- Health: no dedicated health endpoint evidenced.
+- Health: `/` and `/health` return HTTP 200 JSON in `apps/collab/src/index.ts`. Future work is to configure and validate the Railway health check against this existing endpoint.
 
 ## CLI (`apps/cli`)
 
