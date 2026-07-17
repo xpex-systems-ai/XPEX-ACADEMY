@@ -24,6 +24,8 @@ Recommended staging topology is Vercel for Web, Railway for API and optionally C
 - [Staging topology](STAGING_TOPOLOGY.md)
 - [Implementation roadmap](IMPLEMENTATION_ROADMAP.md)
 - [ADR-005](../adr/ADR-005-STAGING-DEPLOYMENT-TOPOLOGY.md)
+- [Staging configuration matrix](../staging-configuration/README.md)
+- [ADR-006](../adr/ADR-006-STAGING-CONFIGURATION-CONTRACT.md)
 
 ## Evidence base inspected
 
