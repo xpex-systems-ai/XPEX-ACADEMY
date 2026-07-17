@@ -24,10 +24,10 @@ Criar futuramente um `Course` privado/restrito, estruturado por `Chapter` para r
 
 | Letra | Chapter documental | Metadata sugerida | Objetivo |
 |---|---|---|---|
-| N | `N — Navegar` | `{"nave_step":"N","nave_label":"Navegar"}` | Alfabetização digital, ambiente, segurança básica |
-| A | `A — Aplicar` | `{"nave_step":"A","nave_label":"Aplicar"}` | Uso prático de ferramentas digitais |
-| V | `V — Verificar` | `{"nave_step":"V","nave_label":"Verificar"}` | Checagem, revisão, qualidade e segurança |
-| E | `E — Evoluir` | `{"nave_step":"E","nave_label":"Evoluir"}` | Projeto final, autonomia e próximos passos |
+| N | `N — Navegador` | `{"nave_step":"N","nave_label":"Navegador"}` | Orientação inicial, navegação segura no ambiente digital e reconhecimento dos recursos do curso |
+| A | `A — Aprendizagem` | `{"nave_step":"A","nave_label":"Aprendizagem"}` | Construção guiada de fundamentos de informática básica e inteligência artificial |
+| V | `V — Vivência` | `{"nave_step":"V","nave_label":"Vivência"}` | Experiências práticas, exercícios contextualizados e aplicação acompanhada |
+| E | `E — Evolução` | `{"nave_step":"E","nave_label":"Evolução"}` | Consolidação, melhoria contínua, autonomia e próximos passos |
 
 ## Activities e Assignments
 
@@ -46,6 +46,6 @@ flowchart LR
   C --> E[Chapter E]
   N --> N1[Activities]
   A --> A1[Assignments]
-  V --> V1[Verificação]
-  E --> E1[Projeto final]
+  V --> V1[Vivência prática]
+  E --> E1[Evolução e projeto final]
 ```

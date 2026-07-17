@@ -25,7 +25,6 @@
   },
   "teacher_role": {
     "name": "Kelle Pilot Teacher Candidate",
-    "role_type": "TYPE_ORGANIZATION",
     "org_id": "<ORG_ID_DA_ORGANIZACAO_APROVADA>",
     "maintainer_is_fallback_only": true,
     "rights_policy": "least_privilege_candidate_pending_validation"
@@ -68,27 +67,27 @@
   },
   "chapters": [
     {
-      "name": "N — Navegar",
+      "name": "N — Navegador",
       "lock_type": "restricted",
-      "extra_metadata": {"nave_step": "N", "nave_label": "Navegar"},
+      "extra_metadata": {"nave_step": "N", "nave_label": "Navegador"},
       "activities": ["<ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
     },
     {
-      "name": "A — Aplicar",
+      "name": "A — Aprendizagem",
       "lock_type": "restricted",
-      "extra_metadata": {"nave_step": "A", "nave_label": "Aplicar"},
+      "extra_metadata": {"nave_step": "A", "nave_label": "Aprendizagem"},
       "activities": ["<ASSIGNMENT_ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
     },
     {
-      "name": "V — Verificar",
+      "name": "V — Vivência",
       "lock_type": "restricted",
-      "extra_metadata": {"nave_step": "V", "nave_label": "Verificar"},
+      "extra_metadata": {"nave_step": "V", "nave_label": "Vivência"},
       "activities": ["<ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
     },
     {
-      "name": "E — Evoluir",
+      "name": "E — Evolução",
       "lock_type": "restricted",
-      "extra_metadata": {"nave_step": "E", "nave_label": "Evoluir"},
+      "extra_metadata": {"nave_step": "E", "nave_label": "Evolução"},
       "activities": ["<PROJECT_ASSIGNMENT_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
     }
   ],
