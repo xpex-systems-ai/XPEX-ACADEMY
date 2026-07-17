@@ -32,7 +32,8 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-004 — Kelle Pilot Architecture | Concluída | Documentação arquitetural do piloto Kelle Digital Lab criada em [docs/xpex/kelle-pilot](../xpex/kelle-pilot/README.md). |
 | MISSION-005 — Learning Core Blueprint | Concluída | Blueprint oficial do Learning Core criado em [docs/xpex/learning-core](../xpex/learning-core/README.md). |
 | MISSION-006 — Kelle Pilot Configuration Blueprint | Concluída | Blueprint operacional documental criado em [docs/xpex/kelle-pilot/configuration](../xpex/kelle-pilot/configuration/README.md). |
-| MISSION-007 — Kelle Teacher Role Policy Validator | Em Pull Request | Validador dry-run e política candidata em [docs/xpex/kelle-pilot/role-validation](../xpex/kelle-pilot/role-validation/README.md). |
+| MISSION-007 — Kelle Teacher Role Policy Validator | Concluída | Validador dry-run e política candidata em [docs/xpex/kelle-pilot/role-validation](../xpex/kelle-pilot/role-validation/README.md). |
+| MISSION-008 — Platform Core Capability Registry | Em Pull Request | Registro oficial de capacidades do Platform Core criado em [docs/xpex/platform-core](../xpex/platform-core/README.md). |
 
 ## Regras centrais
 
