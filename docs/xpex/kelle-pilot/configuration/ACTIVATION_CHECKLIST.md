@@ -17,13 +17,16 @@
 3. Associar operador e professora à organização.
 4. Criar UserGroup `Turma Piloto 01`.
 5. Criar Course privado com `public=false`, `published=false`, `open_to_contributors=false`.
-6. Criar Chapters NAVE IA com `lock_type=restricted`.
-7. Criar Activities e Assignments com `published=false`.
-8. Vincular resources ao UserGroup por `UserGroupResource`.
-9. Adicionar alunos autorizados ao UserGroup.
-10. Testar acesso com aluno dentro, aluno fora, professora e anônimo.
-11. Aprovar publicação gradual.
-12. Configurar certificado somente após wording aprovado.
+6. Criar Chapters NAVE IA e Activities com `lock_type=restricted`.
+7. Criar Activities e Assignments com `published=false` quando o recurso possuir esse campo.
+8. Vincular recursos ao UserGroup por `UserGroupResource`.
+9. Validar vínculos de `UserGroupResource`, `org_id` e pertencimento da turma.
+10. Alterar `published=true` somente em ambiente controlado e manter `public=false`.
+11. Adicionar alunos autorizados ao UserGroup.
+12. Testar aluno dentro da turma.
+13. Testar usuário autenticado fora da turma.
+14. Testar acesso anônimo bloqueado.
+15. Configurar certificado somente após wording aprovado.
 
 ## Rollback
 
