@@ -1,0 +1,129 @@
+{
+  "metadata": {
+    "notice": "EXEMPLO DOCUMENTAL — NÃO EXECUTAR EM PRODUÇÃO.",
+    "mission_id": "MISSION-006",
+    "pilot": "Kelle Digital Lab",
+    "course_type": "Curso livre",
+    "disclaimer": "Projeto educacional independente.",
+    "contains_real_data": false,
+    "is_seed": false
+  },
+  "organization": {
+    "name": "Kelle Digital Lab",
+    "slug": "kelle-digital-lab",
+    "email": "<contato-operacional-aprovado@example.invalid>",
+    "description": "Curso livre de informática básica com inteligência artificial.",
+    "about": "Projeto educacional independente.",
+    "socials": {},
+    "links": {},
+    "scripts": {},
+    "logo_image": "<asset-aprovado-ou-vazio>",
+    "thumbnail_image": "<asset-aprovado-ou-vazio>",
+    "previews": {},
+    "explore": false,
+    "label": "Curso livre"
+  },
+  "teacher_role": {
+    "name": "Kelle Pilot Teacher Candidate",
+    "org_id": "<ORG_ID_DA_ORGANIZACAO_APROVADA>",
+    "maintainer_is_fallback_only": true,
+    "rights_policy": "least_privilege_candidate_pending_validation"
+  },
+  "class_group": {
+    "name": "Turma Piloto 01 — Informática Básica com IA",
+    "description": "Turma documental do piloto; sem alunos reais neste exemplo.",
+    "org_id": "<ORG_ID_DA_ORGANIZACAO_APROVADA>",
+    "members": ["<USER_ID_PLACEHOLDER_ALUNO_AUTORIZADO>"],
+    "resources": ["<RESOURCE_UUID_PLACEHOLDER_COURSE_OR_CHAPTER_OR_ACTIVITY>"]
+  },
+  "course": {
+    "name": "Informática Básica com Inteligência Artificial",
+    "description": "Curso livre introdutório de informática básica com apoio de inteligência artificial.",
+    "about": "Projeto educacional independente.",
+    "learnings": "<objetivos-curriculares-aprovados>",
+    "tags": "curso-livre, informatica-basica, inteligencia-artificial",
+    "thumbnail_type": "image",
+    "thumbnail_image": "<asset-aprovado-ou-vazio>",
+    "thumbnail_video": "",
+    "public": false,
+    "published": false,
+    "open_to_contributors": false,
+    "seo": {
+      "robots_noindex": true,
+      "robots_nofollow": true,
+      "enable_jsonld": false
+    },
+    "extra_metadata": {
+      "methodology": "NAVE IA",
+      "course_type": "curso_livre",
+      "project_disclaimer": "Projeto educacional independente.",
+      "configuration_status": "documental_blueprint_only"
+    }
+  },
+  "methodology": {
+    "name": "Método NAVE IA",
+    "storage_strategy": "course_and_chapter_extra_metadata",
+    "requires_new_database_model": false
+  },
+  "chapters": [
+    {
+      "name": "N — Navegador",
+      "lock_type": "restricted",
+      "extra_metadata": {"nave_step": "N", "nave_label": "Navegador"},
+      "activities": ["<ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
+    },
+    {
+      "name": "A — Aprendizagem",
+      "lock_type": "restricted",
+      "extra_metadata": {"nave_step": "A", "nave_label": "Aprendizagem"},
+      "activities": ["<ASSIGNMENT_ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
+    },
+    {
+      "name": "V — Vivência",
+      "lock_type": "restricted",
+      "extra_metadata": {"nave_step": "V", "nave_label": "Vivência"},
+      "activities": ["<ACTIVITY_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
+    },
+    {
+      "name": "E — Evolução",
+      "lock_type": "restricted",
+      "extra_metadata": {"nave_step": "E", "nave_label": "Evolução"},
+      "activities": ["<PROJECT_ASSIGNMENT_PLACEHOLDER_SEM_CONTEUDO_REAL>"]
+    }
+  ],
+  "access_policy": {
+    "anonymous": "deny_private_course_group_progress_certificate",
+    "student": "allow_released_group_resources_own_submission_own_progress_own_certificate",
+    "teacher": "allow_authorized_org_group_submissions_without_billing_domains_secrets_superadmin",
+    "operator": "configure_audit_approve_publication_and_certificate",
+    "default_lock_type": "restricted",
+    "resource_binding": "UserGroupResource"
+  },
+  "certificate_policy": {
+    "type": "curso_livre",
+    "project_disclaimer": "Projeto educacional independente.",
+    "create_only_after_wording_approval": true,
+    "completion_rule_observed": "all_course_activities_have_completed_trail_steps_and_certification_exists",
+    "forbidden_claims": [
+      "diploma",
+      "vinculo_universitario",
+      "reconhecimento_academico_nao_comprovado",
+      "promessa_emprego",
+      "promessa_renda"
+    ]
+  },
+  "feature_flags": {
+    "public_explore": false,
+    "ai_assistant": false,
+    "rag": false,
+    "payments": false,
+    "marketing_scripts": false,
+    "certificate_emission": false
+  },
+  "validation": {
+    "requires_human_approval_before_execution": true,
+    "must_not_contain_real_personal_data": true,
+    "must_not_be_used_as_seed": true,
+    "scope": "documentation_only"
+  }
+}
