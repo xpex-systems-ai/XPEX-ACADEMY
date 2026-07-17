@@ -18,16 +18,16 @@ RUN if [ "$LEARNHOUSE_PUBLIC" = "true" ]; then rm -rf /app/ee; fi
 WORKDIR /app
 RUN uv sync --frozen
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Copy runtime scripts
+COPY docker-entrypoint.sh resolve-container-port.sh docker-healthcheck.sh ./
+RUN chmod +x docker-entrypoint.sh resolve-container-port.sh docker-healthcheck.sh
 
 # Expose port
 EXPOSE 9000
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:9000/api/v1/health || exit 1
+  CMD ./docker-healthcheck.sh || exit 1
 
 # Use entrypoint script
 ENTRYPOINT ["./docker-entrypoint.sh"]

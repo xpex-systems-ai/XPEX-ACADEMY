@@ -33,7 +33,9 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-005 — Learning Core Blueprint | Concluída | Blueprint oficial do Learning Core criado em [docs/xpex/learning-core](../xpex/learning-core/README.md). |
 | MISSION-006 — Kelle Pilot Configuration Blueprint | Concluída | Blueprint operacional documental criado em [docs/xpex/kelle-pilot/configuration](../xpex/kelle-pilot/configuration/README.md). |
 | MISSION-007 — Kelle Teacher Role Policy Validator | Concluída | Validador dry-run e política candidata em [docs/xpex/kelle-pilot/role-validation](../xpex/kelle-pilot/role-validation/README.md). |
-| MISSION-008 — Platform Core Capability Registry | Em Pull Request | Registro oficial de capacidades do Platform Core criado em [docs/xpex/platform-core](../xpex/platform-core/README.md). |
+| MISSION-008 — Platform Core Capability Registry | Concluída | Registro oficial de capacidades do Platform Core criado em [docs/xpex/platform-core](../xpex/platform-core/README.md). |
+| MISSION-009 — Environment and Deployment Readiness Audit | Concluída | Auditoria de readiness registrada em [docs/xpex/deployment-readiness](../xpex/deployment-readiness/README.md), sem deploy ou mutação de provedor. |
+| MISSION-010 — API Container Port and Bind Hardening | Em Pull Request | Hardening funcional do container API para `PORT` > `LEARNHOUSE_PORT` > `9000`, bind `0.0.0.0` e health check alinhado. |
 
 ## Regras centrais
 
@@ -43,5 +45,3 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 - Sem alterações críticas sem autorização explícita.
 - Licença AGPL-3.0, atribuições LearnHouse e compatibilidade upstream devem ser preservadas.
 - Toda missão deve terminar em Pull Request revisável e aprovação humana antes de merge.
-
-- MISSION-009: [Environment and Deployment Readiness Audit](../xpex/deployment-readiness/README.md) — documented staging readiness without deploy/provider mutation.
