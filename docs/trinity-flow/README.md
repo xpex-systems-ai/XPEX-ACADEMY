@@ -35,7 +35,8 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-007 — Kelle Teacher Role Policy Validator | Concluída | Validador dry-run e política candidata em [docs/xpex/kelle-pilot/role-validation](../xpex/kelle-pilot/role-validation/README.md). |
 | MISSION-008 — Platform Core Capability Registry | Concluída | Registro oficial de capacidades do Platform Core criado em [docs/xpex/platform-core](../xpex/platform-core/README.md). |
 | MISSION-009 — Environment and Deployment Readiness Audit | Concluída | Auditoria de readiness registrada em [docs/xpex/deployment-readiness](../xpex/deployment-readiness/README.md), sem deploy ou mutação de provedor. |
-| MISSION-010 — API Container Port and Bind Hardening | Em Pull Request | Hardening funcional do container API para `PORT` > `LEARNHOUSE_PORT` > `9000`, bind `0.0.0.0` e health check alinhado. |
+| MISSION-010 — API Container Port and Bind Hardening | Concluída | Hardening funcional do container API para `PORT` > `LEARNHOUSE_PORT` > `9000`, bind `0.0.0.0` e health check alinhado. |
+| MISSION-011 — Staging Configuration Matrix | Em Pull Request | Matriz documental de domínios, CORS, cookies, variáveis, secrets, provider placement e checklists criada em [docs/xpex/staging-configuration](../xpex/staging-configuration/README.md), sem valores reais ou mutação de provedor. |
 
 ## Regras centrais
 
