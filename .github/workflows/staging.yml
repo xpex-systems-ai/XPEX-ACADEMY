@@ -1,0 +1,61 @@
+name: Staging build
+
+on:
+  push:
+    branches: [dev, codex-003-staging]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: us-central1
+  ARTIFACT_REPOSITORY: xpex-academy-staging
+  IMAGE_NAME: xpex-academy-api
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.10.7
+          enable-cache: true
+          working-directory: apps/api
+      - name: Sync dependencies from lockfile
+        run: uv sync --frozen
+      - name: Validate Python imports
+        run: |
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY=staging-import-check-secret-minimum-32 TESTING=true uv run python -c "import app, numpy; print('imports ok')"
+      - name: Container runtime tests
+        run: bash tests/test_container_runtime.sh
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_STAGING }}
+          service_account: ${{ secrets.GCP_CLOUD_BUILD_SERVICE_ACCOUNT_STAGING }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Submit build-only Cloud Build
+        run: |
+          IMAGE_TAG="${GITHUB_SHA::12}"
+          if [[ -z "$IMAGE_TAG" ]]; then
+            echo "IMAGE_TAG cannot be empty" >&2
+            exit 1
+          fi
+          gcloud builds submit \
+            --project "${{ secrets.GCP_PROJECT_ID_STAGING }}" \
+            --config cloudbuild.yaml \
+            --substitutions _REGION="$REGION",_ARTIFACT_REPOSITORY="$ARTIFACT_REPOSITORY",_IMAGE_NAME="$IMAGE_NAME",_IMAGE_TAG="$IMAGE_TAG"
