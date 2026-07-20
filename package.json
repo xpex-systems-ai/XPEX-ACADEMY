@@ -6,9 +6,9 @@
   "scripts": {
     "install:web": "cd apps/web && bun install --frozen-lockfile",
     "dev": "bun run dev:web",
-    "dev:web": "cd apps/web && bun run dev --hostname 0.0.0.0",
-    "dev:api": "cd apps/api && LEARNHOUSE_DEVELOPMENT_MODE=true uv run uvicorn app:app --host 0.0.0.0 --port ${LEARNHOUSE_PORT:-1338} --reload",
-    "build": "cd apps/web && bun run build",
+    "dev:web": "bun run install:web && cd apps/web && bun run dev --hostname 0.0.0.0",
+    "dev:api": "cd apps/api && LEARNHOUSE_DEVELOPMENT_MODE=true uv run uvicorn app:app --host 0.0.0.0 --port ${PORT:-${LEARNHOUSE_PORT:-9000}} --reload",
+    "build": "bun run install:web && cd apps/web && bun run build",
     "start": "cd apps/web && bun run start --hostname 0.0.0.0",
     "lint": "cd apps/web && bun run lint",
     "test": "cd apps/web && bun run test",
