@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import Activity from './Activity'
@@ -10,7 +10,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { revalidateTags } from '@services/utils/ts/requests'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { useCourse } from '@components/Contexts/CourseContext'
 interface ModifiedChapterInterface {
   chapterId: string
   chapterName: string
@@ -27,8 +26,6 @@ function Chapter(props: any) {
   const [selectedChapter, setSelectedChapter] = React.useState<
     string | undefined
   >(undefined)
-  const course = useCourse() as any;
-  const withUnpublishedActivities = course ? course.withUnpublishedActivities : false
 
   async function updateChapterName(chapterId: string) {
     if (modifiedChapter?.chapterId === chapterId) {
@@ -49,10 +46,11 @@ function Chapter(props: any) {
       draggableId={String(props.info.list.chapter.uuid)}
       index={props.index}
     >
-      {(provided, snapshot) => (
+      {(provided) => (
         <div
           {...provided.dragHandleProps}
           {...provided.draggableProps}
+          style={provided.draggableProps.style as CSSProperties | undefined}
           ref={provided.innerRef}
           className="max-w-(--breakpoint-2xl) mx-auto bg-white px-5 mb-5 p-3 text-[15px] block rounded-[9px] border border-white/20 shadow-md transition-all duration-200"
           key={props.info.list.chapter.id}

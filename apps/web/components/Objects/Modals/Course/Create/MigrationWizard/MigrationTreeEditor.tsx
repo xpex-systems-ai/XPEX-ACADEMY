@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties } from 'react'
 import React, { useMemo } from 'react'
 import {
   DragDropContext,
@@ -14,7 +15,7 @@ import {
   ChevronRight,
   FileVideo,
   FileText,
-  Image,
+  ImageIcon,
   Music,
   FolderOpen,
   X,
@@ -34,7 +35,7 @@ function getFileIcon(ext: string) {
   if (['pdf'].includes(ext))
     return <FileText size={14} className="text-red-500" />
   if (['png', 'jpg', 'jpeg', 'webp'].includes(ext))
-    return <Image size={14} className="text-green-500" />
+    return <ImageIcon size={14} className="text-green-500" />
   if (['mp3', 'wav'].includes(ext))
     return <Music size={14} className="text-purple-500" />
   return <FileText size={14} className="text-gray-500" />
@@ -58,7 +59,7 @@ const EXT_TO_ACTIVITY_TYPE: Record<
 
 interface MigrationTreeEditorProps {
   structure: MigrationTreeStructure
-  onStructureChange: (structure: MigrationTreeStructure) => void
+  onStructureChange: (_structure: MigrationTreeStructure) => void
   files: UploadedFileInfo[]
 }
 
@@ -296,6 +297,7 @@ export default function MigrationTreeEditor({
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
+                        style={provided.draggableProps.style as CSSProperties | undefined}
                         className={`border rounded-lg ${
                           snapshot.isDragging ? 'shadow-lg' : ''
                         }`}
@@ -367,6 +369,7 @@ export default function MigrationTreeEditor({
                                           <div
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
+                                            style={provided.draggableProps.style as CSSProperties | undefined}
                                             className={`border rounded-md p-2 ${
                                               snapshot.isDragging
                                                 ? 'shadow-md bg-blue-50'

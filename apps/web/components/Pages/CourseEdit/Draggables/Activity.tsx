@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Draggable } from '@hello-pangea/dnd'
-import { getAPIUrl, getUriWithOrg } from '@services/config/config'
+import { getUriWithOrg } from '@services/config/config'
 import {
   Video,
   Sparkles,
@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import { deleteActivity, updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { useCourse } from '@components/Contexts/CourseContext'
 
 interface ModifiedActivityInterface {
   activityId: string
@@ -37,8 +36,6 @@ function Activity(props: any) {
   const [selectedActivity, setSelectedActivity] = React.useState<
     string | undefined
   >(undefined)
-  const course = useCourse() as any;
-  const withUnpublishedActivities = course ? course.withUnpublishedActivities : false
 
   async function removeActivity() {
     await deleteActivity(props.activity.id, session.data?.tokens?.access_token)
@@ -71,6 +68,7 @@ function Activity(props: any) {
           className="flex flex-row py-2 my-2 rounded-md bg-gray-50 text-gray-500 hover:bg-gray-100 hover:scale-102 hover:shadow-sm space-x-1 w-auto items-center ring-1 ring-inset ring-gray-400/10 shadow-xs transition-all delay-100 duration-75 ease-linear"
           key={props.activity.id}
           {...provided.draggableProps}
+          style={provided.draggableProps.style as CSSProperties | undefined}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
         >

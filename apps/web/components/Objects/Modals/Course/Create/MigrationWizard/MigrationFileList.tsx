@@ -1,7 +1,7 @@
 'use client'
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
-import { FileVideo, FileText, Image, Music, GripVertical } from 'lucide-react'
+import { FileVideo, FileText, ImageIcon, Music, GripVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { UploadedFileInfo } from '@services/courses/migration'
 
@@ -11,7 +11,7 @@ function getFileIcon(ext: string) {
   if (['pdf'].includes(ext))
     return <FileText size={14} className="text-red-500" />
   if (['png', 'jpg', 'jpeg', 'webp'].includes(ext))
-    return <Image size={14} className="text-green-500" />
+    return <ImageIcon size={14} className="text-green-500" />
   if (['mp3', 'wav'].includes(ext))
     return <Music size={14} className="text-purple-500" />
   return <FileText size={14} className="text-gray-500" />
@@ -53,6 +53,7 @@ export default function MigrationFileList({
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
+                    style={provided.draggableProps.style as CSSProperties | undefined}
                     {...provided.dragHandleProps}
                     className={`flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm ${
                       snapshot.isDragging

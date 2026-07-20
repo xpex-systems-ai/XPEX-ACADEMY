@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { Plus, Trash2, GripVertical, ImageIcon, Link as LinkIcon, Award, Edit, TextIcon, Briefcase, GraduationCap, MapPin, BookOpen } from 'lucide-react'
 import { Input } from "@components/ui/input"
@@ -100,14 +100,6 @@ interface ProfileAffiliation {
   logoUrl: string;
 }
 
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail?: string;
-  status: string;
-}
-
 interface BaseSection {
   id: string;
   type: keyof typeof SECTION_TYPES;
@@ -196,13 +188,11 @@ const UserProfileBuilder = () => {
               setProfileData({
                 sections: profileSections || []
               });
-            } catch (error) {
-              console.error('Error parsing profile data:', error);
+            } catch {
               setProfileData({ sections: [] });
             }
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
+        } catch {
           toast.error(t('user.settings.profile_builder.toasts.loading_error'));
         } finally {
           setIsLoading(false)
@@ -329,8 +319,7 @@ const UserProfileBuilder = () => {
       } else {
         throw new Error('Failed to update profile')
       }
-    } catch (error) {
-      console.error('Error updating profile:', error)
+    } catch {
       toast.error(t('user.settings.profile_builder.toasts.save_error'), { id: loadingToast })
     } finally {
       setIsSaving(false)
@@ -394,6 +383,7 @@ const UserProfileBuilder = () => {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            style={provided.draggableProps.style as CSSProperties | undefined}
                             onClick={() => setSelectedSection(index)}
                             className={`p-4 bg-white/80 backdrop-blur-xs rounded-lg cursor-pointer border ${
                               selectedSection === index 
@@ -520,7 +510,7 @@ const UserProfileBuilder = () => {
 
 interface SectionEditorProps {
   section: ProfileSection;
-  onChange: (section: ProfileSection) => void;
+  onChange: (_section: ProfileSection) => void;
 }
 
 const SectionEditor: React.FC<SectionEditorProps> = ({ section, onChange }) => {
@@ -549,7 +539,7 @@ const SectionEditor: React.FC<SectionEditorProps> = ({ section, onChange }) => {
 
 const ImageGalleryEditor: React.FC<{
   section: ImageGallerySection;
-  onChange: (section: ImageGallerySection) => void;
+  onChange: (_section: ImageGallerySection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -652,7 +642,7 @@ const ImageGalleryEditor: React.FC<{
 
 const TextEditor: React.FC<{
   section: TextSection;
-  onChange: (section: TextSection) => void;
+  onChange: (_section: TextSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -692,7 +682,7 @@ const TextEditor: React.FC<{
 
 const LinksEditor: React.FC<{
   section: LinksSection;
-  onChange: (section: LinksSection) => void;
+  onChange: (_section: LinksSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -777,7 +767,7 @@ const LinksEditor: React.FC<{
 
 const SkillsEditor: React.FC<{
   section: SkillsSection;
-  onChange: (section: SkillsSection) => void;
+  onChange: (_section: SkillsSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -880,7 +870,7 @@ const SkillsEditor: React.FC<{
 
 const ExperienceEditor: React.FC<{
   section: ExperienceSection;
-  onChange: (section: ExperienceSection) => void;
+  onChange: (_section: ExperienceSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1042,7 +1032,7 @@ const ExperienceEditor: React.FC<{
 
 const EducationEditor: React.FC<{
   section: EducationSection;
-  onChange: (section: EducationSection) => void;
+  onChange: (_section: EducationSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1218,7 +1208,7 @@ const EducationEditor: React.FC<{
 
 const AffiliationEditor: React.FC<{
   section: AffiliationSection;
-  onChange: (section: AffiliationSection) => void;
+  onChange: (_section: AffiliationSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1329,7 +1319,7 @@ const AffiliationEditor: React.FC<{
 
 const CoursesEditor: React.FC<{
   section: CoursesSection;
-  onChange: (section: CoursesSection) => void;
+  onChange: (_section: CoursesSection) => void;
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (

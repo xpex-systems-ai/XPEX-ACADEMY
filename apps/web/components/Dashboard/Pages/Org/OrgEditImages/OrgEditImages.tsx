@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties } from 'react'
 import React, { useState } from 'react'
 import { UploadCloud, Info, Plus, X, GripVertical, Images, StarIcon, ImageIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -580,6 +581,7 @@ export default function OrgEditImages() {
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
+                                style={provided.draggableProps.style as CSSProperties | undefined}
                                 className={cn(
                                   "relative group shrink-0",
                                   "w-48",

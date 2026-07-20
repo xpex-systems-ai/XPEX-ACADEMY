@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties } from 'react'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useOrg } from '@components/Contexts/OrgContext'
@@ -188,7 +189,7 @@ const OrgEditMenu: React.FC = () => {
   const [newIcon, setNewIcon] = useState(DEFAULT_MENU_ICON)
 
   useEffect(() => {
-    setItems(buildInitialItems(storedMenu))
+    queueMicrotask(() => setItems(buildInitialItems(storedMenu)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(storedMenu)])
 
@@ -317,6 +318,7 @@ const OrgEditMenu: React.FC = () => {
                         <div
                           ref={prov.innerRef}
                           {...prov.draggableProps}
+                          style={prov.draggableProps.style as CSSProperties | undefined}
                           className={`flex items-center gap-3 bg-gray-50/60 rounded-lg p-3 nice-shadow ${snap.isDragging ? 'bg-white shadow-lg' : ''} ${grayed ? 'opacity-60 grayscale' : ''}`}
                         >
                           <button {...prov.dragHandleProps} className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing" aria-label="Reorder">
