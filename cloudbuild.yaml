@@ -4,6 +4,7 @@ substitutions:
   _ARTIFACT_REPOSITORY: xpex-academy-staging
   _IMAGE_NAME: xpex-academy-api
   _SERVICE_NAME: xpex-academy-staging
+  _IMAGE_TAG: manual-staging
   _BUILD_CONTEXT: apps/api
   _DOCKERFILE: apps/api/Dockerfile
 
@@ -14,6 +15,19 @@ options:
 timeout: 1800s
 
 steps:
+  - name: gcr.io/cloud-builders/gcloud
+    id: validate-image-tag
+    entrypoint: /bin/bash
+    args:
+      - -euo
+      - pipefail
+      - -c
+      - |
+        if [[ -z "${_IMAGE_TAG}" || "${_IMAGE_TAG}" == *":"* ]]; then
+          echo "_IMAGE_TAG must be non-empty and must not contain a colon." >&2
+          exit 1
+        fi
+
   - name: gcr.io/cloud-builders/docker
     id: build-staging-image
     args:
@@ -21,7 +35,7 @@ steps:
       - --file
       - ${_DOCKERFILE}
       - --tag
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
       - --tag
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:staging-latest
       - ${_BUILD_CONTEXT}
@@ -33,10 +47,10 @@ steps:
       - --rm
       - --entrypoint
       - /bin/bash
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
       - -lc
       - LEARNHOUSE_AUTH_JWT_SECRET_KEY=staging-import-check-secret-minimum-32 TESTING=true uv run python -c "import app, numpy; print('imports ok')"
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:${_IMAGE_TAG}
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPOSITORY}/${_IMAGE_NAME}:staging-latest
