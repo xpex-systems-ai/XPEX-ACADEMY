@@ -1,6 +1,6 @@
 # Primeiro deploy manual de staging — auditoria GO/NO-GO
 
-> **Status:** PRONTO PARA O PRIMEIRO DEPLOY MANUAL DE STAGING. A branch foi atualizada para refletir a infraestrutura versionada após a PR #18: `cloudbuild.yaml`, `.github/workflows/staging.yml`, `.env.staging.example`, scripts de staging e documentação operacional estão presentes. Nenhum deploy foi executado, nenhum recurso pago foi criado e nenhum secret real foi usado.
+> **Status:** PRONTO PARA O PRIMEIRO DEPLOY MANUAL DE STAGING. Este playbook assume a base `dev` após o merge da PR #18, onde `cloudbuild.yaml`, `.github/workflows/staging.yml`, `.env.staging.example`, scripts de staging e documentação operacional já existem. A PR #19 deve adicionar apenas este playbook complementar. Nenhum deploy foi executado, nenhum recurso pago foi criado e nenhum secret real foi usado.
 
 ## Arquivos auditados e fonte operacional
 
@@ -108,33 +108,28 @@
 1. Preencher uma cópia local de `.env.staging.example` sem commitar secrets.
 2. Validar ambiente: `scripts/check-env.sh <ENV_FILE>`.
 3. Revisar o deploy sem efeitos colaterais: `scripts/deploy-staging.sh --dry-run --env-file <ENV_FILE>`.
-4. Ativar APIs e criar recursos externos aprovados no GCP.
-5. Criar secrets reais no Secret Manager.
-6. Conceder IAM mínimo à service account.
-7. Executar migrações Alembic manualmente contra o banco de staging.
-8. Executar o build versionado por `cloudbuild.yaml` e deploy Cloud Run via script sem `--dry-run`, somente após GO explícito.
-9. Verificar health: `scripts/verify-staging.sh <STAGING_API_URL>`.
-10. Consultar logs e validar CORS/autenticação.
-11. Se necessário, seguir `docs/deployment/rollback.md`.
+4. Ativar APIs no projeto aprovado.
+5. Criar Artifact Registry, service account, Cloud SQL/database/user, Redis/VPC quando aplicável e **bucket antes de conceder IAM de storage**.
+6. Criar secrets reais no Secret Manager por prompt interativo, arquivo temporário protegido ou UI do Secret Manager; nunca inserir valores inline no histórico do shell.
+7. Conceder IAM mínimo à service account, incluindo permissões no bucket já criado.
+8. Configurar storage de forma compatível com o app: endpoint S3 compatível; credenciais HMAC quando GCS for usado via API S3; ou storage externo S3/R2/MinIO aprovado com credenciais no Secret Manager.
+9. Executar migrações Alembic manualmente contra o banco de staging.
+10. Executar o build/deploy pelo script versionado da dev sem `--dry-run`, somente após GO explícito.
+11. Verificar health: `scripts/verify-staging.sh <STAGING_API_URL>`.
+12. Consultar logs e validar CORS/autenticação.
+13. Se necessário, seguir `docs/deployment/rollback.md`.
 
 ## Comandos manuais complementares
 
-```bash
-# APIs
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com vpcaccess.googleapis.com redis.googleapis.com storage.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com
+Os comandos de build/deploy/verify/rollback não são duplicados aqui porque a base `dev` já possui os scripts e runbooks oficiais da PR #18. Use:
 
-# Migrações Alembic
-cd apps/api
-LEARNHOUSE_AUTH_JWT_SECRET_KEY='<JWT_SECRET_32_PLUS_CHARS>' LEARNHOUSE_SQL_CONNECTION_STRING='<POSTGRESQL_CONNECTION_STRING>' uv run alembic upgrade head
-cd ../..
+- `scripts/check-env.sh <ENV_FILE>` para validar o ambiente.
+- `scripts/deploy-staging.sh --dry-run --env-file <ENV_FILE>` para revisar comandos sem efeitos colaterais.
+- `scripts/deploy-staging.sh --env-file <ENV_FILE>` somente após GO explícito.
+- `scripts/verify-staging.sh <STAGING_API_URL>` para health.
+- `docs/deployment/rollback.md` para rollback por revisão do Cloud Run.
 
-# Logs
-gcloud run services logs read <CLOUD_RUN_SERVICE> --region <GCP_REGION> --limit 100
-
-# Rollback
-gcloud run revisions list --service <CLOUD_RUN_SERVICE> --region <GCP_REGION>
-gcloud run services update-traffic <CLOUD_RUN_SERVICE> --region <GCP_REGION> --to-revisions <PREVIOUS_REVISION>=100
-```
+Comandos externos de criação de recursos continuam sob responsabilidade do proprietário e devem seguir a ordem deste playbook.
 
 ## Checklist GO/NO-GO
 
@@ -170,6 +165,6 @@ gcloud run services update-traffic <CLOUD_RUN_SERVICE> --region <GCP_REGION> --t
 
 ## Conclusão
 
-**PR #19 ATUALIZADA SOBRE A DEV MAIS RECENTE** no contexto disponível deste workspace, com os artefatos da PR #18 integrados e auditados.
+**PR #19 ATUALIZADA SOBRE A DEV MAIS RECENTE**, mantendo na PR somente o playbook específico do primeiro deploy e referenciando os artefatos já entregues pela PR #18.
 
 **PRONTA PARA MERGE**, desde que o proprietário confirme as pendências externas reais acima e mantenha a regra de não executar deploy antes do GO manual.
