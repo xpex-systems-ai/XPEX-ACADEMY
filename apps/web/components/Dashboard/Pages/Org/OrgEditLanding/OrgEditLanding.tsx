@@ -147,11 +147,13 @@ const OrgEditLanding = () => {
     const rawLanding = org?.config?.config?.customization?.landing || org?.config?.config?.landing
     if (rawLanding) {
       const landingConfig = rawLanding
-      setLandingData({
-        sections: landingConfig.sections || [],
-        enabled: landingConfig.enabled || false
+      queueMicrotask(() => {
+        setLandingData({
+          sections: landingConfig.sections || [],
+          enabled: landingConfig.enabled || false
+        })
+        setIsLandingEnabled(landingConfig.enabled || false)
       })
-      setIsLandingEnabled(landingConfig.enabled || false)
     }
   }, [org])
 
@@ -272,9 +274,8 @@ const OrgEditLanding = () => {
       } else {
         toast.error(t('dashboard.organization.landing.save_error'))
       }
-    } catch (error) {
+    } catch {
       toast.error(t('dashboard.organization.landing.save_error'))
-      console.error('Error saving landing page:', error)
     } finally {
       setIsSaving(false)
     }
@@ -464,7 +465,7 @@ const OrgEditLanding = () => {
 
 interface SectionEditorProps {
   section: LandingSection
-  onChange: (section: LandingSection) => void
+  onChange: (_section: LandingSection) => void
 }
 
 const SectionEditor: React.FC<SectionEditorProps> = ({ section, onChange }) => {
@@ -486,7 +487,7 @@ const SectionEditor: React.FC<SectionEditorProps> = ({ section, onChange }) => {
 
 const HeroSectionEditor: React.FC<{
   section: LandingHeroSection
-  onChange: (section: LandingHeroSection) => void
+  onChange: (_section: LandingHeroSection) => void
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1125,7 +1126,7 @@ const HeroSectionEditor: React.FC<{
 }
 
 interface ImageUploaderProps {
-  onImageUploaded: (imageUrl: string) => void
+  onImageUploaded: (_imageUrl: string) => void
   className?: string
   buttonText?: string
   id: string
@@ -1163,8 +1164,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUploaded, classNam
       } else {
         toast.error(t('dashboard.organization.images.toasts.logo_error'))
       }
-    } catch (error) {
-      console.error('Error uploading image:', error)
+    } catch {
       toast.error(t('dashboard.organization.images.toasts.logo_error'))
     } finally {
       setIsUploading(false)
@@ -1195,7 +1195,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUploaded, classNam
 
 const TextAndImageSectionEditor: React.FC<{
   section: LandingTextAndImageSection
-  onChange: (section: LandingTextAndImageSection) => void
+  onChange: (_section: LandingTextAndImageSection) => void
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1296,7 +1296,7 @@ const TextAndImageSectionEditor: React.FC<{
 
 const LogosSectionEditor: React.FC<{
   section: LandingLogos
-  onChange: (section: LandingLogos) => void
+  onChange: (_section: LandingLogos) => void
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1398,7 +1398,7 @@ const LogosSectionEditor: React.FC<{
 
 const PeopleSectionEditor: React.FC<{
   section: LandingPeople
-  onChange: (section: LandingPeople) => void
+  onChange: (_section: LandingPeople) => void
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   return (
@@ -1540,7 +1540,7 @@ const PeopleSectionEditor: React.FC<{
 
 const FeaturedCoursesEditor: React.FC<{
   section: LandingFeaturedCourses
-  onChange: (section: LandingFeaturedCourses) => void
+  onChange: (_section: LandingFeaturedCourses) => void
 }> = ({ section, onChange }) => {
   const { t } = useTranslation()
   const org = useOrg() as any

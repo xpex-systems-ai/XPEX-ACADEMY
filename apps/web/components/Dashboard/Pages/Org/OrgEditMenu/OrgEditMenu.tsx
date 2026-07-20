@@ -189,7 +189,7 @@ const OrgEditMenu: React.FC = () => {
   const [newIcon, setNewIcon] = useState(DEFAULT_MENU_ICON)
 
   useEffect(() => {
-    setItems(buildInitialItems(storedMenu))
+    queueMicrotask(() => setItems(buildInitialItems(storedMenu)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(storedMenu)])
 

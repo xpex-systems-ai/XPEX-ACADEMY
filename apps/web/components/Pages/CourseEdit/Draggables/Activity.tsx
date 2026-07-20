@@ -1,7 +1,7 @@
 import React, { type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Draggable } from '@hello-pangea/dnd'
-import { getAPIUrl, getUriWithOrg } from '@services/config/config'
+import { getUriWithOrg } from '@services/config/config'
 import {
   Video,
   Sparkles,
@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import { deleteActivity, updateActivity } from '@services/courses/activities'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { useCourse } from '@components/Contexts/CourseContext'
 
 interface ModifiedActivityInterface {
   activityId: string
@@ -37,8 +36,6 @@ function Activity(props: any) {
   const [selectedActivity, setSelectedActivity] = React.useState<
     string | undefined
   >(undefined)
-  const course = useCourse() as any;
-  const withUnpublishedActivities = course ? course.withUnpublishedActivities : false
 
   async function removeActivity() {
     await deleteActivity(props.activity.id, session.data?.tokens?.access_token)

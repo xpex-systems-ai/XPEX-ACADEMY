@@ -10,7 +10,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { revalidateTags } from '@services/utils/ts/requests'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
-import { useCourse } from '@components/Contexts/CourseContext'
 interface ModifiedChapterInterface {
   chapterId: string
   chapterName: string
@@ -27,8 +26,6 @@ function Chapter(props: any) {
   const [selectedChapter, setSelectedChapter] = React.useState<
     string | undefined
   >(undefined)
-  const course = useCourse() as any;
-  const withUnpublishedActivities = course ? course.withUnpublishedActivities : false
 
   async function updateChapterName(chapterId: string) {
     if (modifiedChapter?.chapterId === chapterId) {
@@ -49,7 +46,7 @@ function Chapter(props: any) {
       draggableId={String(props.info.list.chapter.uuid)}
       index={props.index}
     >
-      {(provided, snapshot) => (
+      {(provided) => (
         <div
           {...provided.dragHandleProps}
           {...provided.draggableProps}

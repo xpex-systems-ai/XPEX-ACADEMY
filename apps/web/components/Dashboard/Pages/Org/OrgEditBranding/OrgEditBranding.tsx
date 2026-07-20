@@ -1,7 +1,7 @@
 'use client'
 import type { CSSProperties } from 'react'
 import React, { useState } from 'react'
-import { UploadCloud, Info, Plus, X, GripVertical, Images, StarIcon, ImageIcon, Share2, Link as LinkIcon, Palette, LogIn } from 'lucide-react'
+import { UploadCloud, Info, Plus, X, GripVertical, Images, StarIcon, ImageIcon, Share2, Palette, LogIn } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
@@ -152,7 +152,7 @@ export default function OrgEditBranding() {
         toast.success(t('dashboard.organization.images.toasts.logo_success'), { id: loadingToast })
         queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
         router.refresh()
-      } catch (err) {
+      } catch {
         toast.error(t('dashboard.organization.images.toasts.logo_error'), { id: loadingToast })
       } finally {
         setIsLogoUploading(false)
@@ -172,7 +172,7 @@ export default function OrgEditBranding() {
         toast.success(t('dashboard.organization.images.toasts.thumbnail_success'), { id: loadingToast })
         queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
         router.refresh()
-      } catch (err) {
+      } catch {
         toast.error(t('dashboard.organization.images.toasts.thumbnail_error'), { id: loadingToast })
       } finally {
         setIsThumbnailUploading(false)
@@ -193,7 +193,7 @@ export default function OrgEditBranding() {
         await revalidateTags(['organizations'], org.slug)
         queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
         router.refresh()
-      } catch (err) {
+      } catch {
         toast.error(t('dashboard.organization.images.toasts.logo_error'), { id: loadingToast })
       } finally {
         setIsFaviconUploading(false)
@@ -263,7 +263,7 @@ export default function OrgEditBranding() {
           : t('dashboard.organization.images.toasts.preview_added_plural', { count: files.length }), { id: loadingToast })
         queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
         router.refresh()
-      } catch (err) {
+      } catch {
         toast.error(t('dashboard.organization.images.toasts.preview_error'), { id: loadingToast })
       } finally {
         setIsPreviewUploading(false)
@@ -287,18 +287,18 @@ export default function OrgEditBranding() {
       toast.success(t('dashboard.organization.images.toasts.preview_removed'), { id: loadingToast })
       queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
       router.refresh()
-    } catch (err) {
+    } catch {
       toast.error(t('dashboard.organization.images.toasts.preview_remove_error'), { id: loadingToast })
     }
   }
 
   const extractVideoId = (url: string, type: 'youtube' | 'loom'): string | null => {
     if (type === 'youtube') {
-      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+      const regex = new RegExp('(?:youtube\\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\\.be/)([^"&?/\\s]{11})')
       const match = url.match(regex)
       return match ? match[1] : null
     } else if (type === 'loom') {
-      const regex = /(?:loom\.com\/(?:share|embed)\/)([a-zA-Z0-9]+)/
+      const regex = new RegExp('(?:loom\\.com/(?:share|embed)/)([a-zA-Z0-9]+)')
       const match = url.match(regex)
       return match ? match[1] : null
     }
@@ -360,7 +360,7 @@ export default function OrgEditBranding() {
       toast.success(t('dashboard.organization.images.toasts.video_preview_added'), { id: loadingToast });
       queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) });
       router.refresh();
-    } catch (err) {
+    } catch {
       toast.error(t('dashboard.organization.images.toasts.video_preview_error'), { id: loadingToast });
     }
   };
@@ -403,7 +403,7 @@ export default function OrgEditBranding() {
       toast.success(t('dashboard.organization.images.toasts.order_updated'), { id: loadingToast });
       queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) });
       router.refresh();
-    } catch (err) {
+    } catch {
       toast.error(t('dashboard.organization.images.toasts.order_update_error'), { id: loadingToast });
       setPreviews(previews);
     }
@@ -427,7 +427,7 @@ export default function OrgEditBranding() {
       queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
       toast.success(t('dashboard.organization.settings.update_success'), { id: loadingToast })
       router.refresh()
-    } catch (err) {
+    } catch {
       toast.error(t('dashboard.organization.settings.update_error'), { id: loadingToast })
     } finally {
       setIsThemeSaving(false)
@@ -456,7 +456,7 @@ export default function OrgEditBranding() {
 
       queryClient.invalidateQueries({ queryKey: queryKeys.org.detail(org.slug) })
       toast.success(t('dashboard.organization.settings.update_success'), { id: loadingToast })
-    } catch (err) {
+    } catch {
       toast.error(t('dashboard.organization.settings.update_error'), { id: loadingToast })
     }
   }

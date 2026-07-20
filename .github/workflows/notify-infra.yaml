@@ -22,8 +22,27 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      INFRA_REPO_PAT: ${{ secrets.INFRA_REPO_PAT }}
+      INFRA_REPO: ${{ vars.INFRA_REPO }}
     steps:
+      - name: Validate infrastructure dispatch configuration
+        id: config
+        run: |
+          if [ -z "${INFRA_REPO_PAT}" ]; then
+            echo "Infrastructure dispatch skipped: required secret INFRA_REPO_PAT is not configured."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${INFRA_REPO}" ]; then
+            echo "Infrastructure dispatch skipped: required repository variable INFRA_REPO is not configured."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
       - name: Send repository dispatch
+        if: steps.config.outputs.ready == 'true'
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.INFRA_REPO_PAT }}

@@ -106,7 +106,7 @@ function ActivityElement(props: ActivitiyElementProps) {
         }
       })
     }
-  }, [props.activity, course])
+  }, [props.activity.activity_type, props.activity.activity_uuid, access_token])
 
   async function deleteActivityUI() {
     const toast_loading = toast.loading(t('dashboard.courses.structure.activity.toasts.deleting'))
@@ -214,9 +214,8 @@ function ActivityElement(props: ActivitiyElementProps) {
         await revalidateTags(['courses'], props.orgslug)
         toast.success(t('dashboard.courses.structure.activity.toasts.name_update_success'))
         router.refresh()
-      } catch (error) {
+      } catch {
         toast.error(t('dashboard.courses.structure.activity.toasts.name_update_error'))
-        console.error('Error updating activity name:', error)
       } finally {
         setIsUpdatingName(false)
         setSelectedActivity(undefined)
