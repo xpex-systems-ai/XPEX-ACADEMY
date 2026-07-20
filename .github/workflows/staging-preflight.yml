@@ -1,0 +1,103 @@
+name: Staging preflight
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  simulated-preflight:
+    runs-on: ubuntu-latest
+    env:
+      LEARNHOUSE_AUTH_JWT_SECRET_KEY: staging-import-check-secret-minimum-32
+      TESTING: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.10.7
+          enable-cache: true
+          working-directory: apps/api
+      - name: Create fictitious staging env
+        run: |
+          cat > .env.staging <<'ENV'
+          PROJECT_ID=xpex-stage-12345
+          GCP_PROJECT_ID=xpex-stage-12345
+          REGION=us-central1
+          GCP_REGION=us-central1
+          ARTIFACT_REPOSITORY=xpex-academy-staging
+          SERVICE_NAME=xpex-academy-staging
+          CLOUD_RUN_SERVICE=xpex-academy-staging
+          IMAGE_NAME=xpex-academy-api
+          CLOUD_RUN_SERVICE_ACCOUNT=xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com
+          CLOUD_RUN_SA=xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com
+          CLOUD_SQL_INSTANCE=xpex-stage-12345:us-central1:xpex-academy-staging-db
+          DB_NAME=xpex_academy_staging
+          DB_USER=xpex_staging_app
+          REDIS_INSTANCE=xpex-academy-staging-redis
+          VPC_CONNECTOR=xpex-academy-staging-connector
+          GCS_BUCKET=xpex-academy-staging-media
+          STAGING_BUCKET=xpex-academy-staging-media
+          STAGING_API_HOST=staging-api.example.test
+          STAGING_API_URL=https://staging-api.example.test
+          STAGING_FRONTEND_ORIGIN=https://staging.example.test
+          IMAGE_TAG=ci-preflight
+          MAX_INSTANCES=3
+          LEARNHOUSE_ENV=staging
+          LEARNHOUSE_DEVELOPMENT_MODE=false
+          LEARNHOUSE_SITE_NAME="XpeX Academy Staging"
+          LEARNHOUSE_SITE_DESCRIPTION="Fictitious staging CI environment."
+          LEARNHOUSE_CONTACT_EMAIL=staging-ops@example.test
+          LEARNHOUSE_DOMAIN=staging-api.example.test
+          LEARNHOUSE_FRONTEND_DOMAIN=staging.example.test
+          LEARNHOUSE_SSL=true
+          LEARNHOUSE_PORT=8080
+          LEARNHOUSE_TENANCY=single
+          LEARNHOUSE_ALLOWED_ORIGINS=https://staging.example.test
+          LEARNHOUSE_ALLOWED_REGEXP=^https://staging\.example\.test$
+          LEARNHOUSE_CONTENT_DELIVERY_TYPE=s3api
+          LEARNHOUSE_S3_API_BUCKET_NAME=xpex-academy-staging-media
+          LEARNHOUSE_S3_API_ENDPOINT_URL=https://storage.googleapis.com
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY=fictitious-secret-only-for-ci-minimum-32
+          LEARNHOUSE_SQL_CONNECTION_STRING=postgresql+asyncpg://staging_user:fake_password@127.0.0.1:5432/xpex_academy_staging
+          LEARNHOUSE_REDIS_CONNECTION_STRING=redis://127.0.0.1:6379/0
+          LEARNHOUSE_IS_AI_ENABLED=false
+          ENV
+      - name: Validate YAML workflows
+        run: |
+          ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |path| YAML.load_file(path); puts "ok #{path}" }'
+      - name: Validate shell scripts
+        run: bash -n scripts/*.sh apps/api/*.sh
+      - name: Validate env template and simulated preflight
+        run: |
+          scripts/check-env.sh .env.staging
+          scripts/preflight-staging.sh --env-file .env.staging --simulated
+          scripts/deploy-staging.sh --dry-run --env-file .env.staging
+      - name: Sync API dependencies
+        working-directory: apps/api
+        run: uv sync --frozen
+      - name: Import numpy and app
+        working-directory: apps/api
+        run: uv run python -c "import numpy, app; print('imports ok')"
+      - name: Health and CORS smoke tests
+        working-directory: apps/api
+        run: |
+          uv run python - <<'PY'
+          from fastapi.testclient import TestClient
+          import app
+          client = TestClient(app.app)
+          health = client.get('/api/v1/health')
+          assert health.status_code == 200, health.text
+          cors = client.options('/api/v1/health', headers={
+              'Origin': 'https://staging.example.test',
+              'Access-Control-Request-Method': 'GET',
+          })
+          assert cors.status_code in {200, 204}, cors.text
+          assert cors.headers.get('access-control-allow-origin') in {'https://staging.example.test', '*'}
+          print('health and cors ok')
+          PY
+      - name: Secret scan
+        run: |
+          ! rg -n "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})" . --glob '!apps/api/.venv/**' --glob '!docs/node_modules/**'
