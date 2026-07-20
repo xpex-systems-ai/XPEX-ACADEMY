@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
 import { FileVideo, FileText, Image, Music, GripVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -53,6 +53,7 @@ export default function MigrationFileList({
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
+                    style={provided.draggableProps.style as CSSProperties | undefined}
                     {...provided.dragHandleProps}
                     className={`flex items-center space-x-2 px-2 py-1.5 rounded-md text-sm ${
                       snapshot.isDragging

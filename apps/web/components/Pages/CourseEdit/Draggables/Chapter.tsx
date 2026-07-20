@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import Activity from './Activity'
@@ -53,6 +53,7 @@ function Chapter(props: any) {
         <div
           {...provided.dragHandleProps}
           {...provided.draggableProps}
+          style={provided.draggableProps.style as CSSProperties | undefined}
           ref={provided.innerRef}
           className="max-w-(--breakpoint-2xl) mx-auto bg-white px-5 mb-5 p-3 text-[15px] block rounded-[9px] border border-white/20 shadow-md transition-all duration-200"
           key={props.info.list.chapter.id}

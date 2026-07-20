@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { Plus, Trash2, GripVertical, ImageIcon, Link as LinkIcon, Award, Edit, TextIcon, Briefcase, GraduationCap, MapPin, BookOpen } from 'lucide-react'
 import { Input } from "@components/ui/input"
@@ -394,6 +394,7 @@ const UserProfileBuilder = () => {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            style={provided.draggableProps.style as CSSProperties | undefined}
                             onClick={() => setSelectedSection(index)}
                             className={`p-4 bg-white/80 backdrop-blur-xs rounded-lg cursor-pointer border ${
                               selectedSection === index 

@@ -12,7 +12,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
 import ActivityElement from './ActivityElement'
 import NewActivityButton from '../Buttons/NewActivityButton'
@@ -233,6 +233,7 @@ function ChapterElement(props: ChapterElementProps) {
           }`}
           key={props.chapter.chapter_uuid}
           {...provided.draggableProps}
+          style={provided.draggableProps.style as CSSProperties | undefined}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
         >

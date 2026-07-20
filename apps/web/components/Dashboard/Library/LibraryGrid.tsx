@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties } from 'react'
 import FolderThumbnail from '@components/Objects/Thumbnails/FolderThumbnail'
 import LibraryItemCard from '@components/Dashboard/Library/LibraryItemCard'
 import CourseThumbnail, { removeCoursePrefix } from '@components/Objects/Thumbnails/CourseThumbnail'
@@ -129,7 +130,7 @@ export default function LibraryGrid({
                           <div
                             ref={dragProvided.innerRef}
                             {...dragProvided.draggableProps}
-                            style={{ ...dragProvided.draggableProps.style }}
+                            style={{ ...(dragProvided.draggableProps.style as CSSProperties | undefined) }}
                             className={`relative ${snapshot.isDragging ? 'z-drag-overlay rotate-1 scale-[1.02]' : ''}`}
                           >
                             <div
@@ -190,7 +191,7 @@ export default function LibraryGrid({
                           <div
                             ref={dragProvided.innerRef}
                             {...dragProvided.draggableProps}
-                            style={{ ...dragProvided.draggableProps.style }}
+                            style={{ ...(dragProvided.draggableProps.style as CSSProperties | undefined) }}
                             className={`relative ${snapshot.isDragging ? 'z-drag-overlay rotate-1 scale-[1.02]' : ''}`}
                           >
                             <div

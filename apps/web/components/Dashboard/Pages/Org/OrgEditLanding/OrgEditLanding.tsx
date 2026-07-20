@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { type CSSProperties } from 'react'
 import { LandingObject, LandingSection, LandingHeroSection, LandingTextAndImageSection, LandingLogos, LandingPeople, LandingBackground, LandingButton, LandingImage, LandingFeaturedCourses } from './landing_types'
 import { Plus, Trash2, GripVertical, LayoutTemplate, ImageIcon, Users, Award, Edit, Link, Upload, Save, BookOpen, TextIcon } from 'lucide-react'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
@@ -336,6 +336,7 @@ const OrgEditLanding = () => {
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
+                                style={provided.draggableProps.style as CSSProperties | undefined}
                                 onClick={() => setSelectedSection(index)}
                                 className={`p-4 bg-white/80 backdrop-blur-xs rounded-lg cursor-pointer border  ${
                                   selectedSection === index 

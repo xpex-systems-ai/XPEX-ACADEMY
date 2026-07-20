@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import Modal from '@components/Objects/StyledElements/Modal/Modal'
 import ToolTip from '@components/Objects/StyledElements/Tooltip/Tooltip'
@@ -253,7 +254,7 @@ function ActivityElement(props: ActivitiyElementProps) {
           key={props.activity.id}
           {...provided.draggableProps}
           ref={provided.innerRef}
-          style={{ ...provided.draggableProps.style }}
+          style={{ ...(provided.draggableProps.style as CSSProperties | undefined) }}
         >
           {/* Selection checkbox */}
           <button
