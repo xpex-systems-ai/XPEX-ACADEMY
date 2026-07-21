@@ -78,23 +78,96 @@ fi
 [[ "$BUCKET" =~ ^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$ ]] && ok "bucket name shape is valid" || fail "invalid bucket name shape"
 [[ "$MAX_INSTANCES" =~ ^[0-9]+$ && "$MAX_INSTANCES" -ge 0 && "$MAX_INSTANCES" -le 20 ]] && ok "MAX_INSTANCES is bounded for staging" || fail "MAX_INSTANCES must be an integer from 0 to 20"
 
-for bin in bash curl docker git gcloud; do
-  if command -v "$bin" >/dev/null 2>&1; then ok "tool present: $bin"; else [[ "$SIMULATED" == "true" ]] && warn "tool missing in simulated CI: $bin" || fail "required tool missing: $bin"; fi
+for bin in bash curl docker git; do
+  if command -v "$bin" >/dev/null 2>&1; then ok "tool present: $bin"; elif [[ "$SIMULATED" == "true" ]]; then warn "tool missing in simulated CI: $bin"; else fail "required tool missing: $bin"; fi
 done
+if command -v gcloud >/dev/null 2>&1; then
+  ok "tool present: gcloud"
+elif [[ "$SIMULATED" == "true" ]]; then
+  warn "tool missing in simulated CI: gcloud"
+else
+  fail "required tool missing: gcloud"
+fi
+
+capture_gcloud() {
+  local __var="$1"
+  shift
+  local output
+  local rc
+  output="$($@ 2>/tmp/preflight-gcloud-error)" || rc=$?
+  rc="${rc:-0}"
+  printf -v "$__var" '%s' "$output"
+  return "$rc"
+}
+
+validate_gcloud_readonly() {
+  local active_account=""
+  if ! capture_gcloud active_account gcloud auth list --filter=status:ACTIVE --format='value(account)'; then
+    warn "gcloud authentication cannot be queried; run gcloud auth login outside this script"
+    return 0
+  fi
+  if [[ -z "$active_account" ]]; then
+    warn "gcloud has no active account; authentication is required before deploy day"
+    return 0
+  fi
+  ok "gcloud has an active account"
+
+  local billing_enabled=""
+  if ! capture_gcloud billing_enabled gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)'; then
+    warn "billing cannot be queried for project $PROJECT_ID"
+  elif [[ "$billing_enabled" == "true" ]]; then
+    ok "billing is enabled for the staging project"
+  elif [[ "$billing_enabled" == "false" ]]; then
+    fail "billing is disabled for the staging project"
+  else
+    warn "billing query returned an empty or unexpected value"
+  fi
+
+  local enabled_apis=""
+  if ! capture_gcloud enabled_apis gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)'; then
+    warn "enabled API list cannot be queried for project $PROJECT_ID"
+  elif [[ -z "$enabled_apis" ]]; then
+    warn "enabled API list query returned empty output"
+  else
+    local api
+    local required_apis=(run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com)
+    [[ -n "${REDIS_INSTANCE:-}" ]] && required_apis+=(redis.googleapis.com)
+    [[ -n "${VPC_CONNECTOR:-}" ]] && required_apis+=(vpcaccess.googleapis.com)
+    for api in "${required_apis[@]}"; do
+      if printf '%s\n' "$enabled_apis" | awk -v expected="$api" '$0 == expected { found=1 } END { exit found ? 0 : 1 }'; then
+        ok "API enabled: $api"
+      else
+        fail "required API is not enabled or was not returned by gcloud: $api"
+      fi
+    done
+  fi
+
+  if gcloud artifacts repositories describe "${ARTIFACT_REPOSITORY:-}" --project "$PROJECT_ID" --location "$REGION" --format='value(name)' >/tmp/preflight-artifact 2>/tmp/preflight-gcloud-error && [[ -s /tmp/preflight-artifact ]]; then
+    ok "Artifact Registry exists"
+  else
+    warn "Artifact Registry absent, empty, or not queryable"
+  fi
+  if gcloud run services describe "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --format='value(metadata.name)' >/tmp/preflight-run 2>/tmp/preflight-gcloud-error && [[ -s /tmp/preflight-run ]]; then
+    ok "Cloud Run service exists"
+  else
+    warn "Cloud Run service absent before first deploy or not queryable"
+  fi
+  if gcloud sql instances describe "${CLOUD_SQL_INSTANCE##*:}" --project "$PROJECT_ID" --format='value(name)' >/tmp/preflight-sql 2>/tmp/preflight-gcloud-error && [[ -s /tmp/preflight-sql ]]; then
+    ok "Cloud SQL instance exists"
+  else
+    warn "Cloud SQL instance absent, empty, or not queryable"
+  fi
+  if gcloud storage buckets describe "gs://$BUCKET" --format='value(name)' >/tmp/preflight-bucket 2>/tmp/preflight-gcloud-error && [[ -s /tmp/preflight-bucket ]]; then
+    ok "staging bucket exists"
+  else
+    warn "staging bucket absent, empty, or not queryable"
+  fi
+}
 
 if [[ "$SIMULATED" == "true" ]]; then
   warn "simulated mode: skipped real gcloud authentication, billing, API and resource queries"
 else
-  gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -n1 >/tmp/preflight-gcloud-account 2>/dev/null || fail "cannot query gcloud authentication"
-  [[ -s /tmp/preflight-gcloud-account ]] && ok "gcloud has an active account" || fail "gcloud has no active account"
-  gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)' >/dev/null 2>&1 && ok "billing can be queried" || warn "billing cannot be queried or project is not accessible"
-  for api in run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com sqladmin.googleapis.com secretmanager.googleapis.com vpcaccess.googleapis.com redis.googleapis.com storage.googleapis.com; do
-    gcloud services list --project "$PROJECT_ID" --enabled --filter="config.name:$api" --format='value(config.name)' >/dev/null 2>&1 && ok "API query allowed: $api" || warn "API query not allowed: $api"
-  done
-  gcloud artifacts repositories describe "${ARTIFACT_REPOSITORY:-}" --project "$PROJECT_ID" --location "$REGION" >/dev/null 2>&1 && ok "Artifact Registry exists" || warn "Artifact Registry absent or not queryable"
-  gcloud run services describe "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" >/dev/null 2>&1 && ok "Cloud Run service exists" || warn "Cloud Run service absent before first deploy"
-  gcloud sql instances describe "${CLOUD_SQL_INSTANCE##*:}" --project "$PROJECT_ID" >/dev/null 2>&1 && ok "Cloud SQL instance exists" || warn "Cloud SQL instance absent or not queryable"
-  gcloud storage buckets describe "gs://$BUCKET" >/dev/null 2>&1 && ok "staging bucket exists" || warn "staging bucket absent or not queryable"
+  validate_gcloud_readonly
 fi
 
 printf '\nResultado final: %s\n' "$status"

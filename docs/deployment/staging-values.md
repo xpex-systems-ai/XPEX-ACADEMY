@@ -29,13 +29,13 @@ Este manifesto é um formulário de preenchimento pelo proprietário do ambiente
 
 ## Mapeamento esperado para `.env.staging`
 
-Os scripts aceitam os nomes históricos do repositório e os aliases acima. Ao preencher `.env.staging`, mapeie:
+Os nomes públicos oficiais são `GCP_PROJECT_ID`, `GCP_REGION`, `CLOUD_RUN_SERVICE`, `CLOUD_RUN_SA` e `STAGING_BUCKET`. Os scripts normalizam esses nomes antes da validação e ainda aceitam arquivos antigos com aliases legados:
 
-- `PROJECT_ID` ou `GCP_PROJECT_ID` para `<GCP_PROJECT_ID>`.
-- `REGION` ou `GCP_REGION` para `<GCP_REGION>`.
-- `SERVICE_NAME` ou `CLOUD_RUN_SERVICE` para `<CLOUD_RUN_SERVICE>`.
-- `CLOUD_RUN_SERVICE_ACCOUNT` ou `CLOUD_RUN_SA` para `<CLOUD_RUN_SA>`.
-- `GCS_BUCKET` ou `STAGING_BUCKET` para `<STAGING_BUCKET>`.
+- `GCP_PROJECT_ID` é normalizado internamente para `PROJECT_ID`.
+- `GCP_REGION` é normalizado internamente para `REGION`.
+- `CLOUD_RUN_SERVICE` é normalizado internamente para `SERVICE_NAME`.
+- `CLOUD_RUN_SA` é normalizado internamente para `CLOUD_RUN_SERVICE_ACCOUNT`.
+- `STAGING_BUCKET` é normalizado internamente para `GCS_BUCKET`.
 
 ## Rota de storage para staging
 
