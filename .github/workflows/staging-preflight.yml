@@ -152,10 +152,10 @@ jobs:
           set -euo pipefail
           echo 'Rendering dry-run with public aliases'
           scripts/deploy-staging.sh --dry-run --env-file /tmp/env-public | tee /tmp/dry-public.out
-          rg -n 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-public.out
+          grep -En 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-public.out
           echo 'Rendering dry-run with legacy aliases'
           scripts/deploy-staging.sh --dry-run --env-file /tmp/env-legacy | tee /tmp/dry-legacy.out
-          rg -n 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-legacy.out
+          grep -En 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-legacy.out
 
       - name: Test production protection
         run: |
