@@ -43,7 +43,9 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 fi
 
-if [[ -f "$ENV_FILE" ]] && rg -n '(<[A-Z0-9_:-]+>|REPLACE_WITH_|CHANGE_ME|TODO_SECRET|YOUR_)' "$ENV_FILE" >/dev/null; then
+if ! command -v grep >/dev/null 2>&1; then
+  fail "required tool missing: grep"
+elif [[ -f "$ENV_FILE" ]] && grep -Enq '(<[A-Z0-9_:-]+>|REPLACE_WITH_|CHANGE_ME|TODO_SECRET|YOUR_)' "$ENV_FILE"; then
   fail "env file still contains unsubstituted placeholders"
 else
   ok "no generic placeholders detected in env file"
