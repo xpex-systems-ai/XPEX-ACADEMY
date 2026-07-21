@@ -9,6 +9,8 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/deploy-staging.sh [--dry-run] [--env-file .env.staging]
 
+Prints a controlled deploy plan. Build, deploy, verify and rollback are separate human-approved steps.
+
 Defaults to --dry-run. Set DRY_RUN=false in the environment only after an
 approved GO/NO-GO review to execute the Cloud Run deploy command.
 USAGE
@@ -94,7 +96,7 @@ IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAM
 build_cmd=(gcloud builds submit --project "$PROJECT_ID" --config cloudbuild.yaml --substitutions "_REGION=$REGION,_ARTIFACT_REPOSITORY=$ARTIFACT_REPOSITORY,_IMAGE_NAME=$IMAGE_NAME,_IMAGE_TAG=$IMAGE_TAG")
 deploy_cmd=(gcloud run deploy "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --image "$IMAGE" --platform managed --service-account "$CLOUD_RUN_SERVICE_ACCOUNT" --allow-unauthenticated --port 8080 --cpu 2 --memory 2Gi --min-instances 0 --max-instances "$MAX_INSTANCES" --concurrency 80 --timeout 900 --cpu-boost --execution-environment gen2 --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" --vpc-connector "$VPC_CONNECTOR" --vpc-egress private-ranges-only --set-env-vars "$encoded_env_vars" --update-secrets "LEARNHOUSE_AUTH_JWT_SECRET_KEY=${SECRET_JWT_NAME}:latest,LEARNHOUSE_SQL_CONNECTION_STRING=${SECRET_SQL_NAME}:latest,LEARNHOUSE_REDIS_CONNECTION_STRING=${SECRET_REDIS_NAME}:latest")
 verify_cmd=(scripts/verify-staging.sh "${STAGING_API_URL:-https://${LEARNHOUSE_DOMAIN}}")
-rollback_cmd=(gcloud run services update-traffic "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --to-revisions "PREVIOUS_REVISION=100")
+rollback_cmd=(scripts/prepare-staging-rollback.sh --env-file "$ENV_FILE" --previous-revision "<CONCRETE_REVISION_FROM_PRE_DEPLOY_EVIDENCE>")
 
 cat <<PLAN
 Staging deploy plan (secrets redacted):
@@ -121,5 +123,6 @@ PLAN
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed."
 else
+  echo "Executing deploy only; build, verify, and rollback remain separate commands."
   "${deploy_cmd[@]}"
 fi
