@@ -130,7 +130,7 @@ jobs:
           set -euo pipefail
           echo 'Validating public alias contract: GCP_PROJECT_ID/GCP_REGION/CLOUD_RUN_SERVICE/CLOUD_RUN_SA/STAGING_BUCKET'
           test -f .env.staging.example
-          rg -n "^GCP_PROJECT_ID=|^GCP_REGION=|^CLOUD_RUN_SERVICE=|^CLOUD_RUN_SA=|^STAGING_BUCKET=" .env.staging.example
+          grep -En "^(GCP_PROJECT_ID|GCP_REGION|CLOUD_RUN_SERVICE|CLOUD_RUN_SA|STAGING_BUCKET)=" .env.staging.example
           scripts/check-env.sh /tmp/env-public
 
       - name: Validate legacy aliases
@@ -276,4 +276,4 @@ jobs:
       - name: Secret scan
         run: |
           set -euo pipefail
-          ! rg -n "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})" . --glob '!apps/api/.venv/**' --glob '!docs/node_modules/**'
+          ! grep -RInE --exclude-dir='.git' --exclude-dir='.venv' --exclude-dir='node_modules' "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})" .
