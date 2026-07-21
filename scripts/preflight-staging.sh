@@ -10,6 +10,7 @@ Usage: scripts/preflight-staging.sh --env-file .env.staging [--simulated]
 
 Validation-only staging preflight. It never creates resources, never deploys,
 never enables APIs, never changes the active gcloud project, and never prints secrets.
+Exit semantics: GO exits 0; simulated PENDÊNCIA EXTERNA exits 0; NO-GO exits non-zero; invalid arguments exit 2.
 USAGE
 }
 
@@ -120,14 +121,14 @@ validate_gcloud_readonly() {
   elif [[ "$billing_enabled" == "false" ]]; then
     fail "billing is disabled for the staging project"
   else
-    warn "billing query returned an empty or unexpected value"
+    fail "billing query returned an empty or unexpected value"
   fi
 
   local enabled_apis=""
   if ! capture_gcloud enabled_apis gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)'; then
     warn "enabled API list cannot be queried for project $PROJECT_ID"
   elif [[ -z "$enabled_apis" ]]; then
-    warn "enabled API list query returned empty output"
+    fail "enabled API list query returned empty output"
   else
     local api
     local required_apis=(run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com)

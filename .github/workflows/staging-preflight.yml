@@ -20,9 +20,11 @@ jobs:
           version: 0.10.7
           enable-cache: true
           working-directory: apps/api
-      - name: Prepare executable scripts and fictitious env files
+
+      - name: Prepare fictitious env files
         run: |
-          chmod +x scripts/*.sh apps/api/*.sh
+          set -euo pipefail
+          chmod +x scripts/*.sh
           cat > .env.staging <<'ENV'
           GCP_PROJECT_ID=xpex-stage-12345
           GCP_REGION=us-central1
@@ -61,50 +63,198 @@ jobs:
           LEARNHOUSE_REDIS_CONNECTION_STRING=redis://127.0.0.1:6379/0
           LEARNHOUSE_IS_AI_ENABLED=false
           ENV
-          cp .env.staging /tmp/env-new
+          cp .env.staging /tmp/env-public
           sed -e 's/^GCP_PROJECT_ID=/PROJECT_ID=/' \
               -e 's/^GCP_REGION=/REGION=/' \
               -e 's/^CLOUD_RUN_SERVICE=/SERVICE_NAME=/' \
               -e 's/^CLOUD_RUN_SA=/CLOUD_RUN_SERVICE_ACCOUNT=/' \
               -e 's/^STAGING_BUCKET=/GCS_BUCKET=/' \
-              /tmp/env-new > /tmp/env-legacy
+              /tmp/env-public > /tmp/env-legacy
+          cat > /tmp/run-expect-fail <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          label="$1"
+          shift
+          set +e
+          output="$($@ 2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -eq 0 ]]; then
+            printf 'Expected failure for %s, got exit 0\n%s\n' "$label" "$output" >&2
+            exit 1
+          fi
+          if [[ "$output" != *NO-GO* ]]; then
+            printf 'Expected NO-GO for %s, got output:\n%s\n' "$label" "$output" >&2
+            exit 1
+          fi
+          if [[ "$output" == *'gcloud builds submit'* || "$output" == *'gcloud run deploy'* ]]; then
+            printf 'Unexpected build/deploy command in %s output:\n%s\n' "$label" "$output" >&2
+            exit 1
+          fi
+          printf 'Expected failure confirmed for %s with exit %s\n' "$label" "$rc"
+          SH
+          chmod +x /tmp/run-expect-fail
+          cat > /tmp/run-expect-pending <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          label="$1"
+          shift
+          set +e
+          output="$($@ 2>&1)"
+          rc=$?
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            printf 'Expected pending success for %s, got exit %s\n%s\n' "$label" "$rc" "$output" >&2
+            exit 1
+          fi
+          if [[ "$output" != *'Resultado final: PENDÊNCIA EXTERNA'* ]]; then
+            printf 'Expected PENDÊNCIA EXTERNA for %s, got output:\n%s\n' "$label" "$output" >&2
+            exit 1
+          fi
+          printf 'Expected pending confirmed for %s\n' "$label"
+          SH
+          chmod +x /tmp/run-expect-pending
+
       - name: Validate YAML workflows
         run: |
+          set -euo pipefail
           ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |path| YAML.load_file(path); puts "ok #{path}" }'
+
       - name: Validate shell scripts
-        run: bash -n scripts/*.sh apps/api/*.sh
-      - name: Validate env aliases, simulated preflight, dry-run and protections
         run: |
+          set -euo pipefail
+          bash -n scripts/*.sh apps/api/*.sh
+
+      - name: Validate public aliases
+        run: |
+          set -euo pipefail
+          echo 'Validating public alias contract: GCP_PROJECT_ID/GCP_REGION/CLOUD_RUN_SERVICE/CLOUD_RUN_SA/STAGING_BUCKET'
           test -f .env.staging.example
           rg -n "^GCP_PROJECT_ID=|^GCP_REGION=|^CLOUD_RUN_SERVICE=|^CLOUD_RUN_SA=|^STAGING_BUCKET=" .env.staging.example
-          scripts/check-env.sh /tmp/env-new
+          scripts/check-env.sh /tmp/env-public
+
+      - name: Validate legacy aliases
+        run: |
+          set -euo pipefail
+          echo 'Validating legacy alias compatibility: PROJECT_ID/REGION/SERVICE_NAME/CLOUD_RUN_SERVICE_ACCOUNT/GCS_BUCKET'
           scripts/check-env.sh /tmp/env-legacy
-          scripts/preflight-staging.sh --env-file /tmp/env-new --simulated
-          scripts/preflight-staging.sh --env-file /tmp/env-legacy --simulated
-          scripts/deploy-staging.sh --dry-run --env-file /tmp/env-new
-          scripts/deploy-staging.sh --dry-run --env-file /tmp/env-legacy
-          cp /tmp/env-new /tmp/env-prod
+
+      - name: Run simulated preflight
+        run: |
+          set -euo pipefail
+          echo 'Running simulated preflight with public aliases'
+          /tmp/run-expect-pending public-preflight scripts/preflight-staging.sh --env-file /tmp/env-public --simulated
+          echo 'Running simulated preflight with legacy aliases'
+          /tmp/run-expect-pending legacy-preflight scripts/preflight-staging.sh --env-file /tmp/env-legacy --simulated
+
+      - name: Render staging dry-run
+        run: |
+          set -euo pipefail
+          echo 'Rendering dry-run with public aliases'
+          scripts/deploy-staging.sh --dry-run --env-file /tmp/env-public | tee /tmp/dry-public.out
+          rg -n 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-public.out
+          echo 'Rendering dry-run with legacy aliases'
+          scripts/deploy-staging.sh --dry-run --env-file /tmp/env-legacy | tee /tmp/dry-legacy.out
+          rg -n 'DRY_RUN=true: no build, deploy, verify, rollback, or resource creation was executed\.' /tmp/dry-legacy.out
+
+      - name: Test production protection
+        run: |
+          set -euo pipefail
+          cp /tmp/env-public /tmp/env-prod
           sed -i 's/xpex-stage-12345/xpex-prod-12345/g' /tmp/env-prod
-          if scripts/preflight-staging.sh --env-file /tmp/env-prod --simulated; then exit 1; fi
-          cp /tmp/env-new /tmp/env-placeholder
-          printf '\nDUMMY=<GCP_PROJECT_ID>\n' >> /tmp/env-placeholder
-          if scripts/preflight-staging.sh --env-file /tmp/env-placeholder --simulated; then exit 1; fi
+          /tmp/run-expect-fail production-target scripts/preflight-staging.sh --env-file /tmp/env-prod --simulated
+
+      - name: Test placeholder protection
+        run: |
+          set -euo pipefail
+          cp /tmp/env-public /tmp/env-placeholder
+          printf '\nDUMMY=REPLACE_WITH_SECRET_MANAGER_VALUE\n' >> /tmp/env-placeholder
+          /tmp/run-expect-fail placeholder scripts/preflight-staging.sh --env-file /tmp/env-placeholder --simulated
+
+      - name: Test tracked-env protection
+        run: |
+          set -euo pipefail
+          cleanup() { git rm --cached .env.staging >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
           git add -f .env.staging
-          if scripts/preflight-staging.sh --env-file .env.staging --simulated; then git rm --cached .env.staging; exit 1; fi
-          git rm --cached .env.staging
+          /tmp/run-expect-fail tracked-env scripts/preflight-staging.sh --env-file .env.staging --simulated
+          cleanup
+          trap - EXIT
+
+      - name: Test gcloud billing and API protections
+        run: |
+          set -euo pipefail
+          make_stub_dir() {
+            local mode="$1"
+            local dir
+            dir="$(mktemp -d)"
+            printf '#!/usr/bin/env bash\nexit 0\n' > "$dir/docker"
+            chmod +x "$dir/docker"
+            cat > "$dir/gcloud" <<'SH'
+          #!/usr/bin/env bash
+          mode="${PREFLIGHT_GCLOUD_STUB_MODE:?}"
+          case "$*" in
+            "auth list"*)
+              [[ "$mode" == "auth-empty" ]] && exit 0
+              echo "ci@example.test"
+              ;;
+            "billing projects describe"*)
+              [[ "$mode" == "billing-false" ]] && { echo "false"; exit 0; }
+              [[ "$mode" == "empty" ]] && exit 0
+              echo "true"
+              ;;
+            "services list"*)
+              [[ "$mode" == "empty" ]] && exit 0
+              if [[ "$mode" == "api-missing" ]]; then
+                printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com
+              else
+                printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com
+              fi
+              ;;
+            *) echo resource ;;
+          esac
+          SH
+            chmod +x "$dir/gcloud"
+            printf '%s' "$dir"
+          }
+          stub="$(make_stub_dir billing-false)"
+          PREFLIGHT_GCLOUD_STUB_MODE=billing-false PATH="$stub:$PATH" /tmp/run-expect-fail billing-false scripts/preflight-staging.sh --env-file /tmp/env-public
+          stub="$(make_stub_dir api-missing)"
+          PREFLIGHT_GCLOUD_STUB_MODE=api-missing PATH="$stub:$PATH" /tmp/run-expect-fail api-missing scripts/preflight-staging.sh --env-file /tmp/env-public
+          stub="$(make_stub_dir empty)"
+          PREFLIGHT_GCLOUD_STUB_MODE=empty PATH="$stub:$PATH" /tmp/run-expect-fail empty-gcloud-response scripts/preflight-staging.sh --env-file /tmp/env-public
+          stub="$(make_stub_dir auth-empty)"
+          PREFLIGHT_GCLOUD_STUB_MODE=auth-empty PATH="$stub:$PATH" /tmp/run-expect-pending auth-empty scripts/preflight-staging.sh --env-file /tmp/env-public
+
+      - name: Test invalid project and max instances protections
+        run: |
+          set -euo pipefail
+          cp /tmp/env-public /tmp/env-invalid-project
+          sed -i 's/^GCP_PROJECT_ID=.*/GCP_PROJECT_ID=INVALID_PROJECT/' /tmp/env-invalid-project
+          /tmp/run-expect-fail invalid-project scripts/preflight-staging.sh --env-file /tmp/env-invalid-project --simulated
+          cp /tmp/env-public /tmp/env-max-instances
+          sed -i 's/^MAX_INSTANCES=.*/MAX_INSTANCES=999/' /tmp/env-max-instances
+          /tmp/run-expect-fail max-instances scripts/preflight-staging.sh --env-file /tmp/env-max-instances --simulated
+
       - name: Sync API dependencies
         working-directory: apps/api
-        run: uv sync --frozen
+        run: |
+          set -euo pipefail
+          uv sync --frozen
+
       - name: Import numpy and app
         working-directory: apps/api
         run: |
+          set -euo pipefail
           set -a
           source ../../.env.staging
           set +a
           uv run python -c "import numpy, app; print('imports ok')"
+
       - name: Health and CORS smoke tests
         working-directory: apps/api
         run: |
+          set -euo pipefail
           set -a
           source ../../.env.staging
           set +a
@@ -122,6 +272,8 @@ jobs:
           assert cors.headers.get('access-control-allow-origin') in {'https://staging.example.test', '*'}
           print('health and cors ok')
           PY
+
       - name: Secret scan
         run: |
+          set -euo pipefail
           ! rg -n "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})" . --glob '!apps/api/.venv/**' --glob '!docs/node_modules/**'
