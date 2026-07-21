@@ -18,7 +18,11 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 fi
 
-if rg -n "REPLACE_WITH_SECRET_MANAGER_VALUE" "$ENV_FILE" >/dev/null; then
+if ! command -v grep >/dev/null 2>&1; then
+  echo "Required tool missing: grep." >&2
+  exit 1
+fi
+if grep -Enq "REPLACE_WITH_SECRET_MANAGER_VALUE" "$ENV_FILE"; then
   echo "Variables still use placeholders in $ENV_FILE." >&2
   exit 1
 fi
