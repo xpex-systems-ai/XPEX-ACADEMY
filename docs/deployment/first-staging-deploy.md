@@ -168,3 +168,112 @@ Comandos externos de criação de recursos continuam sob responsabilidade do pro
 **PR #19 ATUALIZADA SOBRE A DEV MAIS RECENTE**, mantendo na PR somente o playbook específico do primeiro deploy e referenciando os artefatos já entregues pela PR #18.
 
 **PRONTA PARA MERGE**, desde que o proprietário confirme as pendências externas reais acima e mantenha a regra de não executar deploy antes do GO manual.
+
+## Seção final — preflight real antes do primeiro deploy
+
+### Comandos exatos sem efeitos colaterais
+
+1. Preflight completo, somente leitura e sem imprimir secrets:
+
+   ```bash
+   scripts/preflight-staging.sh --env-file .env.staging
+   ```
+
+2. Dry-run completo do plano de build/deploy/verify/rollback, sem executar comandos GCP:
+
+   ```bash
+   scripts/deploy-staging.sh --dry-run --env-file .env.staging
+   ```
+
+### Evidências esperadas
+
+- `preflight-staging.sh` termina com `Resultado final: GO` ou `Resultado final: PENDÊNCIA EXTERNA`; qualquer `NO-GO` bloqueia o deploy.
+- `.env.staging` existe somente localmente, está ignorado pelo Git e não aparece em `git ls-files`.
+- O alvo não contém `prod`, `production` ou `main` em projeto, serviço, bucket, host ou origens.
+- Ferramentas locais (`gcloud`, `docker`, `git`, `bash`, `curl`) estão presentes.
+- `gcloud auth list` mostra autenticação ativa sem alterar o projeto configurado.
+- Billing, APIs e recursos são consultáveis ou listados como pendência externa; o script não ativa APIs e não cria recursos.
+- O dry-run mostra imagem, Artifact Registry, serviço Cloud Run, região, service account, variáveis não secretas, nomes de secrets, Cloud SQL, VPC connector, bucket e comandos de build, deploy, verify e rollback.
+- Nenhum valor secreto aparece no terminal; somente nomes de secrets do Secret Manager são exibidos.
+
+### Critérios de GO
+
+- Preflight sem `NO-GO`.
+- Dry-run revisado por um responsável e sem dados de produção.
+- Artifact Registry, Cloud Run, Cloud SQL, Redis/VPC, bucket, Secret Manager, IAM mínimo e domínio de staging aprovados pelo proprietário.
+- Banco confirma staging antes de qualquer migração.
+- Migrações Alembic foram avaliadas manualmente e há plano de rollback.
+- CORS contém somente origens de staging aprovadas.
+
+### Critérios de NO-GO
+
+- `.env.staging` rastreado ou não ignorado pelo Git.
+- Placeholder, secret real em arquivo versionado ou valor secreto no log.
+- Qualquer alvo com indicação de produção.
+- Falha de autenticação, IAM insuficiente sem aprovação explícita ou impossibilidade de consultar o projeto correto.
+- Cloud SQL, Redis, storage ou CORS incompatíveis com staging.
+- Migração pendente sem aprovação operacional.
+- Health endpoint, import da aplicação ou validação de porta falhando no ambiente de revisão.
+
+### Pendências externas
+
+- Aprovação de billing e orçamento de staging.
+- Criação/validação dos recursos GCP pelo proprietário.
+- Criação dos secrets reais no Secret Manager fora do repositório.
+- Geração de credenciais HMAC se GCS for usado via compatibilidade S3/XML API.
+- Configuração de DNS e certificado do host de staging.
+- Aprovação da janela de migração Alembic.
+
+### Ordem de execução no dia do deploy
+
+1. Atualizar a branch local a partir de `dev` aprovada.
+2. Criar `.env.staging` local a partir de `.env.staging.example` e do manifesto `docs/deployment/staging-values.md`.
+3. Executar `scripts/check-env.sh .env.staging`.
+4. Executar `scripts/preflight-staging.sh --env-file .env.staging`.
+5. Executar `scripts/deploy-staging.sh --dry-run --env-file .env.staging`.
+6. Validar recursos e IAM no console ou por comandos somente leitura.
+7. Executar diagnósticos de banco, Redis e storage sem migrar nem gravar dados.
+8. Confirmar GO formal do proprietário.
+9. Executar build/deploy real somente após GO explícito.
+10. Executar `scripts/verify-staging.sh <STAGING_API_URL>`.
+11. Validar logs, CORS, autenticação e fluxos mínimos.
+
+### Ponto de retorno seguro antes de gastar
+
+O ponto de retorno seguro antes de gastar é imediatamente após o preflight simulado/dry-run e antes de ativar billing, APIs ou criar recursos. Nesse ponto, abortar não deixa recursos pagos nem alterações no Google Cloud.
+
+### Ponto de retorno seguro antes de abrir tráfego
+
+O ponto de retorno seguro antes de abrir tráfego é após o deploy de uma nova revisão do Cloud Run com tráfego não direcionado ou antes de alterar DNS/roteamento público. Se a revisão não passar em health, logs, banco, Redis, storage e CORS, mantenha tráfego na revisão anterior ou execute rollback conforme `docs/deployment/rollback.md`.
+
+### Diagnósticos permitidos para banco, Redis e storage
+
+Execute somente comandos de leitura/diagnóstico e nunca imprima connection strings completas:
+
+```bash
+# DNS e porta PostgreSQL/Redis extraídos manualmente de valores já aprovados.
+getent hosts <DB_HOST>
+nc -vz <DB_HOST> 5432
+getent hosts <REDIS_HOST>
+nc -vz <REDIS_HOST> 6379
+
+# PostgreSQL: não ecoar PGPASSWORD nem URL completa.
+PGPASSWORD='<fornecer-via-prompt-ou-env-local>' psql \
+  --host=<DB_HOST> --port=5432 --username=<DB_USER> --dbname=<DB_NAME> \
+  --command="select current_database(), current_user, inet_server_addr();"
+PGPASSWORD='<fornecer-via-prompt-ou-env-local>' psql \
+  --host=<DB_HOST> --port=5432 --username=<DB_USER> --dbname=<DB_NAME> \
+  --command="select extname from pg_extension where extname = 'vector';"
+PGPASSWORD='<fornecer-via-prompt-ou-env-local>' psql \
+  --host=<DB_HOST> --port=5432 --username=<DB_USER> --dbname=<DB_NAME> \
+  --command="select version_num from alembic_version;"
+
+# Redis: ping sem revelar URL completa.
+redis-cli -u '<redis-url-redigida>' PING
+
+# Storage S3/XML API: listar metadados do bucket de staging com credenciais vindas do runtime/Secret Manager.
+AWS_ACCESS_KEY_ID='<hmac-access-key>' AWS_SECRET_ACCESS_KEY='<hmac-secret-key>' \
+  aws s3api head-bucket --bucket <STAGING_BUCKET> --endpoint-url <S3_ENDPOINT>
+```
+
+A string SQL deve conter o database de staging (`<DB_NAME>`) e nunca nomes de produção. Migrações Alembic devem ser apenas inspecionadas nesta etapa; não execute `alembic upgrade` até o GO formal.
