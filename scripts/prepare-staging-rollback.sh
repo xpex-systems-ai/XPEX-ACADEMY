@@ -5,6 +5,7 @@ ENV_FILE="${ENV_FILE:-.env.staging}"
 DRY_RUN="${DRY_RUN:-true}"
 PREVIOUS_REVISION="${PREVIOUS_REVISION:-}"
 NEW_REVISION="${NEW_REVISION:-}"
+PREVIOUS_REVISION_EXPLICIT="false"
 
 usage() {
   cat <<'USAGE'
@@ -19,7 +20,7 @@ USAGE
 while (($#)); do
   case "$1" in
     --env-file) ENV_FILE="${2:-}"; shift 2 ;;
-    --previous-revision) PREVIOUS_REVISION="${2:-}"; shift 2 ;;
+    --previous-revision) PREVIOUS_REVISION="${2:-}"; PREVIOUS_REVISION_EXPLICIT="true"; shift 2 ;;
     --new-revision) NEW_REVISION="${2:-}"; shift 2 ;;
     --execute) DRY_RUN="false"; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -53,6 +54,11 @@ reject_placeholder() {
 }
 reject_placeholder "$PREVIOUS_REVISION"
 reject_placeholder "$NEW_REVISION"
+
+if [[ "$DRY_RUN" != "true" && "$PREVIOUS_REVISION_EXPLICIT" != "true" ]]; then
+  echo "NO-GO: --execute requires an explicit --previous-revision REV captured before deploy." >&2
+  exit 1
+fi
 
 if [[ -z "$PREVIOUS_REVISION" ]]; then
   if ! command -v gcloud >/dev/null 2>&1; then

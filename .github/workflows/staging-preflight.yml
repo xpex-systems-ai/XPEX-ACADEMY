@@ -279,6 +279,7 @@ jobs:
           set -euo pipefail
           /tmp/run-expect-fail rollback-placeholder scripts/prepare-staging-rollback.sh --env-file /tmp/env-public --previous-revision PREVIOUS_REVISION
           /tmp/run-expect-fail rollback-missing-revision env PATH=/usr/bin:/bin scripts/prepare-staging-rollback.sh --env-file /tmp/env-public
+          /tmp/run-expect-fail rollback-execute-without-explicit-revision scripts/prepare-staging-rollback.sh --env-file /tmp/env-public --execute
           set +e
           scripts/verify-staging-deployment.sh https://prod.example.com https://staging.example.test >/tmp/verify-prod.out 2>&1
           rc=$?
@@ -288,28 +289,58 @@ jobs:
       - name: Test simulated health and CORS verifier
         run: |
           set -euo pipefail
-          python3 - <<'PY' &
+          port_file="$(mktemp)"
+          python3 - "$port_file" <<'PY' &
           import json
-          from http.server import BaseHTTPRequestHandler, HTTPServer
+          import sys
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+          port_file = sys.argv[1]
+
           class H(BaseHTTPRequestHandler):
               def do_GET(self):
                   if self.path == '/api/v1/health':
-                      body=json.dumps({'status':'ok'}).encode(); self.send_response(200); self.send_header('content-type','application/json'); self.end_headers(); self.wfile.write(body)
+                      body = json.dumps({'status': 'ok'}).encode()
+                      self.send_response(200)
+                      self.send_header('content-type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(body)
                   else:
-                      self.send_response(404); self.end_headers()
+                      self.send_response(404)
+                      self.end_headers()
+
+              def do_HEAD(self):
+                  if self.path == '/__xpex_missing_route__':
+                      self.send_response(404)
+                  else:
+                      self.send_response(200)
+                  self.end_headers()
+
               def do_OPTIONS(self):
                   self.send_response(204)
-                  if self.headers.get('Origin') == 'https://staging.example.test': self.send_header('access-control-allow-origin','https://staging.example.test')
-                  self.send_header('access-control-allow-methods','GET')
+                  if self.headers.get('Origin') == 'https://staging.example.test':
+                      self.send_header('access-control-allow-origin', 'https://staging.example.test')
+                  self.send_header('access-control-allow-methods', 'GET')
                   self.end_headers()
-              def log_message(self,*a): pass
-          HTTPServer(('127.0.0.1', 8765), H).serve_forever()
+
+              def log_message(self, *args):
+                  pass
+
+          server = ThreadingHTTPServer(('127.0.0.1', 0), H)
+          with open(port_file, 'w', encoding='utf-8') as fh:
+              fh.write(str(server.server_port))
+          server.serve_forever()
           PY
           pid=$!
-          trap 'kill $pid' EXIT
-          sleep 1
-          scripts/verify-staging-deployment.sh http://127.0.0.1:8765 https://staging.example.test
-          scripts/verify-staging.sh http://127.0.0.1:8765 https://staging.example.test
+          trap 'kill "$pid" 2>/dev/null || true; rm -f "$port_file"' EXIT
+          for _ in $(seq 1 50); do
+            [[ -s "$port_file" ]] && break
+            sleep 0.1
+          done
+          test -s "$port_file"
+          base_url="http://127.0.0.1:$(cat "$port_file")"
+          scripts/verify-staging-deployment.sh "$base_url" https://staging.example.test
+          scripts/verify-staging.sh "$base_url" https://staging.example.test
 
       - name: Secret scan
         run: |
