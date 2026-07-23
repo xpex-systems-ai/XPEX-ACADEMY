@@ -329,7 +329,7 @@ jobs:
           class H(BaseHTTPRequestHandler):
               def do_GET(self):
                   if self.path == '/api/v1/health':
-                      body = json.dumps({'status': 'ok'}).encode()
+                      body = json.dumps(True).encode()
                       self.send_response(200)
                       self.send_header('content-type', 'application/json')
                       self.end_headers()
@@ -374,4 +374,33 @@ jobs:
       - name: Secret scan
         run: |
           set -euo pipefail
-          ! rg -n "(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})" -g "!.git" -g "!.venv" -g "!node_modules" .
+          python3 - <<'PY'
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          patterns = re.compile(
+              r"AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35}"
+          )
+          files = subprocess.check_output(['git', 'ls-files', '-z'])
+          offenders = []
+          for raw in files.split(b'\0'):
+              if not raw:
+                  continue
+              path = Path(raw.decode())
+              if any(part in {'.git', '.venv', 'node_modules'} for part in path.parts):
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              if patterns.search(text):
+                  offenders.append(str(path))
+          if offenders:
+              print('Potential secret patterns found:', file=sys.stderr)
+              for path in offenders:
+                  print(f'- {path}', file=sys.stderr)
+              raise SystemExit(1)
+          print('Secret scan passed')
+          PY
