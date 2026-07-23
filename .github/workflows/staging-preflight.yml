@@ -300,9 +300,22 @@ jobs:
             fi
             if [[ "$expect" -ne 20 ]]; then
               grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"
+            else
+              if grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"; then
+                echo "renderer printed mutable proposals after NO-GO for $label" >&2; exit 1
+              fi
             fi
           }
           run_renderer valid valid 0
+          grep -n 'audit: scripts/audit-staging-resources.sh' /tmp/renderer-valid.out
+          grep -n 'preflight: scripts/preflight-staging.sh' /tmp/renderer-valid.out
+          grep -n 'build: scripts/build-staging.sh' /tmp/renderer-valid.out
+          grep -n 'deploy: scripts/deploy-staging.sh' /tmp/renderer-valid.out
+          grep -n 'verify: scripts/verify-staging-deployment.sh' /tmp/renderer-valid.out
+          grep -n 'rollback-prep: scripts/prepare-staging-rollback.sh' /tmp/renderer-valid.out
+          if grep -E 'gcloud builds submit|gcloud run deploy' /tmp/renderer-valid.out; then
+            echo 'renderer duplicated raw gcloud build/deploy logic' >&2; exit 1
+          fi
           run_renderer secret-missing secret-missing 20
           run_renderer iam-insufficient iam-insufficient 20
           run_renderer billing-unavailable billing-unavailable 10

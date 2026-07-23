@@ -110,26 +110,42 @@ run_check() {
     20) mark_nogo "$label returned NO-GO" ;;
     *) mark_nogo "$label failed with rc=$rc" ;;
   esac
+  return "$rc"
 }
 
+# Official wrapper sequence: audit -> preflight -> build -> deploy -> verify -> rollback.
+# The first two wrappers are read-only checks executed by this renderer. Build, deploy,
+# verify and rollback are rendered only as concrete human-run wrapper commands.
+set +e
+run_check "audit" scripts/audit-staging-resources.sh --env-file "$ENV_FILE"
+audit_rc=$?
+set -e
+if [[ "$audit_rc" -eq 20 || "$status" == "NO-GO" ]]; then
+  printf '\nResultado final: %s\n' "NO-GO"
+  exit "$NOGO_EXIT"
+fi
+
+set +e
 if command -v gcloud >/dev/null 2>&1; then
   run_check "preflight" scripts/preflight-staging.sh --env-file "$ENV_FILE"
 else
   mark_pending "gcloud CLI absent; preflight executed in simulated mode"
   run_check "preflight" scripts/preflight-staging.sh --env-file "$ENV_FILE" --simulated
 fi
-run_check "resource audit" scripts/audit-staging-resources.sh --env-file "$ENV_FILE"
+preflight_rc=$?
+set -e
+if [[ "$preflight_rc" -eq 20 || "$status" == "NO-GO" ]]; then
+  printf '\nResultado final: %s\n' "NO-GO"
+  exit "$NOGO_EXIT"
+fi
 
 printf '\n# Plano concreto para execução humana aprovada\n'
-readonly_cmd "git rev-parse --short HEAD"
-readonly_cmd "gcloud config get-value project"
-readonly_cmd "gcloud run services describe $(quote "$SERVICE_NAME") --project $(quote "$PROJECT_ID") --region $(quote "$REGION") --format='value(status.latestReadyRevisionName,status.url)'"
-propose "scripts/build-staging.sh --env-file $(quote "$ENV_FILE")"
-propose "gcloud builds submit --project $(quote "$PROJECT_ID") --tag $(quote "$IMAGE_URI") apps/api"
-propose "scripts/deploy-staging.sh --env-file $(quote "$ENV_FILE")"
-propose "gcloud run deploy $(quote "$SERVICE_NAME") --project $(quote "$PROJECT_ID") --region $(quote "$REGION") --image $(quote "$IMAGE_URI") --service-account $(quote "$CLOUD_RUN_SERVICE_ACCOUNT") --max-instances $(quote "$MAX_INSTANCES") --set-secrets JWT=$(quote "${SECRET_JWT_NAME:-}"):latest,SQL=$(quote "${SECRET_SQL_NAME:-}"):latest,REDIS=$(quote "${SECRET_REDIS_NAME:-}"):latest"
-propose "scripts/verify-staging-deployment.sh $(quote "${STAGING_API_URL:-}") $(quote "${STAGING_FRONTEND_ORIGIN:-}")"
-propose "scripts/prepare-staging-rollback.sh --env-file $(quote "$ENV_FILE") --previous-revision $(quote "${PREVIOUS_REVISION:-<capture-before-deploy>}")"
+readonly_cmd "audit: scripts/audit-staging-resources.sh --env-file $(quote "$ENV_FILE")"
+readonly_cmd "preflight: scripts/preflight-staging.sh --env-file $(quote "$ENV_FILE")"
+propose "build: scripts/build-staging.sh --env-file $(quote "$ENV_FILE")"
+propose "deploy: scripts/deploy-staging.sh --env-file $(quote "$ENV_FILE")"
+readonly_cmd "verify: scripts/verify-staging-deployment.sh $(quote "${STAGING_API_URL:-}") $(quote "${STAGING_FRONTEND_ORIGIN:-}")"
+readonly_cmd "rollback-prep: scripts/prepare-staging-rollback.sh --env-file $(quote "$ENV_FILE") --previous-revision $(quote "${PREVIOUS_REVISION:-<capture-before-deploy>}")"
 
 printf '\nResultado final: %s\n' "$status"
 [[ "$status" == "GO" ]] && exit "$GO_EXIT" || [[ "$status" == "PENDÊNCIA EXTERNA" ]] && exit "$PENDING_EXIT" || exit "$NOGO_EXIT"
