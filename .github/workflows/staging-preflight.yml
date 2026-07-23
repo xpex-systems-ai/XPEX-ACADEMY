@@ -298,11 +298,15 @@ jobs:
             if [[ -s "$log" ]] && grep -E 'builds submit|run deploy|set-iam-policy|add-iam-policy-binding|services enable|secrets versions add|update-traffic|databases create|instances create' "$log"; then
               echo "mutable gcloud command executed by renderer for $label" >&2; cat "$log" >&2; exit 1
             fi
-            if [[ "$expect" -ne 20 ]]; then
+            if [[ "$expect" -eq 0 ]]; then
               grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"
+              grep -F '# Plano concreto para execução humana aprovada' "/tmp/renderer-$label.out"
             else
               if grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"; then
-                echo "renderer printed mutable proposals after NO-GO for $label" >&2; exit 1
+                echo "renderer printed mutable proposals for non-GO $label" >&2; exit 1
+              fi
+              if grep -F '# Plano concreto para execução humana aprovada' "/tmp/renderer-$label.out"; then
+                echo "renderer printed approved plan for non-GO $label" >&2; exit 1
               fi
             fi
           }
@@ -318,6 +322,7 @@ jobs:
           fi
           run_renderer secret-missing secret-missing 20
           run_renderer iam-insufficient iam-insufficient 20
+          cp /tmp/env-public /tmp/env-renderer-preflight-nogo; sed -i 's/LEARNHOUSE_ENV=staging/LEARNHOUSE_ENV=dev/' /tmp/env-renderer-preflight-nogo; run_renderer preflight-nogo valid 20 /tmp/env-renderer-preflight-nogo
           run_renderer billing-unavailable billing-unavailable 10
           run_renderer api-unqueryable api-unqueryable 10
           set +e
@@ -336,6 +341,9 @@ jobs:
           set -e
           test "$rc" -eq 10
           grep -F 'PREVIOUS_REVISION absent' <<<"$output"
+          if grep -F '# Plano concreto para execução humana aprovada' <<<"$output"; then
+            echo 'renderer printed approved plan for PENDÊNCIA EXTERNA' >&2; exit 1
+          fi
           cleanup() { git rm --cached .env.staging >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           git add -f .env.staging

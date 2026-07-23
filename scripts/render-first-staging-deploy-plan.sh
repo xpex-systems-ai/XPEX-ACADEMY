@@ -110,33 +110,35 @@ run_check() {
     20) mark_nogo "$label returned NO-GO" ;;
     *) mark_nogo "$label failed with rc=$rc" ;;
   esac
-  return "$rc"
+  CHECK_RC="$rc"
+  return 0
 }
 
 # Official wrapper sequence: audit -> preflight -> build -> deploy -> verify -> rollback.
 # The first two wrappers are read-only checks executed by this renderer. Build, deploy,
 # verify and rollback are rendered only as concrete human-run wrapper commands.
-set +e
 run_check "audit" scripts/audit-staging-resources.sh --env-file "$ENV_FILE"
-audit_rc=$?
-set -e
+audit_rc="$CHECK_RC"
 if [[ "$audit_rc" -eq 20 || "$status" == "NO-GO" ]]; then
   printf '\nResultado final: %s\n' "NO-GO"
   exit "$NOGO_EXIT"
 fi
 
-set +e
 if command -v gcloud >/dev/null 2>&1; then
   run_check "preflight" scripts/preflight-staging.sh --env-file "$ENV_FILE"
 else
   mark_pending "gcloud CLI absent; preflight executed in simulated mode"
   run_check "preflight" scripts/preflight-staging.sh --env-file "$ENV_FILE" --simulated
 fi
-preflight_rc=$?
-set -e
+preflight_rc="$CHECK_RC"
 if [[ "$preflight_rc" -eq 20 || "$status" == "NO-GO" ]]; then
   printf '\nResultado final: %s\n' "NO-GO"
   exit "$NOGO_EXIT"
+fi
+if [[ "$status" == "PENDÊNCIA EXTERNA" ]]; then
+  printf '\nPlano não aprovado: resolva as pendências externas antes de renderizar comandos de execução.\n'
+  printf '\nResultado final: %s\n' "$status"
+  exit "$PENDING_EXIT"
 fi
 
 printf '\n# Plano concreto para execução humana aprovada\n'
