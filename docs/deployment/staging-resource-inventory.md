@@ -27,3 +27,31 @@ Status permitido: `NÃO VERIFICADO`, `EXISTENTE`, `AUSENTE`, `BLOQUEADO`, `NÃO 
 | Logs | Cloud Run logs | Evidências pós-deploy | Obrigatório | `gcloud logging read 'resource.type="cloud_run_revision"' --project "$GCP_PROJECT_ID" --limit=5` | Consulta autorizada | SRE | Volume de logs | NÃO VERIFICADO |
 | Política de retenção | Logging buckets | Controlar custo/compliance | Obrigatório | `gcloud logging buckets list --project "$GCP_PROJECT_ID" --location=global --format='value(name,retentionDays)'` | Retenção conhecida | SRE/Security | Retenção longa aumenta custo | NÃO VERIFICADO |
 | Limites de instâncias | `MAX_INSTANCES<=20`, recomendado baixo | Evitar escala inesperada | Obrigatório | `gcloud run services describe "$CLOUD_RUN_SERVICE" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format='value(spec.template.metadata.annotations.autoscaling.knative.dev/maxScale)'` | Limite conservador | Operador deploy | Limita custo | NÃO VERIFICADO |
+
+## Evidência real da auditoria somente leitura — 2026-07-23T17:22:24Z
+
+Commit auditado: `2296d31890a28116beb5adf28451d39a885cf414`.
+Branch de auditoria: `codex/auditar-recursos-reais-de-staging`.
+
+A auditoria foi executada neste ambiente sem credenciais GCP e sem arquivo `.env.staging` real. O binário `gcloud` não está instalado (`command -v gcloud` não retornou caminho; tentativa de `gcloud auth list --filter=status:ACTIVE --format='value(account)'` retornou `gcloud: command not found`). Portanto, nenhum recurso GCP real pôde ser confirmado a partir deste container e a decisão honesta é **PENDÊNCIA EXTERNA** até que `scripts/audit-staging-resources.sh --env-file .env.staging` seja executado por um operador autenticado no projeto de staging.
+
+| Item auditado | Evidência real obtida neste ambiente | Classificação |
+|---|---|---|
+| Conta autenticada | `gcloud` indisponível; conta não consultável. | PENDÊNCIA EXTERNA |
+| Projeto ativo | `gcloud` indisponível; projeto ativo não consultável. | PENDÊNCIA EXTERNA |
+| Billing habilitado | `gcloud billing projects describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| APIs necessárias | `gcloud services list` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Artifact Registry | `gcloud artifacts repositories describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Serviço Cloud Run | `gcloud run services describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Service account | `gcloud iam service-accounts describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Cloud SQL | `gcloud sql instances/databases/users` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Redis | `gcloud redis instances describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| VPC connector | `gcloud compute networks vpc-access connectors describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Bucket | `gcloud storage buckets describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Nomes dos secrets | Apenas nomes seriam listados pelo script; valores não são acessados. Consulta real não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Permissões IAM mínimas | `gcloud projects get-iam-policy` não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Região | Depende do `.env.staging` real; não fornecido ao container. | PENDÊNCIA EXTERNA |
+| Cotas | Consulta real de cotas não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Limites de instâncias | Depende de `MAX_INSTANCES` e da anotação Cloud Run real; não consultável neste ambiente. | PENDÊNCIA EXTERNA |
+
+Nenhum secret, token, senha, connection string completa ou chave privada foi impresso ou versionado durante esta auditoria.
