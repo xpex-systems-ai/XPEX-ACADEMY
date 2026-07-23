@@ -30,8 +30,9 @@ record() {
   printf '%s | %s | %s\n' "$result" "$item" "$detail"
   case "$result" in
     NO-GO) status="NO-GO" ;;
-    "PENDÊNCIA EXTERNA") [[ "$status" == "GO" ]] && status="PENDÊNCIA EXTERNA" ;;
+    "PENDÊNCIA EXTERNA") [[ "$status" == "GO" ]] && status="PENDÊNCIA EXTERNA" || true ;;
   esac
+  return 0
 }
 
 go() { record "$1" "GO" "$2"; }
@@ -96,14 +97,17 @@ CLOUD_RUN_SERVICE_ACCOUNT="${CLOUD_RUN_SA:-${CLOUD_RUN_SERVICE_ACCOUNT:-}}"
 BUCKET="${STAGING_BUCKET:-${GCS_BUCKET:-${LEARNHOUSE_S3_API_BUCKET_NAME:-}}}"
 MAX_INSTANCES="${MAX_INSTANCES:-}"
 CLOUD_SQL_INSTANCE_NAME="${CLOUD_SQL_INSTANCE##*:}"
+RUNTIME_IAM_PRINCIPAL="${RUNTIME_IAM_PRINCIPAL:-serviceAccount:$CLOUD_RUN_SERVICE_ACCOUNT}"
 
 for target in "$PROJECT_ID" "$REGION" "$SERVICE_NAME" "$CLOUD_RUN_SERVICE_ACCOUNT" "$BUCKET" "${STAGING_API_HOST:-}" "${STAGING_API_URL:-}"; do
   if [[ "$target" =~ (^|[-_.:/])prod(uction)?($|[-_.:/])|(^|[-_.:/])main($|[-_.:/]) ]]; then
-    nogo "target-safety" "production-like target refused ($(redact "$target"))"
+    nogo "target-safety" "production-like target refused ($(redact "$target")); no gcloud command will be executed"
+    printf '\nResultado final: %s\n' "$status"
+    exit "$NOGO_EXIT"
   fi
 done
 
-for name in PROJECT_ID REGION ARTIFACT_REPOSITORY SERVICE_NAME CLOUD_RUN_SERVICE_ACCOUNT CLOUD_SQL_INSTANCE DB_NAME DB_USER REDIS_INSTANCE VPC_CONNECTOR BUCKET MAX_INSTANCES; do
+for name in PROJECT_ID REGION ARTIFACT_REPOSITORY SERVICE_NAME CLOUD_RUN_SERVICE_ACCOUNT CLOUD_SQL_INSTANCE DB_NAME DB_USER REDIS_INSTANCE VPC_CONNECTOR BUCKET MAX_INSTANCES SECRET_JWT_NAME SECRET_SQL_NAME SECRET_REDIS_NAME; do
   require_env_name "$name"
 done
 
@@ -131,11 +135,18 @@ run_gcloud "billing" "PENDÊNCIA EXTERNA" gcloud billing projects describe "$PRO
 billing="$GCLOUD_OUTPUT"
 [[ "$billing" == "true" ]] && go "billing" "enabled" || { [[ "$billing" == "false" ]] && nogo "billing" "disabled" || pending "billing" "not confirmed"; }
 
-run_gcloud "apis" "PENDÊNCIA EXTERNA" gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)' || true
-apis="$GCLOUD_OUTPUT"
-for api in run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com; do
-  printf '%s\n' "$apis" | contains_line "$api" && go "api:$api" "enabled" || nogo "api:$api" "not listed as enabled"
-done
+if run_gcloud "apis" "PENDÊNCIA EXTERNA" gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)'; then
+  apis="$GCLOUD_OUTPUT"
+  if [[ -z "$apis" ]]; then
+    nogo "apis" "enabled services query succeeded but returned empty output"
+  else
+    for api in run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com; do
+      printf '%s\n' "$apis" | contains_line "$api" && go "api:$api" "enabled" || nogo "api:$api" "not listed as enabled"
+    done
+  fi
+else
+  pending "apis" "skipped individual API checks because enabled-services query failed"
+fi
 
 check_nonempty() {
   local label="$1" required="$2"
@@ -159,14 +170,36 @@ check_nonempty vpc-connector NO-GO gcloud compute networks vpc-access connectors
 check_nonempty bucket NO-GO gcloud storage buckets describe "gs://$BUCKET" --format='value(name)'
 check_nonempty regional-quotas PENDÊNCIA_EXTERNA gcloud compute regions describe "$REGION" --project "$PROJECT_ID" --format='value(quotas.metric,quotas.limit,quotas.usage)'
 
-run_gcloud "secrets" "NO-GO" gcloud secrets list --project "$PROJECT_ID" --filter='name:staging' --format='value(name)' || true
-secrets="$GCLOUD_OUTPUT"
-[[ -n "$secrets" ]] && go "secrets" "names listed only: $(printf '%s\n' "$secrets" | sed '/^$/d' | wc -l | tr -d ' ') secret(s), values not accessed" || nogo "secrets" "no staging secret names listed"
+for secret_var in SECRET_JWT_NAME SECRET_SQL_NAME SECRET_REDIS_NAME; do
+  secret_name="${!secret_var}"
+  if run_gcloud "secret:$secret_var" "NO-GO" gcloud secrets describe "$secret_name" --project "$PROJECT_ID" --format='value(name)'; then
+    [[ -n "$GCLOUD_OUTPUT" ]] && go "secret:$secret_var" "exact secret exists by name only ($(redact "$secret_name")); value not accessed" || nogo "secret:$secret_var" "exact secret describe returned empty output"
+  fi
+done
 
 run_gcloud "iam-policy" "PENDÊNCIA EXTERNA" gcloud projects get-iam-policy "$PROJECT_ID" --format=json || true
 iam="$GCLOUD_OUTPUT"
+check_iam_binding() {
+  local role="$1" principal="$2"
+  IAM_JSON="$iam" python3 - "$role" "$principal" <<'PYIAM'
+import json, os, sys
+role, principal = sys.argv[1], sys.argv[2]
+try:
+    policy = json.loads(os.environ.get("IAM_JSON", ""))
+except Exception:
+    sys.exit(2)
+for binding in policy.get("bindings", []):
+    if binding.get("role") == role and principal in binding.get("members", []):
+        sys.exit(0)
+sys.exit(1)
+PYIAM
+}
 for role in roles/cloudsql.client roles/secretmanager.secretAccessor roles/storage.objectAdmin; do
-  printf '%s' "$iam" | grep -Fq "$role" && go "iam:$role" "role present in project policy" || nogo "iam:$role" "role missing from project policy evidence"
+  if check_iam_binding "$role" "$RUNTIME_IAM_PRINCIPAL"; then
+    go "iam:$role" "role bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
+  else
+    nogo "iam:$role" "role is not bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
+  fi
 done
 
 run_gcloud "cloud-run-max-instances" "PENDÊNCIA EXTERNA" gcloud run services describe "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --format='value(spec.template.metadata.annotations.autoscaling.knative.dev/maxScale)' || true

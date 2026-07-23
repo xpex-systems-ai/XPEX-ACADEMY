@@ -31,7 +31,7 @@ Status permitido: `NÃO VERIFICADO`, `EXISTENTE`, `AUSENTE`, `BLOQUEADO`, `NÃO 
 ## Evidência real da auditoria somente leitura — 2026-07-23T17:22:24Z
 
 Commit auditado: `2296d31890a28116beb5adf28451d39a885cf414`.
-Branch de auditoria: `codex/auditar-recursos-reais-de-staging`.
+Branch de auditoria: `codex/auditar-recursos-de-staging`.
 
 A auditoria foi executada neste ambiente sem credenciais GCP e sem arquivo `.env.staging` real. O binário `gcloud` não está instalado (`command -v gcloud` não retornou caminho; tentativa de `gcloud auth list --filter=status:ACTIVE --format='value(account)'` retornou `gcloud: command not found`). Portanto, nenhum recurso GCP real pôde ser confirmado a partir deste container e a decisão honesta é **PENDÊNCIA EXTERNA** até que `scripts/audit-staging-resources.sh --env-file .env.staging` seja executado por um operador autenticado no projeto de staging.
 
@@ -48,7 +48,7 @@ A auditoria foi executada neste ambiente sem credenciais GCP e sem arquivo `.env
 | Redis | `gcloud redis instances describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
 | VPC connector | `gcloud compute networks vpc-access connectors describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
 | Bucket | `gcloud storage buckets describe` não executável neste ambiente. | PENDÊNCIA EXTERNA |
-| Nomes dos secrets | Apenas nomes seriam listados pelo script; valores não são acessados. Consulta real não executável neste ambiente. | PENDÊNCIA EXTERNA |
+| Nomes dos secrets | O script valida exatamente `SECRET_JWT_NAME`, `SECRET_SQL_NAME` e `SECRET_REDIS_NAME` por `gcloud secrets describe`, sem acessar versões ou valores. Consulta real não executável neste ambiente. | PENDÊNCIA EXTERNA |
 | Permissões IAM mínimas | `gcloud projects get-iam-policy` não executável neste ambiente. | PENDÊNCIA EXTERNA |
 | Região | Depende do `.env.staging` real; não fornecido ao container. | PENDÊNCIA EXTERNA |
 | Cotas | Consulta real de cotas não executável neste ambiente. | PENDÊNCIA EXTERNA |

@@ -43,6 +43,9 @@ jobs:
           STAGING_FRONTEND_ORIGIN=https://staging.example.test
           IMAGE_TAG=ci-preflight
           MAX_INSTANCES=3
+          SECRET_JWT_NAME=learnhouse-auth-jwt-staging
+          SECRET_SQL_NAME=learnhouse-sql-staging
+          SECRET_REDIS_NAME=learnhouse-redis-staging
           LEARNHOUSE_ENV=staging
           LEARNHOUSE_DEVELOPMENT_MODE=false
           LEARNHOUSE_SITE_NAME="XpeX Academy Staging"
@@ -238,6 +241,7 @@ jobs:
           #!/usr/bin/env bash
           mode="${AUDIT_GCLOUD_STUB_MODE:?}"
           args="$*"
+          printf '%s\n' "$args" >> "${AUDIT_GCLOUD_CALL_LOG:?}"
           if [[ "$args" =~ (services enable|run deploy|builds submit|secrets versions access|secrets create|projects add-iam-policy-binding|artifacts repositories create|sql instances create|redis instances create|storage buckets create) ]]; then
             echo "mutable command refused in stub: $args" >&2
             exit 99
@@ -247,9 +251,23 @@ jobs:
             "config get-value project") [[ "$mode" == "project-invalid" ]] && echo "wrong-stage-12345" || echo "xpex-stage-12345" ;;
             projects\ describe*) [[ "$mode" == "project-invalid" ]] && exit 1 || echo "xpex-stage-12345" ;;
             billing\ projects\ describe*) [[ "$mode" == "billing-disabled" ]] && echo "false" || echo "true" ;;
-            services\ list*) printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com ;;
+            services\ list*)
+              [[ "$mode" == "services-list-denied" ]] && { echo "permission denied" >&2; exit 1; }
+              printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com
+              ;;
             artifacts\ repositories\ describe*) [[ "$mode" == "resource-missing" ]] && exit 1 || echo "projects/xpex-stage-12345/locations/us-central1/repositories/xpex-academy-staging" ;;
-            run\ services\ describe*) echo "xpex-academy-staging" ;;
+            run\ services\ describe*)
+              if [[ "$args" == *"metadata.name"* ]]; then
+                echo "xpex-academy-staging"
+              elif [[ "$args" == *"autoscaling.knative.dev/maxScale"* ]]; then
+                [[ "$mode" == "maxscale-invalid" ]] && { echo "not-a-number"; exit 0; }
+                [[ "$mode" == "maxscale-too-high" ]] && { echo "99"; exit 0; }
+                echo "3"
+              else
+                echo "unexpected cloud run describe format" >&2
+                exit 1
+              fi
+              ;;
             iam\ service-accounts\ describe*) echo "xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com" ;;
             sql\ instances\ describe*) echo "xpex-academy-staging-db" ;;
             sql\ databases\ list*) echo "xpex_academy_staging" ;;
@@ -258,12 +276,22 @@ jobs:
             compute\ networks\ vpc-access\ connectors\ describe*) echo "xpex-academy-staging-connector" ;;
             storage\ buckets\ describe*) echo "xpex-academy-staging-media" ;;
             compute\ regions\ describe*) echo "CPUS 24 2" ;;
-            secrets\ list*) printf '%s\n' projects/123/secrets/learnhouse-auth-jwt-staging projects/123/secrets/learnhouse-sql-staging ;;
+            secrets\ describe*)
+              [[ "$mode" == "secret-jwt-missing" && "$args" == *"learnhouse-auth-jwt-staging"* ]] && exit 1
+              [[ "$mode" == "secret-sql-missing" && "$args" == *"learnhouse-sql-staging"* ]] && exit 1
+              [[ "$mode" == "secret-redis-missing" && "$args" == *"learnhouse-redis-staging"* ]] && exit 1
+              case "$args" in
+                *learnhouse-auth-jwt-staging*) echo "projects/123/secrets/learnhouse-auth-jwt-staging" ;;
+                *learnhouse-sql-staging*) echo "projects/123/secrets/learnhouse-sql-staging" ;;
+                *learnhouse-redis-staging*) echo "projects/123/secrets/learnhouse-redis-staging" ;;
+                *) exit 1 ;;
+              esac
+              ;;
             projects\ get-iam-policy*)
-              if [[ "$mode" == "iam-insufficient" ]]; then
-                printf '{"bindings":[{"role":"roles/viewer"}]}'
+              if [[ "$mode" == "iam-wrong-member" || "$mode" == "iam-insufficient" ]]; then
+                printf '{"bindings":[{"role":"roles/cloudsql.client","members":["serviceAccount:other@example.test"]},{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:other@example.test"]},{"role":"roles/storage.objectAdmin","members":["serviceAccount:other@example.test"]}]}'
               else
-                printf '{"bindings":[{"role":"roles/cloudsql.client"},{"role":"roles/secretmanager.secretAccessor"},{"role":"roles/storage.objectAdmin"}]}'
+                printf '{"bindings":[{"role":"roles/cloudsql.client","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/storage.objectAdmin","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]}]}'
               fi
               ;;
             *) echo "stubbed" ;;
@@ -274,13 +302,15 @@ jobs:
           }
           run_audit_expect() {
             local label="$1" mode="$2" expected_rc="$3"
-            local stub output rc
+            local stub output rc log
             stub="$(make_audit_stub_dir "$mode")"
+            log="$(mktemp)"
             set +e
-            output="$(AUDIT_GCLOUD_STUB_MODE="$mode" PATH="$stub:$PATH" scripts/audit-staging-resources.sh --env-file /tmp/env-public 2>&1)"
+            output="$(AUDIT_GCLOUD_STUB_MODE="$mode" AUDIT_GCLOUD_CALL_LOG="$log" PATH="$stub:$PATH" scripts/audit-staging-resources.sh --env-file /tmp/env-public 2>&1)"
             rc=$?
             set -e
             printf '%s\n' "$output" > "/tmp/audit-$label.out"
+            cp "$log" "/tmp/audit-$label.calls"
             if [[ "$rc" -ne "$expected_rc" ]]; then
               printf 'Unexpected rc for %s: got %s expected %s\n%s\n' "$label" "$rc" "$expected_rc" "$output" >&2
               exit 1
@@ -292,27 +322,51 @@ jobs:
           }
           run_audit_expect resource-present ok 0
           grep -F 'Resultado final: GO' /tmp/audit-resource-present.out
+          grep -F 'GO | cloud-run-max-instances | maxScale=3' /tmp/audit-resource-present.out
+          grep -F 'GO | iam:roles/cloudsql.client | role bound to runtime principal' /tmp/audit-resource-present.out
           run_audit_expect resource-missing resource-missing 20
           grep -F 'artifact-registry' /tmp/audit-resource-missing.out
           run_audit_expect billing-disabled billing-disabled 20
           grep -F 'NO-GO | billing | disabled' /tmp/audit-billing-disabled.out
           run_audit_expect project-invalid project-invalid 20
           grep -F 'NO-GO | project' /tmp/audit-project-invalid.out
-          run_audit_expect iam-insufficient iam-insufficient 20
-          grep -F 'NO-GO | iam:roles/cloudsql.client' /tmp/audit-iam-insufficient.out
-          grep -F 'values not accessed' /tmp/audit-resource-present.out
+          run_audit_expect maxscale-invalid maxscale-invalid 20
+          grep -F 'maxScale=not-a-number' /tmp/audit-maxscale-invalid.out
+          run_audit_expect maxscale-too-high maxscale-too-high 20
+          grep -F 'maxScale=99 exceeds staging guardrail' /tmp/audit-maxscale-too-high.out
+          run_audit_expect secret-jwt-missing secret-jwt-missing 20
+          grep -F 'secret:SECRET_JWT_NAME' /tmp/audit-secret-jwt-missing.out
+          run_audit_expect secret-sql-missing secret-sql-missing 20
+          grep -F 'secret:SECRET_SQL_NAME' /tmp/audit-secret-sql-missing.out
+          run_audit_expect secret-redis-missing secret-redis-missing 20
+          grep -F 'secret:SECRET_REDIS_NAME' /tmp/audit-secret-redis-missing.out
+          run_audit_expect iam-wrong-member iam-wrong-member 20
+          grep -F 'role is not bound to runtime principal' /tmp/audit-iam-wrong-member.out
+          run_audit_expect services-list-denied services-list-denied 10
+          grep -F 'PENDÊNCIA EXTERNA | apis | skipped individual API checks' /tmp/audit-services-list-denied.out
+          ! grep -F 'api:run.googleapis.com' /tmp/audit-services-list-denied.out
 
       - name: Test audit production target refusal and read-only contract
         run: |
           set -euo pipefail
           cp /tmp/env-public /tmp/env-audit-prod
           sed -i 's/xpex-stage-12345/xpex-production-12345/g' /tmp/env-audit-prod
+          stub="$(mktemp -d)"
+          log="$(mktemp)"
+          cat > "$stub/gcloud" <<'SH'
+          #!/usr/bin/env bash
+          printf '%s\n' "$*" >> "${AUDIT_GCLOUD_CALL_LOG:?}"
+          echo 'gcloud must not be called for production targets' >&2
+          exit 99
+          SH
+          chmod +x "$stub/gcloud"
           set +e
-          output="$(scripts/audit-staging-resources.sh --env-file /tmp/env-audit-prod 2>&1)"
+          output="$(AUDIT_GCLOUD_CALL_LOG="$log" PATH="$stub:$PATH" scripts/audit-staging-resources.sh --env-file /tmp/env-audit-prod 2>&1)"
           rc=$?
           set -e
           test "$rc" -eq 20
           grep -F 'production-like target refused' <<<"$output"
+          test ! -s "$log"
           forbidden='services enable|run deploy|builds submit|secrets versions access|secrets create|add-iam-policy-binding|set-iam-policy|repositories create|instances create|buckets create|gcloud config set'
           if grep -En "$forbidden" scripts/audit-staging-resources.sh; then
             echo 'Mutable gcloud command found in audit script' >&2

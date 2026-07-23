@@ -11,11 +11,11 @@
 
 | Verificação | Evidência | Classificação |
 |---|---|---|
-| Branch de trabalho | `codex/auditar-recursos-reais-de-staging` criada a partir do commit de merge do PR #21. | GO |
+| Branch de trabalho | `codex/auditar-recursos-de-staging` criada a partir do commit de merge do PR #21. | GO |
 | Commit base | `2296d31890a28116beb5adf28451d39a885cf414` (`Merge pull request #21 from xpex-systems-ai/codex/criar-runbook-para-deploy-controlado`). | GO |
 | Disponibilidade do `gcloud` | `command -v gcloud` não retornou caminho; `gcloud auth list --filter=status:ACTIVE --format='value(account)'` retornou `gcloud: command not found`. | PENDÊNCIA EXTERNA |
 | Arquivo de ambiente real | `.env.staging` real não foi fornecido ao container e não deve ser versionado. | PENDÊNCIA EXTERNA |
-| Proteção contra dados sensíveis | O script novo lista apenas nomes de secrets e não chama `gcloud secrets versions access`. | GO |
+| Proteção contra dados sensíveis | O script novo valida exatamente `SECRET_JWT_NAME`, `SECRET_SQL_NAME` e `SECRET_REDIS_NAME` por nome e não chama `gcloud secrets versions access`. | GO |
 
 ## Recursos encontrados
 
@@ -36,8 +36,8 @@ Todos os itens abaixo permanecem **PENDÊNCIA EXTERNA** até execução por oper
 - Redis/Memorystore;
 - VPC connector;
 - bucket de staging;
-- nomes dos secrets de staging sem leitura de valores;
-- IAM mínimo para Cloud SQL, Secret Manager e Storage;
+- secrets exatos `SECRET_JWT_NAME`, `SECRET_SQL_NAME` e `SECRET_REDIS_NAME` sem leitura de valores;
+- IAM mínimo para Cloud SQL, Secret Manager e Storage vinculado ao principal runtime;
 - região real;
 - cotas aplicáveis;
 - limite de instâncias do Cloud Run.
@@ -55,7 +55,7 @@ A decisão permanece **PENDÊNCIA EXTERNA** porque não há evidência real de p
 
 - Deploy real não deve ocorrer até a confirmação de billing, APIs, IAM, banco, Redis, bucket, VPC connector e secrets.
 - Cloud Run pode estar ausente antes do primeiro deploy; isso é aceitável apenas se todos os demais pré-requisitos estiverem prontos e o runbook aprovar a criação/deploy por ação humana posterior.
-- Billing desabilitado, APIs ausentes, IAM insuficiente ou targets com `prod`, `production` ou `main` devem ser tratados como **NO-GO** pelo script.
+- Billing desabilitado, APIs ausentes após consulta bem-sucedida, IAM insuficiente no principal runtime, secrets exatos ausentes ou targets com `prod`, `production` ou `main` devem ser tratados como **NO-GO** pelo script; falha de permissão em `services list` permanece **PENDÊNCIA EXTERNA** sem checar APIs individuais.
 - A ausência de `gcloud` neste container impede conclusão de prontidão real; não é evidência de que os recursos existam.
 
 ## Custos estimados por categoria
