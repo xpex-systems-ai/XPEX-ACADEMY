@@ -230,6 +230,154 @@ jobs:
           PREFLIGHT_GCLOUD_STUB_MODE=auth-empty PATH="$stub:$PATH" /tmp/run-expect-pending auth-empty scripts/preflight-staging.sh --env-file /tmp/env-public
 
 
+      - name: Test first staging deploy plan renderer
+        run: |
+          set -euo pipefail
+          make_renderer_stub_dir() {
+            local mode="$1"
+            local dir log
+            dir="$(mktemp -d)"
+            log="$dir/gcloud.log"
+            cat > "$dir/docker" <<'SH'
+          #!/usr/bin/env bash
+          exit 0
+          SH
+            cat > "$dir/gcloud" <<'SH'
+          #!/usr/bin/env bash
+          mode="${RENDER_GCLOUD_STUB_MODE:-valid}"
+          log="${RENDER_GCLOUD_CALL_LOG:?}"
+          printf '%s\n' "$*" >> "$log"
+          case "$*" in
+            *builds\ submit*|*run\ deploy*|*set-iam-policy*|*add-iam-policy-binding*|*services\ enable*|*secrets\ versions\ add*|*run\ services\ update-traffic*|*sql\ databases\ create*|*redis\ instances\ create*) echo "mutable command must not be executed" >&2; exit 99 ;;
+            "auth list"*) echo "ci@example.test" ;;
+            "config get-value project"*) echo "xpex-stage-12345" ;;
+            "projects describe"*) echo "xpex-stage-12345" ;;
+            "billing projects describe"*) [[ "$mode" == "billing-unavailable" ]] && exit 1; echo "true" ;;
+            "services list"*)
+              [[ "$mode" == "api-unqueryable" ]] && exit 1
+              printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com
+              ;;
+            artifacts\ repositories\ describe*) echo "projects/xpex-stage-12345/locations/us-central1/repositories/xpex-academy-staging" ;;
+            run\ services\ describe*maxScale*) echo "3" ;;
+            run\ services\ describe*) [[ "$mode" == "previous-absent" ]] && exit 1 || echo "xpex-academy-staging" ;;
+            iam\ service-accounts\ describe*) echo "xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com" ;;
+            sql\ instances\ describe*) echo "xpex-academy-staging-db" ;;
+            sql\ databases\ list*) echo "xpex_academy_staging" ;;
+            sql\ users\ list*) echo "xpex_staging_app" ;;
+            redis\ instances\ describe*) echo "xpex-academy-staging-redis" ;;
+            compute\ networks\ vpc-access\ connectors\ describe*) echo "xpex-academy-staging-connector" ;;
+            storage\ buckets\ describe*) echo "xpex-academy-staging-media" ;;
+            compute\ regions\ describe*) echo "CPUS 24 0" ;;
+            secrets\ describe*) [[ "$mode" == "secret-missing" && "$*" == *"learnhouse-sql-staging"* ]] && exit 1; echo "projects/123/secrets/staging" ;;
+            projects\ get-iam-policy*)
+              [[ "$mode" == "iam-insufficient" ]] && printf '{"bindings":[]}' || printf '{"bindings":[{"role":"roles/cloudsql.client","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/storage.objectAdmin","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]}]}'
+              ;;
+            *) echo resource ;;
+          esac
+          SH
+            chmod +x "$dir/gcloud" "$dir/docker"
+            printf '%s' "$dir"
+          }
+          run_renderer() {
+            local label="$1" mode="$2" expect="$3" envfile="${4:-/tmp/env-public}"
+            local stub log output rc
+            stub="$(make_renderer_stub_dir "$mode")"
+            log="$stub/gcloud.log"
+            set +e
+            output="$(PREVIOUS_REVISION=xpex-academy-staging-00001-old RENDER_GCLOUD_STUB_MODE="$mode" RENDER_GCLOUD_CALL_LOG="$log" PATH="$stub:$PATH" scripts/render-first-staging-deploy-plan.sh --env-file "$envfile" 2>&1)"
+            rc=$?
+            set -e
+            printf '%s\n' "$output" > "/tmp/renderer-$label.out"
+            if [[ "$rc" -ne "$expect" ]]; then
+              printf 'Unexpected rc for %s: got %s expected %s\n%s\n' "$label" "$rc" "$expect" "$output" >&2
+              exit 1
+            fi
+            if grep -E 'fake_password|fictitious-secret-only-for-ci|staging-import-check-secret' "/tmp/renderer-$label.out"; then
+              echo "secret leaked in renderer output for $label" >&2; exit 1
+            fi
+            if [[ -s "$log" ]] && grep -E 'builds submit|run deploy|set-iam-policy|add-iam-policy-binding|services enable|secrets versions add|update-traffic|databases create|instances create' "$log"; then
+              echo "mutable gcloud command executed by renderer for $label" >&2; cat "$log" >&2; exit 1
+            fi
+            if [[ "$expect" -eq 0 ]]; then
+              grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"
+              grep -F '# Plano concreto para execução humana aprovada' "/tmp/renderer-$label.out"
+            else
+              if grep -F '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' "/tmp/renderer-$label.out"; then
+                echo "renderer printed mutable proposals for non-GO $label" >&2; exit 1
+              fi
+              if grep -F '# Plano concreto para execução humana aprovada' "/tmp/renderer-$label.out"; then
+                echo "renderer printed approved plan for non-GO $label" >&2; exit 1
+              fi
+              if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' "/tmp/renderer-$label.out"; then
+                echo "renderer printed execution command for non-GO $label" >&2; exit 1
+              fi
+            fi
+          }
+          run_renderer valid valid 0
+          grep -n 'scripts/build-staging.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/deploy-staging.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/verify-staging-deployment.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/prepare-staging-rollback.sh' /tmp/renderer-valid.out
+          proposal_count="$(grep -cF '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' /tmp/renderer-valid.out)"
+          test "$proposal_count" -eq 4
+          if grep -E 'gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' /tmp/renderer-valid.out; then
+            echo 'renderer duplicated raw mutable gcloud logic' >&2; exit 1
+          fi
+          awk '/^  / && $0 !~ /^  scripts\/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh/ { print; bad=1 } END { exit bad ? 1 : 0 }' /tmp/renderer-valid.out || {
+            echo 'renderer printed a non-wrapper proposal in GO output' >&2; exit 1;
+          }
+          run_renderer secret-missing secret-missing 20
+          run_renderer iam-insufficient iam-insufficient 20
+          cp /tmp/env-public /tmp/env-renderer-preflight-nogo; sed -i 's/LEARNHOUSE_ENV=staging/LEARNHOUSE_ENV=dev/' /tmp/env-renderer-preflight-nogo; run_renderer preflight-nogo valid 20 /tmp/env-renderer-preflight-nogo
+          run_renderer billing-unavailable billing-unavailable 10
+          run_renderer api-unqueryable api-unqueryable 10
+          no_gcloud_bin="$(mktemp -d)"
+          for bin in bash git grep sed awk basename curl python3; do
+            target="$(command -v "$bin")"
+            ln -s "$target" "$no_gcloud_bin/$bin"
+          done
+          if command -v docker >/dev/null 2>&1; then
+            ln -s "$(command -v docker)" "$no_gcloud_bin/docker"
+          else
+            printf '#!/usr/bin/env bash\nexit 0\n' > "$no_gcloud_bin/docker"
+            chmod +x "$no_gcloud_bin/docker"
+          fi
+          if PATH="$no_gcloud_bin" command -v gcloud; then
+            echo "test harness still exposes gcloud" >&2
+            exit 1
+          fi
+          set +e
+          env -i PATH="$no_gcloud_bin" PREVIOUS_REVISION=xpex-academy-staging-00001-old scripts/render-first-staging-deploy-plan.sh --env-file /tmp/env-public >/tmp/renderer-no-gcloud.out 2>&1
+          rc=$?
+          set -e
+          test "$rc" -eq 10
+          grep -F 'gcloud CLI absent' /tmp/renderer-no-gcloud.out
+          if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic|# Plano concreto para execução humana aprovada' /tmp/renderer-no-gcloud.out; then
+            echo 'renderer printed execution command or approved plan for missing gcloud' >&2; exit 1
+          fi
+          cp /tmp/env-public /tmp/env-renderer-prod; sed -i 's/xpex-stage-12345/xpex-prod-12345/g' /tmp/env-renderer-prod; run_renderer production valid 20 /tmp/env-renderer-prod
+          cp /tmp/env-public /tmp/env-renderer-placeholder; echo 'EXTRA=CHANGE_ME' >> /tmp/env-renderer-placeholder; run_renderer placeholder valid 20 /tmp/env-renderer-placeholder
+          cp /tmp/env-public /tmp/env-renderer-max; sed -i 's/MAX_INSTANCES=3/MAX_INSTANCES=99/' /tmp/env-renderer-max; run_renderer max-instances valid 20 /tmp/env-renderer-max
+          cp /tmp/env-public /tmp/env-renderer-missing-secret; sed -i '/SECRET_REDIS_NAME=/d' /tmp/env-renderer-missing-secret; run_renderer missing-secret-var valid 20 /tmp/env-renderer-missing-secret
+          set +e
+          output="$(RENDER_GCLOUD_STUB_MODE=valid RENDER_GCLOUD_CALL_LOG=/tmp/renderer-prev.log PATH="$(make_renderer_stub_dir valid):$PATH" scripts/render-first-staging-deploy-plan.sh --env-file /tmp/env-public 2>&1)"
+          rc=$?
+          set -e
+          test "$rc" -eq 10
+          grep -F 'PREVIOUS_REVISION absent' <<<"$output"
+          if grep -F '# Plano concreto para execução humana aprovada' <<<"$output"; then
+            echo 'renderer printed approved plan for PENDÊNCIA EXTERNA' >&2; exit 1
+          fi
+          if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' <<<"$output"; then
+            echo 'renderer printed execution command for PENDÊNCIA EXTERNA' >&2; exit 1
+          fi
+          cleanup() { git rm --cached .env.staging >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          git add -f .env.staging
+          run_renderer tracked-env valid 20 .env.staging
+          cleanup
+          trap - EXIT
+
       - name: Test read-only staging resource audit
         run: |
           set -euo pipefail
