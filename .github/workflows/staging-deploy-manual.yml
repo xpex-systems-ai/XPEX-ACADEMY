@@ -44,6 +44,7 @@ jobs:
       decision: ${{ steps.decision.outputs.decision }}
       image_tag: ${{ steps.context.outputs.image_tag }}
       full_sha: ${{ steps.context.outputs.full_sha }}
+      plan_config_sha256: ${{ steps.envfile.outputs.plan_config_sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,7 +66,19 @@ jobs:
           [[ -n "$full_sha" && -n "$image_tag" ]] || { echo "NO-GO: validator did not return immutable context" >&2; exit 20; }
           echo "full_sha=$full_sha" >> "$GITHUB_OUTPUT"
           echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
-      - name: Prepare temporary staging env
+      - name: Checkout approved full_sha for plan execution
+        env:
+          FULL_SHA: ${{ steps.context.outputs.full_sha }}
+          IMAGE_TAG: ${{ steps.context.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$FULL_SHA"
+          [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: plan HEAD differs from approved full_sha" >&2; exit 20; }
+          git fetch --no-tags origin dev:refs/remotes/origin/dev
+          git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
+          [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag differs from approved full_sha" >&2; exit 20; }
+      - name: Prepare temporary staging env and config fingerprint
+        id: envfile
         env:
           GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
@@ -88,76 +101,55 @@ jobs:
         run: |
           set -euo pipefail
           ENV_FILE="$RUNNER_TEMP/staging.env"
-          cleanup() { rm -f "$ENV_FILE"; }
+          CONFIG_FILE="$RUNNER_TEMP/staging-plan-config.txt"
+          cleanup() { rm -f "$ENV_FILE" "$CONFIG_FILE"; }
           trap cleanup EXIT
-          reject_unsafe_value() {
-            local label="$1" value="$2"
-            if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
-              echo "NO-GO: $label contains CR/LF" >&2; exit 20
-            fi
-            if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then
-              echo "NO-GO: $label contains unsupported control characters" >&2; exit 20
-            fi
-          }
-          append_env() {
-            local name="$1" value="$2"
-            reject_unsafe_value "$name" "$value"
-            printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
-          }
-          : > "$ENV_FILE"
-          chmod 600 "$ENV_FILE"
+          reject_unsafe_value() { local label="$1" value="$2"; if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then echo "NO-GO: $label contains CR/LF" >&2; exit 20; fi; if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then echo "NO-GO: $label contains unsupported control characters" >&2; exit 20; fi; }
+          append_env() { local name="$1" value="$2"; reject_unsafe_value "$name" "$value"; printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"; }
+          append_config() { local name="$1" value="$2"; reject_unsafe_value "$name" "$value"; printf '%s=%s\n' "$name" "$value" >> "$CONFIG_FILE"; }
+          : > "$ENV_FILE"; : > "$CONFIG_FILE"; chmod 600 "$ENV_FILE" "$CONFIG_FILE"
           api_host="$STAGING_API_URL_VALUE"; api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
           frontend_host="$STAGING_FRONTEND_ORIGIN_VALUE"; frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
-          append_env GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"
-          append_env GCP_REGION "$GCP_REGION_VALUE"
-          append_env ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"
-          append_env CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"
+          for item in GCP_PROJECT_ID_VALUE GCP_REGION_VALUE ARTIFACT_REPOSITORY_VALUE CLOUD_RUN_SERVICE_VALUE CLOUD_RUN_SA_VALUE CLOUD_SQL_INSTANCE_VALUE DB_NAME_VALUE DB_USER_VALUE REDIS_INSTANCE_VALUE VPC_CONNECTOR_VALUE STAGING_BUCKET_VALUE STAGING_API_URL_VALUE STAGING_FRONTEND_ORIGIN_VALUE MAX_INSTANCES_VALUE SECRET_JWT_NAME_VALUE SECRET_SQL_NAME_VALUE SECRET_REDIS_NAME_VALUE; do : "${!item:?missing $item}"; done
+          append_env GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"; append_config GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"
+          append_env GCP_REGION "$GCP_REGION_VALUE"; append_config GCP_REGION "$GCP_REGION_VALUE"
+          append_env ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"; append_config ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"
+          append_env CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"; append_config CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"
           append_env SERVICE_NAME "$CLOUD_RUN_SERVICE_VALUE"
           append_env IMAGE_NAME xpex-academy-api
-          append_env CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"
+          append_env CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"; append_config CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"
           append_env CLOUD_RUN_SERVICE_ACCOUNT "$CLOUD_RUN_SA_VALUE"
-          append_env CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"
-          append_env DB_NAME "$DB_NAME_VALUE"
-          append_env DB_USER "$DB_USER_VALUE"
-          append_env REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"
-          append_env VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"
-          append_env STAGING_BUCKET "$STAGING_BUCKET_VALUE"
+          append_env CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"; append_config CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"
+          append_env DB_NAME "$DB_NAME_VALUE"; append_config DB_NAME "$DB_NAME_VALUE"
+          append_env DB_USER "$DB_USER_VALUE"; append_config DB_USER "$DB_USER_VALUE"
+          append_env REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"; append_config REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"
+          append_env VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"; append_config VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"
+          append_env STAGING_BUCKET "$STAGING_BUCKET_VALUE"; append_config STAGING_BUCKET "$STAGING_BUCKET_VALUE"
           append_env STAGING_API_HOST "$api_host"
-          append_env STAGING_API_URL "$STAGING_API_URL_VALUE"
-          append_env STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"
+          append_env STAGING_API_URL "$STAGING_API_URL_VALUE"; append_config STAGING_API_URL "$STAGING_API_URL_VALUE"
+          append_env STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"; append_config STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"
           append_env IMAGE_TAG "$IMAGE_TAG_VALUE"
-          append_env MAX_INSTANCES "$MAX_INSTANCES_VALUE"
-          append_env SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"
-          append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"
-          append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"
-          append_env LEARNHOUSE_ENV staging
-          append_env LEARNHOUSE_DEVELOPMENT_MODE false
-          append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'
-          append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'
-          append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid
-          append_env LEARNHOUSE_DOMAIN "$api_host"
-          append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"
-          append_env LEARNHOUSE_SSL true
-          append_env LEARNHOUSE_PORT 8080
-          append_env LEARNHOUSE_TENANCY single
-          append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"
-          append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api
-          append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"
-          append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com
-          append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"
-          append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"
-          append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"
-          append_env LEARNHOUSE_IS_AI_ENABLED false
+          append_env MAX_INSTANCES "$MAX_INSTANCES_VALUE"; append_config MAX_INSTANCES "$MAX_INSTANCES_VALUE"
+          append_env SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"; append_config SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"
+          append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"; append_config SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"
+          append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"; append_config SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"
+          append_env LEARNHOUSE_ENV staging; append_env LEARNHOUSE_DEVELOPMENT_MODE false; append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'; append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'; append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid; append_env LEARNHOUSE_DOMAIN "$api_host"; append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"; append_env LEARNHOUSE_SSL true; append_env LEARNHOUSE_PORT 8080; append_env LEARNHOUSE_TENANCY single; append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api; append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"; append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com; append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"; append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"; append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"; append_env LEARNHOUSE_IS_AI_ENABLED false
+          plan_config_sha256="$(sort "$CONFIG_FILE" | sha256sum | awk '{print $1}')"
           echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
+          echo "PLAN_CONFIG_SHA256=$plan_config_sha256" >> "$GITHUB_ENV"
+          echo "plan_config_sha256=$plan_config_sha256" >> "$GITHUB_OUTPUT"
           trap - EXIT
       - name: Render plan and run read-only checks
         id: decision
         env:
           PREVIOUS_REVISION: ${{ inputs.previous_revision }}
           MODE_INPUT: ${{ inputs.mode }}
+          FULL_SHA: ${{ steps.context.outputs.full_sha }}
         run: |
           set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: renderer would run on non-approved HEAD" >&2; exit 20; }
           mkdir -p "$RUNNER_TEMP/staging-plan"
+          printf 'plan_config_sha256=%s\n' "$PLAN_CONFIG_SHA256" > "$RUNNER_TEMP/staging-plan/config-fingerprint.txt"
           set +e
           scripts/render-first-staging-deploy-plan.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/plan.md" 2>&1
           rc=$?
@@ -166,18 +158,8 @@ jobs:
           scripts/preflight-staging.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/preflight.md" 2>&1 || true
           decision="GO"; [[ "$rc" -eq 10 ]] && decision="PENDÊNCIA EXTERNA"; [[ "$rc" -ne 0 && "$rc" -ne 10 ]] && decision="NO-GO"
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
-          execution="não solicitada"
-          if [[ "$MODE_INPUT" == "execute" ]]; then
-            if [[ "$decision" == "GO" ]]; then execution="aprovada"; else execution="bloqueada"; fi
-          fi
-          {
-            echo "PLANO: $decision"
-            echo "EXECUÇÃO: $execution"
-            echo "BUILD: não executado"
-            echo "DEPLOY: não executado"
-            echo "VERIFY: não executado"
-            echo "ROLLBACK: não necessário"
-          } >> "$GITHUB_STEP_SUMMARY"
+          execution="não solicitada"; if [[ "$MODE_INPUT" == "execute" ]]; then if [[ "$decision" == "GO" ]]; then execution="aprovada"; else execution="bloqueada"; fi; fi
+          { echo "PLANO: $decision"; echo "EXECUÇÃO: $execution"; echo "BUILD: não executado"; echo "DEPLOY: não executado"; echo "VERIFY: não executado"; echo "ROLLBACK: não necessário"; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: staging-deploy-plan-redacted
@@ -196,33 +178,27 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      BUILD_RESULT: não executado
+      DEPLOY_RESULT: não executado
+      VERIFY_RESULT: não executado
+      FINAL_CLASSIFICATION: NO-GO
+      ROLLBACK_RESULT: não necessário
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ needs.plan.outputs.full_sha }}
-      - name: Verify immutable deployment context before auth
+      - name: validate-runtime-context
+        id: validate_runtime_context
         env:
           FULL_SHA: ${{ needs.plan.outputs.full_sha }}
           IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+          PLAN_CONFIG_SHA256: ${{ needs.plan.outputs.plan_config_sha256 }}
           MODE_INPUT: ${{ inputs.mode }}
           CONFIRMATION_INPUT: ${{ inputs.confirmation }}
           PREVIOUS_REVISION_INPUT: ${{ inputs.previous_revision }}
           CHANGE_TICKET_INPUT: ${{ inputs.change_ticket }}
-        run: |
-          set -euo pipefail
-          COMMIT_SHA_INPUT="$FULL_SHA" scripts/validate-staging-deploy-inputs.sh
-          [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: checkout HEAD differs from approved full_sha" >&2; exit 20; }
-          git fetch --no-tags origin dev:refs/remotes/origin/dev
-          git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
-          [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag differs from approved full_sha" >&2; exit 20; }
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - name: Validate execute inputs and prepare env
-        env:
           GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
           ARTIFACT_REPOSITORY_VALUE: ${{ vars.ARTIFACT_REPOSITORY }}
@@ -242,132 +218,167 @@ jobs:
           SECRET_REDIS_NAME_VALUE: ${{ vars.SECRET_REDIS_NAME }}
         run: |
           set -euo pipefail
-          ENV_FILE="$RUNNER_TEMP/staging.env"
-          cleanup() { rm -f "$ENV_FILE"; }
-          trap cleanup EXIT
-          reject_unsafe_value() {
-            local label="$1" value="$2"
-            if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
-              echo "NO-GO: $label contains CR/LF" >&2; exit 20
-            fi
-            if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then
-              echo "NO-GO: $label contains unsupported control characters" >&2; exit 20
-            fi
-          }
-          append_env() {
-            local name="$1" value="$2"
-            reject_unsafe_value "$name" "$value"
-            printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
-          }
-          : > "$ENV_FILE"
-          chmod 600 "$ENV_FILE"
-          api_host="$STAGING_API_URL_VALUE"; api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
-          frontend_host="$STAGING_FRONTEND_ORIGIN_VALUE"; frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
-          append_env GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"
-          append_env GCP_REGION "$GCP_REGION_VALUE"
-          append_env ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"
-          append_env CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"
-          append_env IMAGE_NAME xpex-academy-api
-          append_env CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"
-          append_env CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"
-          append_env DB_NAME "$DB_NAME_VALUE"
-          append_env DB_USER "$DB_USER_VALUE"
-          append_env REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"
-          append_env VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"
-          append_env STAGING_BUCKET "$STAGING_BUCKET_VALUE"
-          append_env STAGING_API_HOST "$api_host"
-          append_env STAGING_API_URL "$STAGING_API_URL_VALUE"
-          append_env STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"
-          append_env MAX_INSTANCES "$MAX_INSTANCES_VALUE"
-          append_env SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"
-          append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"
-          append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"
-          append_env LEARNHOUSE_ENV staging
-          append_env LEARNHOUSE_DEVELOPMENT_MODE false
-          append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'
-          append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'
-          append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid
-          append_env LEARNHOUSE_DOMAIN "$api_host"
-          append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"
-          append_env LEARNHOUSE_SSL true
-          append_env LEARNHOUSE_PORT 8080
-          append_env LEARNHOUSE_TENANCY single
-          append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"
-          append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api
-          append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"
-          append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com
-          append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"
-          append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"
-          append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"
-          append_env LEARNHOUSE_IS_AI_ENABLED false
-          echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
-          trap - EXIT
-      - name: Re-run real audit and preflight before mutation
-        env:
-          FULL_SHA: ${{ needs.plan.outputs.full_sha }}
-          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
-          GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: HEAD changed before build" >&2; exit 20; }
+          COMMIT_SHA_INPUT="$FULL_SHA" scripts/validate-staging-deploy-inputs.sh
+          [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: checkout HEAD differs from approved full_sha" >&2; exit 20; }
           git fetch --no-tags origin dev:refs/remotes/origin/dev
           git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
-          [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag changed before build" >&2; exit 20; }
-          scripts/audit-staging-resources.sh --env-file "$ENV_FILE"
-          scripts/preflight-staging.sh --env-file "$ENV_FILE"
-          test "$(gcloud config get-value project)" = "$GCP_PROJECT_ID_VALUE"
-      - name: Build, deploy, verify, and collect evidence
+          [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag differs from approved full_sha" >&2; exit 20; }
+          config_sha="$(printf '%s=%s\n' ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE" CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE" CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE" CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE" DB_NAME "$DB_NAME_VALUE" DB_USER "$DB_USER_VALUE" GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE" GCP_REGION "$GCP_REGION_VALUE" MAX_INSTANCES "$MAX_INSTANCES_VALUE" REDIS_INSTANCE "$REDIS_INSTANCE_VALUE" SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE" SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE" SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE" STAGING_API_URL "$STAGING_API_URL_VALUE" STAGING_BUCKET "$STAGING_BUCKET_VALUE" STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE" VPC_CONNECTOR "$VPC_CONNECTOR_VALUE" | sort | sha256sum | awk '{print $1}')"
+          [[ "$config_sha" == "$PLAN_CONFIG_SHA256" ]] || { echo "NO-GO: protected staging config fingerprint differs from plan" >&2; exit 20; }
+          echo "plan_config_sha256=$PLAN_CONFIG_SHA256" >> "$GITHUB_OUTPUT"
+          echo "previous_revision=$PREVIOUS_REVISION_INPUT" >> "$GITHUB_OUTPUT"
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: prepare-env
+        id: prepare_env
         env:
-          FULL_SHA: ${{ needs.plan.outputs.full_sha }}
           IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
-          PREVIOUS_REVISION: ${{ inputs.previous_revision }}
-          CHANGE_TICKET: ${{ inputs.change_ticket }}
           GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
           ARTIFACT_REPOSITORY_VALUE: ${{ vars.ARTIFACT_REPOSITORY }}
           CLOUD_RUN_SERVICE_VALUE: ${{ vars.CLOUD_RUN_SERVICE }}
+          CLOUD_RUN_SA_VALUE: ${{ vars.CLOUD_RUN_SA }}
+          CLOUD_SQL_INSTANCE_VALUE: ${{ vars.CLOUD_SQL_INSTANCE }}
+          DB_NAME_VALUE: ${{ vars.DB_NAME }}
+          DB_USER_VALUE: ${{ vars.DB_USER }}
+          REDIS_INSTANCE_VALUE: ${{ vars.REDIS_INSTANCE }}
+          VPC_CONNECTOR_VALUE: ${{ vars.VPC_CONNECTOR }}
+          STAGING_BUCKET_VALUE: ${{ vars.STAGING_BUCKET }}
+          STAGING_API_URL_VALUE: ${{ vars.STAGING_API_URL }}
+          STAGING_FRONTEND_ORIGIN_VALUE: ${{ vars.STAGING_FRONTEND_ORIGIN }}
+          MAX_INSTANCES_VALUE: ${{ vars.MAX_INSTANCES }}
+          SECRET_JWT_NAME_VALUE: ${{ vars.SECRET_JWT_NAME }}
+          SECRET_SQL_NAME_VALUE: ${{ vars.SECRET_SQL_NAME }}
+          SECRET_REDIS_NAME_VALUE: ${{ vars.SECRET_REDIS_NAME }}
+        run: |
+          set -euo pipefail
+          ENV_FILE="$RUNNER_TEMP/staging.env"; : > "$ENV_FILE"; chmod 600 "$ENV_FILE"
+          api_host="$STAGING_API_URL_VALUE"; api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
+          frontend_host="$STAGING_FRONTEND_ORIGIN_VALUE"; frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
+          append_env(){ printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"; }
+          append_env GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"; append_env GCP_REGION "$GCP_REGION_VALUE"; append_env ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"; append_env CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"; append_env IMAGE_NAME xpex-academy-api; append_env CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"; append_env CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"; append_env DB_NAME "$DB_NAME_VALUE"; append_env DB_USER "$DB_USER_VALUE"; append_env REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"; append_env VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"; append_env STAGING_BUCKET "$STAGING_BUCKET_VALUE"; append_env STAGING_API_HOST "$api_host"; append_env STAGING_API_URL "$STAGING_API_URL_VALUE"; append_env STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env MAX_INSTANCES "$MAX_INSTANCES_VALUE"; append_env SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"; append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"; append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"; append_env IMAGE_TAG "$IMAGE_TAG"; append_env LEARNHOUSE_ENV staging; append_env LEARNHOUSE_DEVELOPMENT_MODE false; append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'; append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'; append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid; append_env LEARNHOUSE_DOMAIN "$api_host"; append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"; append_env LEARNHOUSE_SSL true; append_env LEARNHOUSE_PORT 8080; append_env LEARNHOUSE_TENANCY single; append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api; append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"; append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com; append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"; append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"; append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"; append_env LEARNHOUSE_IS_AI_ENABLED false
+          echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
+      - name: validate-active-revision
+        id: active_revision
+        env:
+          FULL_SHA: ${{ needs.plan.outputs.full_sha }}
+          MODE_INPUT: ${{ inputs.mode }}
+          CONFIRMATION_INPUT: ${{ inputs.confirmation }}
+          PREVIOUS_REVISION_INPUT: ${{ inputs.previous_revision }}
+          CHANGE_TICKET_INPUT: ${{ inputs.change_ticket }}
+          PREVIOUS_REVISION: ${{ steps.validate_runtime_context.outputs.previous_revision }}
+          CLOUD_RUN_SERVICE_VALUE: ${{ vars.CLOUD_RUN_SERVICE }}
+          GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
+        run: |
+          set -euo pipefail
+          COMMIT_SHA_INPUT="$FULL_SHA" scripts/validate-staging-deploy-inputs.sh
+          active_revision="$(gcloud run services describe "$CLOUD_RUN_SERVICE_VALUE" --project "$GCP_PROJECT_ID_VALUE" --region "$GCP_REGION_VALUE" --format='value(status.latestReadyRevisionName)')"
+          [[ -n "$active_revision" ]] || { echo "NO-GO: active revision absent" >&2; exit 20; }
+          [[ "$active_revision" == "$PREVIOUS_REVISION" ]] || { echo "NO-GO: active revision diverged from previous_revision" >&2; exit 20; }
+          echo "previous_revision=$active_revision" >> "$GITHUB_OUTPUT"
+      - name: build
+        id: build
+        env:
+          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          scripts/build-staging.sh --env-file "$ENV_FILE" --image-tag "$IMAGE_TAG" --execute
+          echo "build_result=concluído" >> "$GITHUB_OUTPUT"
+      - name: resolve-image-digest
+        id: image
+        env:
+          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+          GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
+          ARTIFACT_REPOSITORY_VALUE: ${{ vars.ARTIFACT_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          image_uri="$GCP_REGION_VALUE-docker.pkg.dev/$GCP_PROJECT_ID_VALUE/$ARTIFACT_REPOSITORY_VALUE/xpex-academy-api:$IMAGE_TAG"
+          image_digest="$(gcloud artifacts docker images describe "$image_uri" --format='value(image_summary.digest)')"
+          [[ -n "$image_digest" ]] || { echo "NO-GO: image digest absent" >&2; exit 20; }
+          echo "image_uri=$image_uri" >> "$GITHUB_OUTPUT"; echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
+      - name: deploy
+        id: deploy_step
+        env:
+          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          DRY_RUN=false IMAGE_TAG="$IMAGE_TAG" scripts/deploy-staging.sh --env-file "$ENV_FILE"
+          echo "deploy_result=concluído" >> "$GITHUB_OUTPUT"
+      - name: capture-new-revision
+        id: new_revision
+        env:
+          CLOUD_RUN_SERVICE_VALUE: ${{ vars.CLOUD_RUN_SERVICE }}
+          GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
+        run: |
+          set -euo pipefail
+          new_revision="$(gcloud run services describe "$CLOUD_RUN_SERVICE_VALUE" --project "$GCP_PROJECT_ID_VALUE" --region "$GCP_REGION_VALUE" --format='value(status.latestReadyRevisionName)')"
+          service_url="$(gcloud run services describe "$CLOUD_RUN_SERVICE_VALUE" --project "$GCP_PROJECT_ID_VALUE" --region "$GCP_REGION_VALUE" --format='value(status.url)' || true)"
+          echo "new_revision=$new_revision" >> "$GITHUB_OUTPUT"; echo "service_url=$service_url" >> "$GITHUB_OUTPUT"
+      - name: verify
+        id: verify
+        env:
           STAGING_API_URL_VALUE: ${{ vars.STAGING_API_URL }}
           STAGING_FRONTEND_ORIGIN_VALUE: ${{ vars.STAGING_FRONTEND_ORIGIN }}
         run: |
           set -euo pipefail
-          scripts/build-staging.sh --env-file "$ENV_FILE" --image-tag "$IMAGE_TAG" --execute
-          IMAGE_URI="$GCP_REGION_VALUE-docker.pkg.dev/$GCP_PROJECT_ID_VALUE/$ARTIFACT_REPOSITORY_VALUE/xpex-academy-api:$IMAGE_TAG"
-          IMAGE_DIGEST="$(gcloud artifacts docker images describe "$IMAGE_URI" --format='value(image_summary.digest)')"
-          DRY_RUN=false IMAGE_TAG="$IMAGE_TAG" scripts/deploy-staging.sh --env-file "$ENV_FILE"
-          NEW_REVISION="$(gcloud run services describe "$CLOUD_RUN_SERVICE_VALUE" --project "$GCP_PROJECT_ID_VALUE" --region "$GCP_REGION_VALUE" --format='value(status.latestReadyRevisionName)')"
-          set +e
           scripts/verify-staging-deployment.sh "$STAGING_API_URL_VALUE" "$STAGING_FRONTEND_ORIGIN_VALUE"
-          verify_rc=$?
-          set -e
-          rollback="scripts/prepare-staging-rollback.sh --env-file \"$ENV_FILE\" --previous-revision \"$PREVIOUS_REVISION\""
-          OUT_DIR="$RUNNER_TEMP/staging-evidence" COMMIT_SHA="$FULL_SHA" IMAGE_URI="$IMAGE_URI" IMAGE_DIGEST="$IMAGE_DIGEST" PROJECT_ID="$GCP_PROJECT_ID_VALUE" REGION="$GCP_REGION_VALUE" SERVICE_NAME="$CLOUD_RUN_SERVICE_VALUE" NEW_REVISION="$NEW_REVISION" SERVICE_URL="$STAGING_API_URL_VALUE" VERIFY_RESULT="$([[ $verify_rc -eq 0 ]] && echo aprovado || echo reprovado)" FINAL_CLASSIFICATION="$([[ $verify_rc -eq 0 ]] && echo GO || echo NO-GO)" ROLLBACK_COMMAND="$rollback" scripts/collect-staging-deploy-evidence.sh
-          if [[ "$verify_rc" -eq 0 ]]; then
-            {
-              echo "PLANO: GO"
-              echo "EXECUÇÃO: concluída"
-              echo "BUILD: concluído"
-              echo "DEPLOY: concluído"
-              echo "VERIFY: aprovado"
-              echo "ROLLBACK: não necessário"
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "PLANO: GO"
-              echo "EXECUÇÃO: falhou"
-              echo "BUILD: concluído"
-              echo "DEPLOY: concluído"
-              echo "VERIFY: reprovado"
-              echo "ROLLBACK: preparado para execução humana"
-            } >> "$GITHUB_STEP_SUMMARY"
-            PREVIOUS_REVISION="$PREVIOUS_REVISION" scripts/prepare-staging-rollback.sh --env-file "$ENV_FILE" --previous-revision "$PREVIOUS_REVISION"
-            exit "$verify_rc"
-          fi
+          echo "verify_result=aprovado" >> "$GITHUB_OUTPUT"; echo "final_classification=GO" >> "$GITHUB_OUTPUT"
+      - name: prepare-rollback-on-failure
+        id: rollback
+        if: ${{ failure() && steps.deploy_step.outputs.deploy_result == 'concluído' }}
+        env:
+          PREVIOUS_REVISION: ${{ steps.active_revision.outputs.previous_revision }}
+        run: |
+          set -euo pipefail
+          rollback_command="scripts/prepare-staging-rollback.sh --env-file \"$ENV_FILE\" --previous-revision \"$PREVIOUS_REVISION\""
+          scripts/prepare-staging-rollback.sh --env-file "$ENV_FILE" --previous-revision "$PREVIOUS_REVISION" > "$RUNNER_TEMP/prepared-rollback.txt"
+          echo "rollback_command=$rollback_command" >> "$GITHUB_OUTPUT"
+      - name: collect-evidence
+        id: evidence
+        if: always()
+        env:
+          FULL_SHA: ${{ needs.plan.outputs.full_sha }}
+          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+          PLAN_CONFIG_SHA256: ${{ needs.plan.outputs.plan_config_sha256 }}
+          CHANGE_TICKET: ${{ inputs.change_ticket }}
+          GCP_PROJECT_ID_VALUE: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION_VALUE: ${{ vars.GCP_REGION }}
+          CLOUD_RUN_SERVICE_VALUE: ${{ vars.CLOUD_RUN_SERVICE }}
+          STAGING_API_URL_VALUE: ${{ vars.STAGING_API_URL }}
+          IMAGE_URI: ${{ steps.image.outputs.image_uri }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+          PREVIOUS_REVISION: ${{ steps.active_revision.outputs.previous_revision }}
+          NEW_REVISION: ${{ steps.new_revision.outputs.new_revision }}
+          SERVICE_URL: ${{ steps.new_revision.outputs.service_url }}
+          ROLLBACK_COMMAND: ${{ steps.rollback.outputs.rollback_command }}
+        run: |
+          set -euo pipefail
+          build_result="${{ steps.build.outputs.build_result || 'não executado' }}"
+          deploy_result="${{ steps.deploy_step.outputs.deploy_result || 'não executado' }}"
+          verify_result="${{ steps.verify.outputs.verify_result || 'não executado' }}"
+          final_classification="${{ steps.verify.outputs.final_classification || 'NO-GO' }}"
+          OUT_DIR="$RUNNER_TEMP/staging-evidence" COMMIT_SHA="$FULL_SHA" IMAGE_TAG="$IMAGE_TAG" IMAGE_URI="${IMAGE_URI:-não executado}" IMAGE_DIGEST="${IMAGE_DIGEST:-não executado}" PROJECT_ID="$GCP_PROJECT_ID_VALUE" REGION="$GCP_REGION_VALUE" SERVICE_NAME="$CLOUD_RUN_SERVICE_VALUE" PREVIOUS_REVISION="${PREVIOUS_REVISION:-não executado}" NEW_REVISION="${NEW_REVISION:-não executado}" SERVICE_URL="${SERVICE_URL:-$STAGING_API_URL_VALUE}" VERIFY_RESULT="$verify_result" FINAL_CLASSIFICATION="$final_classification" ROLLBACK_COMMAND="${ROLLBACK_COMMAND:-não necessário}" PLAN_CONFIG_SHA256="$PLAN_CONFIG_SHA256" BUILD_RESULT="$build_result" DEPLOY_RESULT="$deploy_result" scripts/collect-staging-deploy-evidence.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: staging-deploy-evidence-redacted
           path: ${{ runner.temp }}/staging-evidence
           retention-days: 14
-      - name: Remove temporary staging env
+      - name: publish-summary
         if: always()
-        run: rm -f "$ENV_FILE"
+        run: |
+          build_result="${{ steps.build.outputs.build_result || 'não executado' }}"
+          deploy_result="${{ steps.deploy_step.outputs.deploy_result || 'não executado' }}"
+          verify_result="${{ steps.verify.outputs.verify_result || 'não executado' }}"
+          rollback_result="${{ steps.rollback.outputs.rollback_command && 'preparado para execução humana' || 'não necessário' }}"
+          execution="falhou"; [[ "$verify_result" == "aprovado" ]] && execution="concluída"
+          { echo "PLANO: GO"; echo "EXECUÇÃO: $execution"; echo "BUILD: $build_result"; echo "DEPLOY: $deploy_result"; echo "VERIFY: $verify_result"; echo "ROLLBACK: $rollback_result"; } >> "$GITHUB_STEP_SUMMARY"
+      - name: cleanup
+        if: always()
+        run: rm -f "${ENV_FILE:-}"
