@@ -2,19 +2,22 @@
 
 Status: **PENDÊNCIA EXTERNA**.
 
-This audit records the local operator evidence for the requested staging plan-only activation. The repository checkout contains the merge commit for PR #24, but this container has no GitHub remote, no `gh` CLI, and no GitHub token. Therefore the external GitHub Environment, Repository Variables, protected Environment variables, manual workflow dispatch, and artifact download cannot be completed from this session.
+This audit records the local operator evidence for the requested staging plan-only activation. PR #24 was merged on GitHub into `dev` as the official remote merge commit `e7344fea12a7c8ceb573517683d227d2f79b1be1`. This container may synthesize different local object IDs for equivalent content and has no GitHub remote, no `gh` CLI, and no GitHub token. Therefore the external GitHub Environment, Repository Variables, protected Environment variables, manual workflow dispatch, and artifact download cannot be completed from this session.
 
 ## Immutable repository context
 
-- Current branch: `work`.
-- Current HEAD: `e7344fe8d1342571097b728f3cc30262723f9dcd`.
-- HEAD subject: `Merge pull request #24 from xpex-systems-ai/codex/criar-workflow-manual-de-deploy-para-staging`.
-- Selected full SHA present in the local dev-equivalent history for the plan-only run: `e7344fe8d1342571097b728f3cc30262723f9dcd`.
+- Local/synthetic container branch: `work`.
+- Local/synthetic container HEAD subject: `Merge pull request #24 from xpex-systems-ai/codex/criar-workflow-manual-de-deploy-para-staging`.
+- PR #24 was effectively merged on GitHub into `dev`.
+- Official remote merge commit for PR #24 on `dev`: `e7344fea12a7c8ceb573517683d227d2f79b1be1`.
+- Approved workflow_dispatch commit SHA: `e7344fea12a7c8ceb573517683d227d2f79b1be1`.
+- The approved SHA belongs to the remote `dev` history and is the only SHA authorized for the plan-only dispatch.
+- Any local-only/synthetic container SHA must not be used as the workflow_dispatch `commit_sha` input.
 
 ## Local verification performed
 
 - Verified the working tree was clean before creating this audit note.
-- Verified the current commit is a merge commit for PR #24.
+- Verified the current local checkout contains PR #24 content, while the dispatch SHA must remain the official remote merge commit.
 - Verified the `Manual staging deploy` workflow exists and supports `workflow_dispatch` with `mode` choices `plan` and `execute`.
 - Verified the plan job uploads the redacted artifact named `staging-deploy-plan-redacted`.
 - Verified the plan job writes the expected files: `plan.md`, `audit.md`, `preflight.md`, and `config-fingerprint.txt`.
@@ -23,7 +26,7 @@ This audit records the local operator evidence for the requested staging plan-on
 
 ## External actions still required
 
-1. Ensure PR #24 is merged into `dev` on GitHub if it has not already been merged remotely.
+1. PR #24 is already merged into `dev` on GitHub as `e7344fea12a7c8ceb573517683d227d2f79b1be1`; do not substitute any local-only SHA for dispatch.
 2. Configure the GitHub Environment named `staging`.
 3. Register the non-sensitive Repository Variables required by the workflow/runbook:
    - `GCP_PROJECT_ID`
@@ -49,7 +52,7 @@ This audit records the local operator evidence for the requested staging plan-on
 5. Confirm that no permanent service-account JSON key or equivalent static cloud credential is present in repository secrets, environment secrets, repository variables, or environment variables.
 6. Confirm authentication is exclusively OIDC-based.
 7. Manually run the `Manual staging deploy` workflow with:
-   - `commit_sha`: `e7344fe8d1342571097b728f3cc30262723f9dcd` or a newer approved full 40-character SHA present in `dev`.
+   - `commit_sha`: `e7344fea12a7c8ceb573517683d227d2f79b1be1`.
    - `mode`: `plan`.
    - `confirmation`: empty.
    - Do not use `mode=execute`.

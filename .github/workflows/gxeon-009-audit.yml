@@ -1,0 +1,30 @@
+name: GXEON-009 audit validation
+
+on:
+  pull_request:
+    paths:
+      - docs/xpex/staging-configuration/GXEON-009_PLAN_ONLY_AUDIT.md
+      - scripts/validate-gxeon-009-approved-sha.sh
+      - .github/workflows/gxeon-009-audit.yml
+  push:
+    branches: [dev]
+    paths:
+      - docs/xpex/staging-configuration/GXEON-009_PLAN_ONLY_AUDIT.md
+      - scripts/validate-gxeon-009-approved-sha.sh
+      - .github/workflows/gxeon-009-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  approved-sha:
+    name: approved SHA belongs to dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch dev reference
+        run: git fetch --no-tags origin dev:refs/remotes/origin/dev
+      - name: Validate approved GXEON-009 SHA
+        run: scripts/validate-gxeon-009-approved-sha.sh
