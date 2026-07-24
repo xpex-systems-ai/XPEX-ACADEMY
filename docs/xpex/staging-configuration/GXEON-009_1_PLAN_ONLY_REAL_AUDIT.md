@@ -2,12 +2,12 @@
 
 Status: **PENDÊNCIA EXTERNA**.
 
-This audit records the execution attempt for mission GXEON-009.1: run the first real `Manual staging deploy` workflow in `plan` mode for commit `e7344fea12a7c8ceb573517683d227d2f79b1be1`, without selecting `execute` and without creating any permanent JSON service-account key.
+This audit records the prepared-but-not-yet-executed mission GXEON-009.1 plan-only dispatch for commit `e7344fea12a7c8ceb573517683d227d2f79b1be1`, without selecting `execute` and without creating any permanent JSON service-account key. Plan-only dispatch prepared but not yet executed.
 
 ## Requested immutable inputs
 
 - Target branch for prerequisite merge: `dev`.
-- Required PR merge: PR #25.
+- Required prerequisite: PR #25 already merged into `dev` at `05da7e2bbad0c1bde7333c15cced38b70282f76b`.
 - Approved `commit_sha`: `e7344fea12a7c8ceb573517683d227d2f79b1be1`.
 - Required workflow: `Manual staging deploy`.
 - Required `mode`: `plan`.
@@ -17,15 +17,17 @@ This audit records the execution attempt for mission GXEON-009.1: run the first 
 
 ## Local repository evidence
 
-- The local checkout already contains a merge commit titled `Merge pull request #25 from xpex-systems-ai/codex/ativar-ambiente-externo-de-staging-em-plan-only`.
+- PR #25 is already merged into `dev` with merge commit `05da7e2bbad0c1bde7333c15cced38b70282f76b`.
+- Verify that PR #25 merge commit `05da7e2bbad0c1bde7333c15cced38b70282f76b` is present in the GitHub `dev` history.
+- PR #26 starts from the PR #25 merge commit, so no new PR #25 merge attempt is required.
+- The local checkout contains the merge commit titled `Merge pull request #25 from xpex-systems-ai/codex/ativar-ambiente-externo-de-staging-em-plan-only`.
 - The local checkout has no configured Git remote, no GitHub CLI, and no GitHub token available to this session.
-- Because no GitHub API/CLI access exists in this container, the agent cannot prove or modify the real GitHub `dev` branch, GitHub Environments, Repository Variables, Environment Variables, GitHub Actions dispatches, or workflow artifacts.
+- Because no GitHub API/CLI access exists in this container, the agent cannot configure GitHub Environments, Repository Variables, Environment Variables, GitHub Actions dispatches, review threads, or workflow artifacts.
 
 ## GitHub-side actions not completed from this session
 
-1. Merge PR #25 into the real GitHub `dev` branch.
-2. Configure the GitHub Environment named `staging`.
-3. Register the documented non-sensitive Repository Variables:
+1. Configure the GitHub Environment named `staging`.
+2. Register the documented non-sensitive Repository Variables:
    - `GCP_PROJECT_ID`
    - `GCP_REGION`
    - `ARTIFACT_REPOSITORY`
@@ -43,19 +45,19 @@ This audit records the execution attempt for mission GXEON-009.1: run the first 
    - `SECRET_JWT_NAME`
    - `SECRET_SQL_NAME`
    - `SECRET_REDIS_NAME`
-4. Register the protected `staging` Environment Variables:
+3. Register the protected `staging` Environment Variables:
    - `GCP_WORKLOAD_IDENTITY_PROVIDER`
    - `GCP_DEPLOY_SERVICE_ACCOUNT`
-5. Confirm that no permanent JSON service-account key was created or registered.
-6. Open GitHub Actions and select `Manual staging deploy`.
-7. Dispatch only a plan run with:
+4. Confirm that no permanent JSON service-account key was created or registered.
+5. Open GitHub Actions and select `Manual staging deploy`.
+6. Dispatch only a plan run with:
    - `commit_sha`: `e7344fea12a7c8ceb573517683d227d2f79b1be1`
    - `mode`: `plan`
    - `confirmation`: empty
    - `previous_revision`: empty
    - `change_ticket`: empty
-8. Download `staging-deploy-plan-redacted`.
-9. Audit `plan.md`, `audit.md`, `preflight.md`, and `config-fingerprint.txt`.
+7. Download `staging-deploy-plan-redacted`.
+8. Audit `plan.md`, `audit.md`, `preflight.md`, and `config-fingerprint.txt`.
 
 ## Audit decision gates
 
@@ -65,4 +67,4 @@ This audit records the execution attempt for mission GXEON-009.1: run the first 
 
 ## Classification
 
-**PENDÊNCIA EXTERNA** — the repository contains the workflow and documentation needed for the requested plan-only run, and the local history shows PR #25 content, but this session lacks the external GitHub access required to merge on GitHub, configure Environment/Variables, dispatch the workflow, download `staging-deploy-plan-redacted`, and audit the artifact files.
+**PENDÊNCIA EXTERNA** — PR #25 is already merged into `dev` at `05da7e2bbad0c1bde7333c15cced38b70282f76b`, and PR #26 starts from that merge commit. The remaining external pending items are limited to configuring the `staging` Environment, registering Repository Variables, registering protected OIDC Environment Variables, dispatching `Manual staging deploy` with `mode=plan`, downloading `staging-deploy-plan-redacted`, and auditing the artifact files. No `mode=execute` dispatch and no real deploy occurred.
