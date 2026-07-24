@@ -331,8 +331,23 @@ jobs:
           cp /tmp/env-public /tmp/env-renderer-preflight-nogo; sed -i 's/LEARNHOUSE_ENV=staging/LEARNHOUSE_ENV=dev/' /tmp/env-renderer-preflight-nogo; run_renderer preflight-nogo valid 20 /tmp/env-renderer-preflight-nogo
           run_renderer billing-unavailable billing-unavailable 10
           run_renderer api-unqueryable api-unqueryable 10
+          no_gcloud_bin="$(mktemp -d)"
+          for bin in bash git grep sed awk basename curl python3; do
+            target="$(command -v "$bin")"
+            ln -s "$target" "$no_gcloud_bin/$bin"
+          done
+          if command -v docker >/dev/null 2>&1; then
+            ln -s "$(command -v docker)" "$no_gcloud_bin/docker"
+          else
+            printf '#!/usr/bin/env bash\nexit 0\n' > "$no_gcloud_bin/docker"
+            chmod +x "$no_gcloud_bin/docker"
+          fi
+          if PATH="$no_gcloud_bin" command -v gcloud; then
+            echo "test harness still exposes gcloud" >&2
+            exit 1
+          fi
           set +e
-          env -i PATH=/usr/bin:/bin PREVIOUS_REVISION=xpex-academy-staging-00001-old scripts/render-first-staging-deploy-plan.sh --env-file /tmp/env-public >/tmp/renderer-no-gcloud.out 2>&1
+          env -i PATH="$no_gcloud_bin" PREVIOUS_REVISION=xpex-academy-staging-00001-old scripts/render-first-staging-deploy-plan.sh --env-file /tmp/env-public >/tmp/renderer-no-gcloud.out 2>&1
           rc=$?
           set -e
           test "$rc" -eq 10
