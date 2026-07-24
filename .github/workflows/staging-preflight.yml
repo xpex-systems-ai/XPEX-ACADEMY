@@ -308,15 +308,16 @@ jobs:
               if grep -F '# Plano concreto para execução humana aprovada' "/tmp/renderer-$label.out"; then
                 echo "renderer printed approved plan for non-GO $label" >&2; exit 1
               fi
+              if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' "/tmp/renderer-$label.out"; then
+                echo "renderer printed execution command for non-GO $label" >&2; exit 1
+              fi
             fi
           }
           run_renderer valid valid 0
-          grep -n 'audit: scripts/audit-staging-resources.sh' /tmp/renderer-valid.out
-          grep -n 'preflight: scripts/preflight-staging.sh' /tmp/renderer-valid.out
-          grep -n 'build: scripts/build-staging.sh' /tmp/renderer-valid.out
-          grep -n 'deploy: scripts/deploy-staging.sh' /tmp/renderer-valid.out
-          grep -n 'verify: scripts/verify-staging-deployment.sh' /tmp/renderer-valid.out
-          grep -n 'rollback-prep: scripts/prepare-staging-rollback.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/build-staging.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/deploy-staging.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/verify-staging-deployment.sh' /tmp/renderer-valid.out
+          grep -n 'scripts/prepare-staging-rollback.sh' /tmp/renderer-valid.out
           if grep -E 'gcloud builds submit|gcloud run deploy' /tmp/renderer-valid.out; then
             echo 'renderer duplicated raw gcloud build/deploy logic' >&2; exit 1
           fi
@@ -343,6 +344,9 @@ jobs:
           grep -F 'PREVIOUS_REVISION absent' <<<"$output"
           if grep -F '# Plano concreto para execução humana aprovada' <<<"$output"; then
             echo 'renderer printed approved plan for PENDÊNCIA EXTERNA' >&2; exit 1
+          fi
+          if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' <<<"$output"; then
+            echo 'renderer printed execution command for PENDÊNCIA EXTERNA' >&2; exit 1
           fi
           cleanup() { git rm --cached .env.staging >/dev/null 2>&1 || true; }
           trap cleanup EXIT

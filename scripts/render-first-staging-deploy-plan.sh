@@ -142,12 +142,10 @@ if [[ "$status" == "PENDÊNCIA EXTERNA" ]]; then
 fi
 
 printf '\n# Plano concreto para execução humana aprovada\n'
-readonly_cmd "audit: scripts/audit-staging-resources.sh --env-file $(quote "$ENV_FILE")"
-readonly_cmd "preflight: scripts/preflight-staging.sh --env-file $(quote "$ENV_FILE")"
-propose "build: scripts/build-staging.sh --env-file $(quote "$ENV_FILE")"
-propose "deploy: scripts/deploy-staging.sh --env-file $(quote "$ENV_FILE")"
-readonly_cmd "verify: scripts/verify-staging-deployment.sh $(quote "${STAGING_API_URL:-}") $(quote "${STAGING_FRONTEND_ORIGIN:-}")"
-readonly_cmd "rollback-prep: scripts/prepare-staging-rollback.sh --env-file $(quote "$ENV_FILE") --previous-revision $(quote "${PREVIOUS_REVISION:-<capture-before-deploy>}")"
+propose "scripts/build-staging.sh --env-file $(quote "$ENV_FILE")"
+propose "scripts/deploy-staging.sh --env-file $(quote "$ENV_FILE")"
+propose "scripts/verify-staging-deployment.sh $(quote "${STAGING_API_URL:-}") $(quote "${STAGING_FRONTEND_ORIGIN:-}")"
+propose "scripts/prepare-staging-rollback.sh --env-file $(quote "$ENV_FILE") --previous-revision $(quote "${PREVIOUS_REVISION:-<capture-before-deploy>}")"
 
 printf '\nResultado final: %s\n' "$status"
 [[ "$status" == "GO" ]] && exit "$GO_EXIT" || [[ "$status" == "PENDÊNCIA EXTERNA" ]] && exit "$PENDING_EXIT" || exit "$NOGO_EXIT"
