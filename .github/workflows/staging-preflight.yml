@@ -79,7 +79,7 @@ jobs:
           label="$1"
           shift
           set +e
-          output="$($@ 2>&1)"
+          output="$("$@" 2>&1)"
           rc=$?
           set -e
           if [[ "$rc" -eq 0 ]]; then
@@ -103,7 +103,7 @@ jobs:
           label="$1"
           shift
           set +e
-          output="$($@ 2>&1)"
+          output="$("$@" 2>&1)"
           rc=$?
           set -e
           if [[ "$rc" -ne 0 ]]; then
@@ -707,6 +707,11 @@ jobs:
           require 'yaml'
           raw = File.read('.github/workflows/staging-deploy-manual.yml')
           data = YAML.load_file('.github/workflows/staging-deploy-manual.yml')
+          open_expression = '$' + '{{'
+          close_expression = '}' + '}'
+          immutable_ref = "ref: #{open_expression} needs.plan.outputs.full_sha #{close_expression}"
+          dispatch_ref = "ref: #{open_expression} inputs.commit_sha #{close_expression}"
+          full_sha_output = "full_sha: #{open_expression} steps.context.outputs.full_sha #{close_expression}"
           raise 'workflow must only use workflow_dispatch' unless data.fetch(true).keys == ['workflow_dispatch']
           inputs = data.fetch(true).fetch('workflow_dispatch').fetch('inputs')
           raise 'plan default missing' unless inputs.fetch('mode').fetch('default') == 'plan'
@@ -718,26 +723,27 @@ jobs:
           raise 'plan must not have id-token permission' if plan.fetch('permissions', {}).to_s.include?('id-token')
           raise 'deploy permissions invalid' unless deploy.fetch('permissions') == {'contents' => 'read', 'id-token' => 'write'}
           raise 'deploy environment missing' unless deploy.fetch('environment') == 'staging'
-          raise 'deploy must use immutable plan full_sha' unless raw.include?('ref: ${{ needs.plan.outputs.full_sha }}')
-          raise 'deploy must not checkout dispatch input' if raw.include?('ref: ${{ inputs.commit_sha }}')
-          raise 'full_sha output missing' unless raw.include?('full_sha: ${{ steps.context.outputs.full_sha }}')
-          forbidden = ['credentials_json', 'GCP_SA_KEY', 'contents: write', 'pull-requests: write', 'issues: write', 'packages: write', 'administration: write']
+          raise "deploy must use immutable plan full_sha; expected #{immutable_ref.inspect}; got deploy job without it" unless raw.include?(immutable_ref)
+          raise "deploy must not checkout dispatch input; unexpected #{dispatch_ref.inspect}" if raw.include?(dispatch_ref)
+          raise "full_sha output missing; expected #{full_sha_output.inspect}" unless raw.include?(full_sha_output)
+          forbidden = ['credentials_json', 'GCP_SA_KEY', 'contents: write', 'pull-requests: write', 'issues: write', 'packages: write', 'administration: write', "contains NUL", "$'\\0'"]
           forbidden.each { |token| raise "forbidden token #{token}" if raw.include?(token) }
           raise 'OIDC actions missing' unless raw.include?('google-github-actions/auth@v2') && raw.include?('google-github-actions/setup-gcloud@v2')
+          raise 'input validator script not reused' unless raw.scan('scripts/validate-staging-deploy-inputs.sh').length >= 2
           raise 'build wrapper missing' unless raw.include?('scripts/build-staging.sh --env-file "$ENV_FILE" --image-tag "$IMAGE_TAG" --execute')
           raise 'deploy wrapper missing' unless raw.include?('DRY_RUN=false IMAGE_TAG="$IMAGE_TAG" scripts/deploy-staging.sh --env-file "$ENV_FILE"')
           raise 'verify wrapper missing' unless raw.include?('scripts/verify-staging-deployment.sh "$STAGING_API_URL_VALUE" "$STAGING_FRONTEND_ORIGIN_VALUE"')
           raise 'rollback preparation missing' unless raw.include?('scripts/prepare-staging-rollback.sh --env-file "$ENV_FILE" --previous-revision "$PREVIOUS_REVISION"')
           raise 'append_env function missing' unless raw.include?('append_env()') && raw.include?("printf '%s=%s\\n' \"$name\" \"$value\"")
-          raise 'control char rejection missing' unless raw.include?('contains CR/LF') && raw.include?('contains NUL')
+          raise 'control char rejection missing' unless raw.include?('contains CR/LF') && raw.include?('unsupported control characters')
           raise 'temporary env cleanup trap missing' unless raw.include?('cleanup() { rm -f "$ENV_FILE"; }') && raw.include?('trap cleanup EXIT')
           plan_job = raw.split('  deploy:').first
           raise 'plan job can mutate' if plan_job.include?('scripts/build-staging.sh') || plan_job.include?('DRY_RUN=false') || plan_job.include?('id-token: write')
           raise 'raw mutable gcloud duplicated' if raw.include?('gcloud run deploy') || raw.include?('gcloud builds submit') || raw.include?('update-traffic')
           raise 'sha regex missing' unless raw.include?('^[0-9a-fA-F]{40}$')
-          raise 'sha tag derivation missing' unless raw.include?('stg-${full_sha:0:12}') && raw.include?('stg-${FULL_SHA:0:12}')
-          raise 'dev ancestry check missing' unless raw.include?('git merge-base --is-ancestor "$full_sha" refs/remotes/origin/dev') && raw.include?('git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev')
-          raise 'production branch rejection missing' unless raw.include?('origin/(main|prod|production)')
+          raise 'sha tag derivation missing' unless raw.include?('stg-${FULL_SHA:0:12}')
+          raise 'dev ancestry check missing' unless raw.include?('git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev')
+          raise 'production branch false block still present' if raw.include?('origin/(main|prod|production)') || raw.include?('commit is also on a production-like branch')
           raise 'summary missing' unless ['PLANO:', 'EXECUÇÃO:', 'BUILD:', 'DEPLOY:', 'VERIFY:', 'ROLLBACK:'].all? { |text| raw.include?(text) }
           puts 'manual staging deploy workflow contract ok'
           RUBY
@@ -745,35 +751,83 @@ jobs:
       - name: Test manual staging deploy input security simulation
         run: |
           set -euo pipefail
-          validate_sha() { [[ "$1" =~ ^[0-9a-fA-F]{40}$ ]]; }
-          payloads=( '$(id)' '"; touch /tmp/pwned; #' '`id`' dev main refs/heads/dev abc123 0123456789abcdef0123456789abcdef0123456 'ffffffffffffffffffffffffffffffffffffffff' )
-          for payload in "${payloads[@]}"; do
-            if validate_sha "$payload"; then
-              case "$payload" in ffffffffffffffffffffffffffffffffffffffff) ;; *) echo "unexpected accepted payload: $payload" >&2; exit 1;; esac
-            fi
-          done
-          test ! -e /tmp/pwned
+          validator="$PWD/scripts/validate-staging-deploy-inputs.sh"
+          stub="$(mktemp -d)"
+          cat > "$stub/gcloud" <<'SH'
+          #!/usr/bin/env bash
+          echo "gcloud must not be called" >&2
+          touch /tmp/staging-validator-gcloud-called
+          exit 99
+          SH
+          chmod +x "$stub/gcloud"
+          rm -f /tmp/pwned /tmp/staging-validator-gcloud-called
           tmprepo="$(mktemp -d)"
           git -C "$tmprepo" init -q
           git -C "$tmprepo" config user.email ci@example.test
           git -C "$tmprepo" config user.name ci
           git -C "$tmprepo" commit --allow-empty -q -m root
           valid_sha="$(git -C "$tmprepo" rev-parse HEAD)"
-          validate_sha "$valid_sha"
-          short_sha="${valid_sha:0:12}"
-          ! validate_sha "$short_sha"
+          git -C "$tmprepo" update-ref refs/remotes/origin/dev "$valid_sha"
+          git -C "$tmprepo" update-ref refs/remotes/origin/main "$valid_sha"
           git -C "$tmprepo" checkout -q -b side
           git -C "$tmprepo" commit --allow-empty -q -m side
           outside_sha="$(git -C "$tmprepo" rev-parse HEAD)"
-          git -C "$tmprepo" checkout -q -b dev "$valid_sha"
-          git -C "$tmprepo" update-ref refs/remotes/origin/dev "$valid_sha"
-          git -C "$tmprepo" merge-base --is-ancestor "$valid_sha" refs/remotes/origin/dev
-          if git -C "$tmprepo" merge-base --is-ancestor "$outside_sha" refs/remotes/origin/dev; then
-            echo 'outside SHA unexpectedly belongs to dev' >&2; exit 1
-          fi
-          approved_tag="stg-${valid_sha:0:12}"
-          test "$approved_tag" = "stg-${valid_sha:0:12}"
-          ruby -e 'raw=File.read(".github/workflows/staging-deploy-manual.yml"); deploy=raw.split("  deploy:",2).last; abort("deploy does not use plan full_sha") unless deploy.include?("ref: ${{ needs.plan.outputs.full_sha }}")'
+          cat > "$stub/invoke-validator" <<SH
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd "$tmprepo"
+          PATH="$stub:\$PATH" "$validator" "\$@"
+          SH
+          chmod +x "$stub/invoke-validator"
+          expect_fail() {
+            local label="$1"; shift
+            set +e
+            output="$("$@" 2>&1)"
+            rc=$?
+            set -e
+            if [[ "$rc" -ne 20 ]]; then
+              printf 'expected rc=20 for %s, got %s output=%s\n' "$label" "$rc" "$output" >&2
+              exit 1
+            fi
+            printf 'expected failure confirmed: %s\n' "$label"
+          }
+          expect_pass() {
+            local label="$1"; shift
+            output="$("$@" 2>&1)"
+            printf 'expected pass confirmed: %s %s\n' "$label" "$output"
+          }
+          dollar_payload='$(id)'
+          touch_payload='"; touch /tmp/pwned; #'
+          backtick_payload='`id`'
+          expect_fail 'payload dollar parens' bash -c 'COMMIT_SHA_INPUT="$1" MODE_INPUT=plan "$2"' _ "$dollar_payload" "$stub/invoke-validator"
+          expect_fail 'payload touch' bash -c 'COMMIT_SHA_INPUT="$1" MODE_INPUT=plan "$2"' _ "$touch_payload" "$stub/invoke-validator"
+          expect_fail 'payload backticks' bash -c 'COMMIT_SHA_INPUT="$1" MODE_INPUT=plan "$2"' _ "$backtick_payload" "$stub/invoke-validator"
+          expect_fail 'branch dev' env COMMIT_SHA_INPUT=dev MODE_INPUT=plan "$stub/invoke-validator"
+          expect_fail 'branch main' env COMMIT_SHA_INPUT=main MODE_INPUT=plan "$stub/invoke-validator"
+          expect_fail 'ref dev' env COMMIT_SHA_INPUT=refs/heads/dev MODE_INPUT=plan "$stub/invoke-validator"
+          expect_fail 'short sha' env COMMIT_SHA_INPUT=abc123 MODE_INPUT=plan "$stub/invoke-validator"
+          expect_fail 'sha 39 chars' env COMMIT_SHA_INPUT=0123456789abcdef0123456789abcdef0123456 MODE_INPUT=plan "$stub/invoke-validator"
+          expect_fail 'sha nonexistent' env COMMIT_SHA_INPUT=ffffffffffffffffffffffffffffffffffffffff MODE_INPUT=plan "$stub/invoke-validator" --require-dev-ancestry
+          expect_fail 'sha outside dev' env COMMIT_SHA_INPUT="$outside_sha" MODE_INPUT=plan "$stub/invoke-validator" --require-dev-ancestry
+          expect_fail 'invalid mode' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=deploy "$stub/invoke-validator"
+          expect_fail 'invalid confirmation' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=execute CONFIRMATION_INPUT=WRONG PREVIOUS_REVISION_INPUT=xpex-academy-staging-00001-old CHANGE_TICKET_INPUT=CHG-1 "$stub/invoke-validator"
+          expect_fail 'placeholder previous revision' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=execute CONFIRMATION_INPUT=DEPLOY_XPEX_STAGING PREVIOUS_REVISION_INPUT=PREVIOUS_REVISION CHANGE_TICKET_INPUT=CHG-1 "$stub/invoke-validator"
+          expect_fail 'empty change ticket' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=execute CONFIRMATION_INPUT=DEPLOY_XPEX_STAGING PREVIOUS_REVISION_INPUT=xpex-academy-staging-00001-old CHANGE_TICKET_INPUT= "$stub/invoke-validator"
+          expect_fail 'CR' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=$'plan\r' "$stub/invoke-validator"
+          expect_fail 'LF' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=$'plan\n' "$stub/invoke-validator"
+          expect_pass 'plan valid full sha on dev and shared with main' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=plan "$stub/invoke-validator" --require-dev-ancestry
+          expect_pass 'execute valid' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=execute CONFIRMATION_INPUT=DEPLOY_XPEX_STAGING PREVIOUS_REVISION_INPUT=xpex-academy-staging-00001-old CHANGE_TICKET_INPUT=CHG-1 "$stub/invoke-validator" --require-dev-ancestry
+          expect_pass 'normal value not rejected as NUL' env COMMIT_SHA_INPUT="$valid_sha" MODE_INPUT=plan CHANGE_TICKET_INPUT=NORMAL-123 "$stub/invoke-validator"
+          test ! -e /tmp/pwned
+          test ! -e /tmp/staging-validator-gcloud-called
+          ruby <<'RUBY'
+          raw = File.read('.github/workflows/staging-deploy-manual.yml')
+          open_expression = '$' + '{{'
+          close_expression = '}' + '}'
+          immutable_ref = "ref: #{open_expression} needs.plan.outputs.full_sha #{close_expression}"
+          deploy = raw.split('  deploy:', 2).last
+          abort('deploy does not use plan full_sha') unless deploy.include?(immutable_ref)
+          RUBY
           if grep -E 'gcloud (run deploy|builds submit|run services update-traffic)' .github/workflows/staging-deploy-manual.yml; then
             echo 'mutable raw gcloud command found' >&2; exit 1
           fi

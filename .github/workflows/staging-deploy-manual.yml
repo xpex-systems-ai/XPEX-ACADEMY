@@ -59,36 +59,10 @@ jobs:
           CHANGE_TICKET_INPUT: ${{ inputs.change_ticket }}
         run: |
           set -euo pipefail
-          reject_control_chars() {
-            local label="$1" value="$2"
-            [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { echo "NO-GO: $label contains CR/LF" >&2; exit 20; }
-            [[ "$value" != *$'\0'* ]] || { echo "NO-GO: $label contains NUL" >&2; exit 20; }
-          }
-          for pair in \
-            "commit_sha:$COMMIT_SHA_INPUT" \
-            "mode:$MODE_INPUT" \
-            "confirmation:$CONFIRMATION_INPUT" \
-            "previous_revision:$PREVIOUS_REVISION_INPUT" \
-            "change_ticket:$CHANGE_TICKET_INPUT"; do
-            reject_control_chars "${pair%%:*}" "${pair#*:}"
-          done
-          [[ "$COMMIT_SHA_INPUT" =~ ^[0-9a-fA-F]{40}$ ]] || { echo "NO-GO: commit_sha must be a full 40-character SHA" >&2; exit 20; }
-          [[ "$MODE_INPUT" == "plan" || "$MODE_INPUT" == "execute" ]] || { echo "NO-GO: mode must be plan or execute" >&2; exit 20; }
-          if [[ "$MODE_INPUT" == "execute" ]]; then
-            [[ "$CONFIRMATION_INPUT" == "$EXPECTED_CONFIRMATION" ]] || { echo "NO-GO: execute requires exact confirmation" >&2; exit 20; }
-            [[ "$PREVIOUS_REVISION_INPUT" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])-[0-9]{5}-[a-z0-9]+$ ]] || { echo "NO-GO: execute requires a concrete previous_revision" >&2; exit 20; }
-            [[ -n "$CHANGE_TICKET_INPUT" ]] || { echo "NO-GO: execute requires change_ticket" >&2; exit 20; }
-          fi
-          git fetch --no-tags origin dev:refs/remotes/origin/dev
-          git cat-file -e "$COMMIT_SHA_INPUT^{commit}"
-          full_sha="$(git rev-parse "$COMMIT_SHA_INPUT^{commit}")"
-          [[ "$full_sha" == "$COMMIT_SHA_INPUT" ]] || { echo "NO-GO: resolved SHA mismatch" >&2; exit 20; }
-          git merge-base --is-ancestor "$full_sha" refs/remotes/origin/dev
-          if git branch -r --contains "$full_sha" | grep -E 'origin/(main|prod|production)$'; then
-            echo "NO-GO: commit is also on a production-like branch" >&2
-            exit 20
-          fi
-          image_tag="stg-${full_sha:0:12}"
+          validation_output="$(scripts/validate-staging-deploy-inputs.sh --require-dev-ancestry)"
+          full_sha="$(printf '%s\n' "$validation_output" | awk -F= '$1 == "FULL_SHA" { print $2 }')"
+          image_tag="$(printf '%s\n' "$validation_output" | awk -F= '$1 == "IMAGE_TAG" { print $2 }')"
+          [[ -n "$full_sha" && -n "$image_tag" ]] || { echo "NO-GO: validator did not return immutable context" >&2; exit 20; }
           echo "full_sha=$full_sha" >> "$GITHUB_OUTPUT"
           echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
       - name: Prepare temporary staging env
@@ -116,14 +90,18 @@ jobs:
           ENV_FILE="$RUNNER_TEMP/staging.env"
           cleanup() { rm -f "$ENV_FILE"; }
           trap cleanup EXIT
-          reject_control_chars() {
+          reject_unsafe_value() {
             local label="$1" value="$2"
-            [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { echo "NO-GO: $label contains CR/LF" >&2; exit 20; }
-            [[ "$value" != *$'\0'* ]] || { echo "NO-GO: $label contains NUL" >&2; exit 20; }
+            if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+              echo "NO-GO: $label contains CR/LF" >&2; exit 20
+            fi
+            if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+              echo "NO-GO: $label contains unsupported control characters" >&2; exit 20
+            fi
           }
           append_env() {
             local name="$1" value="$2"
-            reject_control_chars "$name" "$value"
+            reject_unsafe_value "$name" "$value"
             printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
           }
           : > "$ENV_FILE"
@@ -233,19 +211,7 @@ jobs:
           CHANGE_TICKET_INPUT: ${{ inputs.change_ticket }}
         run: |
           set -euo pipefail
-          reject_control_chars() {
-            local label="$1" value="$2"
-            [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { echo "NO-GO: $label contains CR/LF" >&2; exit 20; }
-            [[ "$value" != *$'\0'* ]] || { echo "NO-GO: $label contains NUL" >&2; exit 20; }
-          }
-          for pair in "mode:$MODE_INPUT" "confirmation:$CONFIRMATION_INPUT" "previous_revision:$PREVIOUS_REVISION_INPUT" "change_ticket:$CHANGE_TICKET_INPUT" "full_sha:$FULL_SHA"; do
-            reject_control_chars "${pair%%:*}" "${pair#*:}"
-          done
-          [[ "$MODE_INPUT" == "execute" ]] || { echo "NO-GO: deploy job requires execute mode" >&2; exit 20; }
-          [[ "$CONFIRMATION_INPUT" == "$EXPECTED_CONFIRMATION" ]] || { echo "NO-GO: invalid confirmation" >&2; exit 20; }
-          [[ "$PREVIOUS_REVISION_INPUT" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])-[0-9]{5}-[a-z0-9]+$ ]] || { echo "NO-GO: previous_revision must be concrete" >&2; exit 20; }
-          [[ -n "$CHANGE_TICKET_INPUT" ]] || { echo "NO-GO: change_ticket is required" >&2; exit 20; }
-          [[ "$FULL_SHA" =~ ^[0-9a-fA-F]{40}$ ]] || { echo "NO-GO: full_sha output is invalid" >&2; exit 20; }
+          COMMIT_SHA_INPUT="$FULL_SHA" scripts/validate-staging-deploy-inputs.sh
           [[ "$(git rev-parse HEAD)" == "$FULL_SHA" ]] || { echo "NO-GO: checkout HEAD differs from approved full_sha" >&2; exit 20; }
           git fetch --no-tags origin dev:refs/remotes/origin/dev
           git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
@@ -279,14 +245,18 @@ jobs:
           ENV_FILE="$RUNNER_TEMP/staging.env"
           cleanup() { rm -f "$ENV_FILE"; }
           trap cleanup EXIT
-          reject_control_chars() {
+          reject_unsafe_value() {
             local label="$1" value="$2"
-            [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { echo "NO-GO: $label contains CR/LF" >&2; exit 20; }
-            [[ "$value" != *$'\0'* ]] || { echo "NO-GO: $label contains NUL" >&2; exit 20; }
+            if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+              echo "NO-GO: $label contains CR/LF" >&2; exit 20
+            fi
+            if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then
+              echo "NO-GO: $label contains unsupported control characters" >&2; exit 20
+            fi
           }
           append_env() {
             local name="$1" value="$2"
-            reject_control_chars "$name" "$value"
+            reject_unsafe_value "$name" "$value"
             printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
           }
           : > "$ENV_FILE"

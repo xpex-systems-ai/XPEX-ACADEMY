@@ -24,3 +24,7 @@ If verification fails, the workflow does not run rollback automatically. It prep
 ## Evidence
 
 Download the redacted evidence artifact. It includes timestamps, actor, change ticket, commit, image tag, immutable digest, revisions, URL, verify status, final classification, and the prepared rollback command. It must not include tokens, passwords, connection strings, OIDC credentials, authorization headers, or secret contents.
+
+## Immutable SHA policy
+
+The workflow accepts only a full 40-character commit SHA and then verifies that the SHA belongs to `origin/dev`. A SHA is not rejected merely because it is also reachable from `main`; with immutable SHA inputs, production-like branch names and refs are rejected by input shape, while shared ancestry remains valid when the commit is part of the approved `dev` history.
