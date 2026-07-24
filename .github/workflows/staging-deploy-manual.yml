@@ -1,0 +1,247 @@
+name: Manual staging deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Full or valid commit SHA that exists on dev
+        required: true
+        type: string
+      mode:
+        description: Render plan only or execute after approval
+        required: true
+        default: plan
+        type: choice
+        options: [plan, execute]
+      confirmation:
+        description: Required for execute; exact value DEPLOY_XPEX_STAGING
+        required: false
+        type: string
+      previous_revision:
+        description: Required concrete Cloud Run revision for execute rollback preparation
+        required: false
+        type: string
+      change_ticket:
+        description: Required human approval/evidence identifier for execute
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: xpex-academy-staging-deploy
+  cancel-in-progress: false
+
+env:
+  EXPECTED_CONFIRMATION: DEPLOY_XPEX_STAGING
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.decision.outputs.decision }}
+      image_tag: ${{ steps.context.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.commit_sha }}
+      - name: Validate commit and derive image tag
+        id: context
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin dev:refs/remotes/origin/dev
+          commit="${{ inputs.commit_sha }}"
+          git cat-file -e "$commit^{commit}"
+          full_sha="$(git rev-parse "$commit^{commit}")"
+          git merge-base --is-ancestor "$full_sha" refs/remotes/origin/dev
+          if git branch -r --contains "$full_sha" | grep -E 'origin/(main|prod|production)$'; then
+            echo "NO-GO: commit is also on a production-like branch" >&2
+            exit 20
+          fi
+          image_tag="stg-${full_sha:0:12}"
+          echo "commit_sha=$full_sha" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+      - name: Prepare temporary staging env
+        id: envfile
+        run: |
+          set -euo pipefail
+          ENV_FILE="$RUNNER_TEMP/staging.env"
+          cleanup() { rm -f "$ENV_FILE"; }
+          trap cleanup EXIT
+          api_host="${{ vars.STAGING_API_URL }}"
+          api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
+          frontend_host="${{ vars.STAGING_FRONTEND_ORIGIN }}"
+          frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
+          cat > "$ENV_FILE" <<ENV
+          GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION=${{ vars.GCP_REGION }}
+          ARTIFACT_REPOSITORY=${{ vars.ARTIFACT_REPOSITORY }}
+          CLOUD_RUN_SERVICE=${{ vars.CLOUD_RUN_SERVICE }}
+          SERVICE_NAME=${{ vars.CLOUD_RUN_SERVICE }}
+          IMAGE_NAME=xpex-academy-api
+          CLOUD_RUN_SA=${{ vars.CLOUD_RUN_SA }}
+          CLOUD_RUN_SERVICE_ACCOUNT=${{ vars.CLOUD_RUN_SA }}
+          CLOUD_SQL_INSTANCE=${{ vars.CLOUD_SQL_INSTANCE }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
+          REDIS_INSTANCE=${{ vars.REDIS_INSTANCE }}
+          VPC_CONNECTOR=${{ vars.VPC_CONNECTOR }}
+          STAGING_BUCKET=${{ vars.STAGING_BUCKET }}
+          STAGING_API_HOST=$api_host
+          STAGING_API_URL=${{ vars.STAGING_API_URL }}
+          STAGING_FRONTEND_ORIGIN=${{ vars.STAGING_FRONTEND_ORIGIN }}
+          IMAGE_TAG=${{ steps.context.outputs.image_tag }}
+          MAX_INSTANCES=${{ vars.MAX_INSTANCES }}
+          SECRET_JWT_NAME=${{ vars.SECRET_JWT_NAME }}
+          SECRET_SQL_NAME=${{ vars.SECRET_SQL_NAME }}
+          SECRET_REDIS_NAME=${{ vars.SECRET_REDIS_NAME }}
+          LEARNHOUSE_ENV=staging
+          LEARNHOUSE_DEVELOPMENT_MODE=false
+          LEARNHOUSE_SITE_NAME=XpeX Academy Staging
+          LEARNHOUSE_SITE_DESCRIPTION=XpeX Academy staging API
+          LEARNHOUSE_CONTACT_EMAIL=staging-ops@example.invalid
+          LEARNHOUSE_DOMAIN=$api_host
+          LEARNHOUSE_FRONTEND_DOMAIN=$frontend_host
+          LEARNHOUSE_SSL=true
+          LEARNHOUSE_PORT=8080
+          LEARNHOUSE_TENANCY=single
+          LEARNHOUSE_ALLOWED_ORIGINS=${{ vars.STAGING_FRONTEND_ORIGIN }}
+          LEARNHOUSE_CONTENT_DELIVERY_TYPE=s3api
+          LEARNHOUSE_S3_API_BUCKET_NAME=${{ vars.STAGING_BUCKET }}
+          LEARNHOUSE_S3_API_ENDPOINT_URL=https://storage.googleapis.com
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY=secret-manager-name:${{ vars.SECRET_JWT_NAME }}
+          LEARNHOUSE_SQL_CONNECTION_STRING=secret-manager-name:${{ vars.SECRET_SQL_NAME }}
+          LEARNHOUSE_REDIS_CONNECTION_STRING=secret-manager-name:${{ vars.SECRET_REDIS_NAME }}
+          LEARNHOUSE_IS_AI_ENABLED=false
+          ENV
+          chmod 600 "$ENV_FILE"
+          echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
+          trap - EXIT
+      - name: Render plan and run read-only checks
+        id: decision
+        env:
+          PREVIOUS_REVISION: ${{ inputs.previous_revision }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/staging-plan"
+          set +e
+          scripts/render-first-staging-deploy-plan.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/plan.md" 2>&1
+          rc=$?
+          set -e
+          scripts/audit-staging-resources.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/audit.md" 2>&1 || true
+          scripts/preflight-staging.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/preflight.md" 2>&1 || true
+          decision="GO"; [[ "$rc" -eq 10 ]] && decision="PENDÊNCIA EXTERNA"; [[ "$rc" -ne 0 && "$rc" -ne 10 ]] && decision="NO-GO"
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "PLANO: $decision" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staging-deploy-plan-redacted
+          path: ${{ runner.temp }}/staging-plan
+          retention-days: 14
+      - name: Remove temporary staging env
+        if: always()
+        run: rm -f "$ENV_FILE"
+
+  deploy:
+    name: deploy
+    needs: plan
+    if: ${{ inputs.mode == 'execute' && needs.plan.outputs.decision == 'GO' && inputs.confirmation == 'DEPLOY_XPEX_STAGING' && inputs.previous_revision != '' && inputs.change_ticket != '' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.commit_sha }}
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Validate execute inputs and prepare env
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.previous_revision }}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])-[0-9]{5}-[a-z0-9]+$ ]] || { echo 'NO-GO: previous_revision must be concrete'; exit 20; }
+          ENV_FILE="$RUNNER_TEMP/staging.env"; cleanup(){ rm -f "$ENV_FILE"; }; trap cleanup EXIT
+          api_host="${{ vars.STAGING_API_URL }}"
+          api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
+          frontend_host="${{ vars.STAGING_FRONTEND_ORIGIN }}"
+          frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
+          cat > "$ENV_FILE" <<ENV
+          GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION=${{ vars.GCP_REGION }}
+          ARTIFACT_REPOSITORY=${{ vars.ARTIFACT_REPOSITORY }}
+          CLOUD_RUN_SERVICE=${{ vars.CLOUD_RUN_SERVICE }}
+          IMAGE_NAME=xpex-academy-api
+          CLOUD_RUN_SA=${{ vars.CLOUD_RUN_SA }}
+          CLOUD_SQL_INSTANCE=${{ vars.CLOUD_SQL_INSTANCE }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
+          REDIS_INSTANCE=${{ vars.REDIS_INSTANCE }}
+          VPC_CONNECTOR=${{ vars.VPC_CONNECTOR }}
+          STAGING_BUCKET=${{ vars.STAGING_BUCKET }}
+          STAGING_API_HOST=$api_host
+          STAGING_API_URL=${{ vars.STAGING_API_URL }}
+          STAGING_FRONTEND_ORIGIN=${{ vars.STAGING_FRONTEND_ORIGIN }}
+          MAX_INSTANCES=${{ vars.MAX_INSTANCES }}
+          SECRET_JWT_NAME=${{ vars.SECRET_JWT_NAME }}
+          SECRET_SQL_NAME=${{ vars.SECRET_SQL_NAME }}
+          SECRET_REDIS_NAME=${{ vars.SECRET_REDIS_NAME }}
+          LEARNHOUSE_ENV=staging
+          LEARNHOUSE_DEVELOPMENT_MODE=false
+          LEARNHOUSE_SITE_NAME=XpeX Academy Staging
+          LEARNHOUSE_SITE_DESCRIPTION=XpeX Academy staging API
+          LEARNHOUSE_CONTACT_EMAIL=staging-ops@example.invalid
+          LEARNHOUSE_DOMAIN=$api_host
+          LEARNHOUSE_FRONTEND_DOMAIN=$frontend_host
+          LEARNHOUSE_SSL=true
+          LEARNHOUSE_PORT=8080
+          LEARNHOUSE_TENANCY=single
+          LEARNHOUSE_ALLOWED_ORIGINS=${{ vars.STAGING_FRONTEND_ORIGIN }}
+          LEARNHOUSE_CONTENT_DELIVERY_TYPE=s3api
+          LEARNHOUSE_S3_API_BUCKET_NAME=${{ vars.STAGING_BUCKET }}
+          LEARNHOUSE_S3_API_ENDPOINT_URL=https://storage.googleapis.com
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY=secret-manager-name:${{ vars.SECRET_JWT_NAME }}
+          LEARNHOUSE_SQL_CONNECTION_STRING=secret-manager-name:${{ vars.SECRET_SQL_NAME }}
+          LEARNHOUSE_REDIS_CONNECTION_STRING=secret-manager-name:${{ vars.SECRET_REDIS_NAME }}
+          LEARNHOUSE_IS_AI_ENABLED=false
+          ENV
+          chmod 600 "$ENV_FILE"; echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"; trap - EXIT
+      - name: Re-run real audit and preflight before mutation
+        run: |
+          set -euo pipefail
+          scripts/audit-staging-resources.sh --env-file "$ENV_FILE"
+          scripts/preflight-staging.sh --env-file "$ENV_FILE"
+          test "$(gcloud config get-value project)" = "${{ vars.GCP_PROJECT_ID }}"
+      - name: Build, deploy, verify, and collect evidence
+        env:
+          IMAGE_TAG: ${{ needs.plan.outputs.image_tag }}
+          PREVIOUS_REVISION: ${{ inputs.previous_revision }}
+          CHANGE_TICKET: ${{ inputs.change_ticket }}
+        run: |
+          set -euo pipefail
+          scripts/build-staging.sh --env-file "$ENV_FILE" --image-tag "$IMAGE_TAG" --execute
+          IMAGE_URI="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPOSITORY }}/xpex-academy-api:$IMAGE_TAG"
+          IMAGE_DIGEST="$(gcloud artifacts docker images describe "$IMAGE_URI" --format='value(image_summary.digest)')"
+          DRY_RUN=false IMAGE_TAG="$IMAGE_TAG" scripts/deploy-staging.sh --env-file "$ENV_FILE"
+          NEW_REVISION="$(gcloud run services describe "${{ vars.CLOUD_RUN_SERVICE }}" --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" --format='value(status.latestReadyRevisionName)')"
+          set +e
+          scripts/verify-staging-deployment.sh "${{ vars.STAGING_API_URL }}" "${{ vars.STAGING_FRONTEND_ORIGIN }}"
+          verify_rc=$?
+          set -e
+          rollback="scripts/prepare-staging-rollback.sh --env-file \"$ENV_FILE\" --previous-revision \"$PREVIOUS_REVISION\""
+          OUT_DIR="$RUNNER_TEMP/staging-evidence" COMMIT_SHA="${{ inputs.commit_sha }}" IMAGE_URI="$IMAGE_URI" IMAGE_DIGEST="$IMAGE_DIGEST" PROJECT_ID="${{ vars.GCP_PROJECT_ID }}" REGION="${{ vars.GCP_REGION }}" SERVICE_NAME="${{ vars.CLOUD_RUN_SERVICE }}" NEW_REVISION="$NEW_REVISION" SERVICE_URL="${{ vars.STAGING_API_URL }}" VERIFY_RESULT="$([[ $verify_rc -eq 0 ]] && echo aprovado || echo reprovado)" FINAL_CLASSIFICATION="$([[ $verify_rc -eq 0 ]] && echo GO || echo NO-GO)" ROLLBACK_COMMAND="$rollback" scripts/collect-staging-deploy-evidence.sh
+          [[ "$verify_rc" -eq 0 ]] || { PREVIOUS_REVISION="$PREVIOUS_REVISION" scripts/prepare-staging-rollback.sh --env-file "$ENV_FILE" --previous-revision "$PREVIOUS_REVISION"; exit "$verify_rc"; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-deploy-evidence-redacted
+          path: ${{ runner.temp }}/staging-evidence
+          retention-days: 14
+      - name: Remove temporary staging env
+        if: always()
+        run: rm -f "$ENV_FILE"
