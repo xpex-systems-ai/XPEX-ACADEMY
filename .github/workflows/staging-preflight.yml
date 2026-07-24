@@ -318,9 +318,14 @@ jobs:
           grep -n 'scripts/deploy-staging.sh' /tmp/renderer-valid.out
           grep -n 'scripts/verify-staging-deployment.sh' /tmp/renderer-valid.out
           grep -n 'scripts/prepare-staging-rollback.sh' /tmp/renderer-valid.out
-          if grep -E 'gcloud builds submit|gcloud run deploy' /tmp/renderer-valid.out; then
-            echo 'renderer duplicated raw gcloud build/deploy logic' >&2; exit 1
+          proposal_count="$(grep -cF '⚠️ COMANDO MUTÁVEL — EXECUÇÃO HUMANA APÓS APROVAÇÃO' /tmp/renderer-valid.out)"
+          test "$proposal_count" -eq 4
+          if grep -E 'gcloud builds submit|gcloud run deploy|gcloud run services update-traffic' /tmp/renderer-valid.out; then
+            echo 'renderer duplicated raw mutable gcloud logic' >&2; exit 1
           fi
+          awk '/^  / && $0 !~ /^  scripts\/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh/ { print; bad=1 } END { exit bad ? 1 : 0 }' /tmp/renderer-valid.out || {
+            echo 'renderer printed a non-wrapper proposal in GO output' >&2; exit 1;
+          }
           run_renderer secret-missing secret-missing 20
           run_renderer iam-insufficient iam-insufficient 20
           cp /tmp/env-public /tmp/env-renderer-preflight-nogo; sed -i 's/LEARNHOUSE_ENV=staging/LEARNHOUSE_ENV=dev/' /tmp/env-renderer-preflight-nogo; run_renderer preflight-nogo valid 20 /tmp/env-renderer-preflight-nogo
@@ -332,6 +337,9 @@ jobs:
           set -e
           test "$rc" -eq 10
           grep -F 'gcloud CLI absent' /tmp/renderer-no-gcloud.out
+          if grep -E 'scripts/(build-staging|deploy-staging|verify-staging-deployment|prepare-staging-rollback)\.sh|gcloud builds submit|gcloud run deploy|gcloud run services update-traffic|# Plano concreto para execução humana aprovada' /tmp/renderer-no-gcloud.out; then
+            echo 'renderer printed execution command or approved plan for missing gcloud' >&2; exit 1
+          fi
           cp /tmp/env-public /tmp/env-renderer-prod; sed -i 's/xpex-stage-12345/xpex-prod-12345/g' /tmp/env-renderer-prod; run_renderer production valid 20 /tmp/env-renderer-prod
           cp /tmp/env-public /tmp/env-renderer-placeholder; echo 'EXTRA=CHANGE_ME' >> /tmp/env-renderer-placeholder; run_renderer placeholder valid 20 /tmp/env-renderer-placeholder
           cp /tmp/env-public /tmp/env-renderer-max; sed -i 's/MAX_INSTANCES=3/MAX_INSTANCES=99/' /tmp/env-renderer-max; run_renderer max-instances valid 20 /tmp/env-renderer-max
