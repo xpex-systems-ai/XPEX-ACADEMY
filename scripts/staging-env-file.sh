@@ -29,15 +29,26 @@ validate_bash_env_round_trip() {
   local file="$1"
   shift
 
+  if (($# == 0 || $# % 2 != 0)); then
+    printf 'NO-GO: round-trip validation requires explicit name/value pairs\n' >&2
+    return 20
+  fi
+
   bash -n "$file" || {
     printf 'NO-GO: temporary environment file failed Bash syntax validation\n' >&2
     return 20
   }
 
-  local name
-  for name in "$@"; do
-    [[ "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || return 20
-    env EXPECTED_ENV_VALUE="${!name-}" EXPECTED_ENV_NAME="$name" \
+  local name expected
+  while (($#)); do
+    name="$1"
+    expected="$2"
+    shift 2
+    [[ "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+      printf 'NO-GO: invalid round-trip variable name\n' >&2
+      return 20
+    }
+    env EXPECTED_ENV_VALUE="$expected" EXPECTED_ENV_NAME="$name" \
       bash -c 'set -euo pipefail; source "$1"; [[ "${!EXPECTED_ENV_NAME-}" == "$EXPECTED_ENV_VALUE" ]]' bash "$file" || {
         printf 'NO-GO: redacted round-trip comparison failed for %s\n' "$name" >&2
         return 20

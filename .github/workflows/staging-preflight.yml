@@ -710,7 +710,7 @@ jobs:
           data = YAML.load_file('.github/workflows/staging-deploy-manual.yml')
           open_expression = '$' + '{{'
           close_expression = '}' + '}'
-          immutable_ref = "ref: #{open_expression} needs.plan.outputs.full_sha #{close_expression}"
+          control_ref = "ref: #{open_expression} github.sha #{close_expression}"
           dispatch_ref = "ref: #{open_expression} inputs.commit_sha #{close_expression}"
           full_sha_output = "full_sha: #{open_expression} steps.context.outputs.full_sha #{close_expression}"
           plan_config_output = "plan_config_sha256: #{open_expression} steps.envfile.outputs.plan_config_sha256 #{close_expression}"
@@ -725,7 +725,8 @@ jobs:
           raise 'plan must not have id-token permission' if plan.fetch('permissions', {}).to_s.include?('id-token')
           raise 'deploy permissions invalid' unless deploy.fetch('permissions') == {'contents' => 'read', 'id-token' => 'write'}
           raise 'deploy environment missing' unless deploy.fetch('environment') == 'staging'
-          raise "deploy must use immutable plan full_sha; expected #{immutable_ref.inspect}" unless workflow_raw.include?(immutable_ref)
+          raise "control-plane checkout must use immutable workflow sha; expected #{control_ref.inspect}" unless workflow_raw.scan(control_ref).length >= 2
+          raise 'approved full_sha detach checkout missing from plan/deploy' unless workflow_raw.scan('git checkout --detach "$FULL_SHA"').length >= 2
           raise "deploy must not checkout dispatch input; unexpected #{dispatch_ref.inspect}" if workflow_raw.include?(dispatch_ref)
           raise "full_sha output missing; expected #{full_sha_output.inspect}" unless workflow_raw.include?(full_sha_output)
           raise "plan_config_sha256 output missing; expected #{plan_config_output.inspect}" unless workflow_raw.include?(plan_config_output)
@@ -836,9 +837,9 @@ jobs:
           raw = File.read('.github/workflows/staging-deploy-manual.yml')
           open_expression = '$' + '{{'
           close_expression = '}' + '}'
-          immutable_ref = "ref: #{open_expression} needs.plan.outputs.full_sha #{close_expression}"
           deploy = raw.split('  deploy:', 2).last
-          abort('deploy does not use plan full_sha') unless deploy.include?(immutable_ref)
+          abort('deploy does not detach to approved plan full_sha') unless deploy.include?('git checkout --detach "$FULL_SHA"')
+          abort('deploy control plane is not pinned to github.sha') unless deploy.include?("ref: #{open_expression} github.sha #{close_expression}")
           RUBY
           if grep -E 'gcloud (run deploy|builds submit|run services update-traffic)' .github/workflows/staging-deploy-manual.yml; then
             echo 'mutable raw gcloud command found' >&2; exit 1
@@ -849,6 +850,8 @@ jobs:
           scripts/tests/test-staging-env-file.sh
           scripts/tests/test-staging-plan-classification.sh
           scripts/tests/test-staging-plan-artifacts.sh
+          scripts/tests/test-staging-control-helpers-historical-sha.sh
+          scripts/tests/test-staging-deploy-control-contract.sh
       - name: Test staging deploy evidence redaction
         run: |
           set -euo pipefail

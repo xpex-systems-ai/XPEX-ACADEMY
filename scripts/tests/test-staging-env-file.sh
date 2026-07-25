@@ -21,24 +21,34 @@ values=(
   'https://api-staging.xpex-academy.invalid/path?a=1&b=2'
   'texto com espaços no meio'
   ' texto com espaço inicial e final '
+  ''
+  'true'
+  '42'
 )
 
-names=()
+expected_pairs=()
 for i in "${!values[@]}"; do
   name="ROUND_TRIP_$i"
-  printf -v "$name" '%s' "${values[$i]}"
-  names+=("$name")
+  unset "$name" || true
+  expected_pairs+=("$name" "${values[$i]}")
   append_bash_env "$env_file" "$name" "${values[$i]}"
 done
 
-validate_bash_env_round_trip "$env_file" "${names[@]}" >/dev/null
+validate_bash_env_round_trip "$env_file" "${expected_pairs[@]}" >/dev/null
 [[ "$(stat -c '%a' "$env_file")" == 600 ]]
 
 marker="$tmp/executed"
 COMMAND_GUARD="safe value; touch $marker"
 append_bash_env "$env_file" COMMAND_GUARD "$COMMAND_GUARD"
-validate_bash_env_round_trip "$env_file" COMMAND_GUARD >/dev/null
+validate_bash_env_round_trip "$env_file" COMMAND_GUARD "$COMMAND_GUARD" >/dev/null
 [[ ! -e "$marker" ]]
+
+if validate_bash_env_round_trip "$env_file" COMMAND_GUARD 2>/dev/null; then
+  echo 'legacy names-only round-trip API was accepted' >&2; exit 1
+fi
+if validate_bash_env_round_trip "$env_file" COMMAND_GUARD wrong 2>/dev/null; then
+  echo 'round-trip mismatch was accepted' >&2; exit 1
+fi
 
 if append_bash_env "$env_file" BAD_NEWLINE $'line one\nline two' 2>/dev/null; then
   echo 'newline was accepted' >&2; exit 1
