@@ -46,9 +46,18 @@ validate_bash_env_round_trip "$env_file" COMMAND_GUARD "$COMMAND_GUARD" >/dev/nu
 if validate_bash_env_round_trip "$env_file" COMMAND_GUARD 2>/dev/null; then
   echo 'legacy names-only round-trip API was accepted' >&2; exit 1
 fi
-if validate_bash_env_round_trip "$env_file" COMMAND_GUARD wrong 2>/dev/null; then
+if validate_bash_env_round_trip "$env_file" 2>/dev/null; then
+  echo 'round-trip API accepted no explicit pairs' >&2; exit 1
+fi
+mismatch_secret='must-not-appear-in-output'
+set +e
+mismatch_output="$(validate_bash_env_round_trip "$env_file" COMMAND_GUARD "$mismatch_secret" 2>&1)"
+mismatch_rc=$?
+set -e
+if [[ "$mismatch_rc" -ne 20 ]]; then
   echo 'round-trip mismatch was accepted' >&2; exit 1
 fi
+[[ "$mismatch_output" != *"$mismatch_secret"* && "$mismatch_output" != *"$COMMAND_GUARD"* ]]
 
 if append_bash_env "$env_file" BAD_NEWLINE $'line one\nline two' 2>/dev/null; then
   echo 'newline was accepted' >&2; exit 1

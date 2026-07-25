@@ -2,6 +2,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source_head="$(git -C "$repo_root" rev-parse HEAD)"
+source_status="$(git -C "$repo_root" status --porcelain=v1)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 git clone --quiet --no-hardlinks "$repo_root" "$tmp/repo"
@@ -15,8 +17,14 @@ while read -r candidate; do
     break
   fi
 done < <(git rev-list --first-parent HEAD)
-[[ -n "$historical_sha" ]]
-git cat-file -e "$historical_sha:scripts/render-first-staging-deploy-plan.sh"
+if [[ -z "$historical_sha" ]]; then
+  echo 'NO-GO: repository history is insufficient to find a commit predating control helpers; checkout with fetch-depth: 0' >&2
+  exit 20
+fi
+git merge-base --is-ancestor "$historical_sha" HEAD || { echo 'NO-GO: selected historical SHA is not an ancestor' >&2; exit 20; }
+for path in scripts/render-first-staging-deploy-plan.sh scripts/audit-staging-resources.sh scripts/preflight-staging.sh scripts/validate-staging-deploy-inputs.sh; do
+  git cat-file -e "$historical_sha:$path" || { printf 'NO-GO: historical SHA lacks plan operational script: %s\n' "$path" >&2; exit 20; }
+done
 ! git cat-file -e "$historical_sha:scripts/staging-env-file.sh" 2>/dev/null
 ! git cat-file -e "$historical_sha:scripts/classify-staging-plan.sh" 2>/dev/null
 
@@ -38,5 +46,7 @@ rc=$?
 set -e
 [[ "$rc" -eq 10 && "$output" == 'PENDÊNCIA EXTERNA' ]]
 [[ "$output" != *'command not found'* && "$output" != *'No such file or directory'* ]]
+[[ "$(git -C "$repo_root" rev-parse HEAD)" == "$source_head" ]]
+[[ "$(git -C "$repo_root" status --porcelain=v1)" == "$source_status" ]]
 
 echo 'historical SHA control-helper preservation test passed'

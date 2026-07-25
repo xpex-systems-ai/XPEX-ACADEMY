@@ -15,6 +15,8 @@ jobs:
       TESTING: "true"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: 0.10.7
@@ -753,8 +755,21 @@ jobs:
           raise 'control char validation missing' unless validator_raw.include?('unsupported control characters')
           raise 'origin/dev ancestry validation missing' unless validator_raw.include?('refs/remotes/origin/dev')
           raise 'exit codes missing' unless validator_raw.include?('0=valid') && validator_raw.include?('20=NO-GO')
-          plan_job = workflow_raw.split('  deploy:').first
-          raise 'plan job can mutate' if plan_job.include?('scripts/build-staging.sh') || plan_job.include?('DRY_RUN=false') || plan_job.include?('id-token: write')
+          plan_steps = plan.fetch('steps')
+          raise 'plan job can authenticate to Google' if plan_steps.any? { |step| step['uses'].to_s.start_with?('google-github-actions/auth@') }
+          mutable_plan_patterns = {
+            'build execute' => /(?:^|[;&|]\s*)scripts\/build-staging\.sh\b[^\n]*--execute/,
+            'deploy execute' => /(?:^|[;&|]\s*)DRY_RUN=false\b[^\n]*scripts\/deploy-staging\.sh\b/,
+            'verify execute' => /^\s*scripts\/verify-staging-deployment\.sh\b/,
+            'rollback execute' => /^\s*scripts\/prepare-staging-rollback\.sh\b/,
+            'gcloud deploy' => /\bgcloud\s+run\s+deploy\b/,
+            'gcloud build' => /\bgcloud\s+builds\s+submit\b/,
+            'gcloud traffic mutation' => /\bgcloud\s+run\s+services\s+update-traffic\b/
+          }
+          plan_steps.each do |step|
+            run = step['run'].to_s
+            mutable_plan_patterns.each { |label, pattern| raise "plan job can mutate via #{label}" if run.match?(pattern) }
+          end
           raise 'raw mutable gcloud duplicated' if workflow_raw.include?('gcloud run deploy') || workflow_raw.include?('gcloud builds submit') || workflow_raw.include?('update-traffic')
           raise 'production branch false block still present' if workflow_raw.include?('origin/(main|prod|production)') || workflow_raw.include?('commit is also on a production-like branch')
           raise 'summary missing' unless ['PLANO:', 'EXECUÇÃO:', 'BUILD:', 'DEPLOY:', 'VERIFY:', 'ROLLBACK:'].all? { |text| workflow_raw.include?(text) }
