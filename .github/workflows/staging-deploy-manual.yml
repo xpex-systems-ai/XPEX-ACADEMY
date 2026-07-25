@@ -77,6 +77,15 @@ jobs:
           git fetch --no-tags origin dev:refs/remotes/origin/dev
           git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
           [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag differs from approved full_sha" >&2; exit 20; }
+      - name: Initialize redacted plan diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/staging-plan"
+          printf 'NO-GO: renderer did not complete; inspect preceding workflow steps.\n' > "$RUNNER_TEMP/staging-plan/plan.md"
+          printf 'NO-GO: audit did not complete; inspect preceding workflow steps.\n' > "$RUNNER_TEMP/staging-plan/audit.md"
+          printf 'NO-GO: preflight did not complete; inspect preceding workflow steps.\n' > "$RUNNER_TEMP/staging-plan/preflight.md"
+          printf 'plan_config_sha256=unavailable\n' > "$RUNNER_TEMP/staging-plan/config-fingerprint.txt"
       - name: Prepare temporary staging env and config fingerprint
         id: envfile
         env:
@@ -102,10 +111,10 @@ jobs:
           set -euo pipefail
           ENV_FILE="$RUNNER_TEMP/staging.env"
           CONFIG_FILE="$RUNNER_TEMP/staging-plan-config.txt"
-          cleanup() { rm -f "$ENV_FILE" "$CONFIG_FILE"; }
-          trap cleanup EXIT
-          reject_unsafe_value() { local label="$1" value="$2"; if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then echo "NO-GO: $label contains CR/LF" >&2; exit 20; fi; if printf '%s' "$value" | LC_ALL=C grep -q '[[:cntrl:]]'; then echo "NO-GO: $label contains unsupported control characters" >&2; exit 20; fi; }
-          append_env() { local name="$1" value="$2"; reject_unsafe_value "$name" "$value"; printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"; }
+          # shellcheck source=scripts/staging-env-file.sh
+          source scripts/staging-env-file.sh
+          reject_unsafe_value() { reject_unsafe_env_value "$@"; }
+          append_env() { append_bash_env "$ENV_FILE" "$1" "$2"; }
           append_config() { local name="$1" value="$2"; reject_unsafe_value "$name" "$value"; printf '%s=%s\n' "$name" "$value" >> "$CONFIG_FILE"; }
           : > "$ENV_FILE"; : > "$CONFIG_FILE"; chmod 600 "$ENV_FILE" "$CONFIG_FILE"
           api_host="$STAGING_API_URL_VALUE"; api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
@@ -134,11 +143,11 @@ jobs:
           append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"; append_config SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"
           append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"; append_config SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"
           append_env LEARNHOUSE_ENV staging; append_env LEARNHOUSE_DEVELOPMENT_MODE false; append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'; append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'; append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid; append_env LEARNHOUSE_DOMAIN "$api_host"; append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"; append_env LEARNHOUSE_SSL true; append_env LEARNHOUSE_PORT 8080; append_env LEARNHOUSE_TENANCY single; append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api; append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"; append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com; append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"; append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"; append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"; append_env LEARNHOUSE_IS_AI_ENABLED false
+          validate_bash_env_round_trip "$ENV_FILE" LEARNHOUSE_SITE_NAME LEARNHOUSE_SITE_DESCRIPTION STAGING_API_URL STAGING_FRONTEND_ORIGIN LEARNHOUSE_ALLOWED_ORIGINS LEARNHOUSE_AUTH_JWT_SECRET_KEY LEARNHOUSE_SQL_CONNECTION_STRING LEARNHOUSE_REDIS_CONNECTION_STRING
           plan_config_sha256="$(sort "$CONFIG_FILE" | sha256sum | awk '{print $1}')"
           echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
           echo "PLAN_CONFIG_SHA256=$plan_config_sha256" >> "$GITHUB_ENV"
           echo "plan_config_sha256=$plan_config_sha256" >> "$GITHUB_OUTPUT"
-          trap - EXIT
       - name: Render plan and run read-only checks
         id: decision
         env:
@@ -152,22 +161,40 @@ jobs:
           printf 'plan_config_sha256=%s\n' "$PLAN_CONFIG_SHA256" > "$RUNNER_TEMP/staging-plan/config-fingerprint.txt"
           set +e
           scripts/render-first-staging-deploy-plan.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/plan.md" 2>&1
-          rc=$?
+          renderer_rc=$?
+          scripts/audit-staging-resources.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/audit.md" 2>&1
+          audit_rc=$?
+          scripts/preflight-staging.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/preflight.md" 2>&1
+          preflight_rc=$?
           set -e
-          scripts/audit-staging-resources.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/audit.md" 2>&1 || true
-          scripts/preflight-staging.sh --env-file "$ENV_FILE" > "$RUNNER_TEMP/staging-plan/preflight.md" 2>&1 || true
-          decision="GO"; [[ "$rc" -eq 10 ]] && decision="PENDÊNCIA EXTERNA"; [[ "$rc" -ne 0 && "$rc" -ne 10 ]] && decision="NO-GO"
+          set +e
+          decision="$(scripts/classify-staging-plan.sh "$renderer_rc" "$audit_rc" "$preflight_rc")"
+          final_rc=$?
+          set -e
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "final_rc=$final_rc" >> "$GITHUB_OUTPUT"
           execution="não solicitada"; if [[ "$MODE_INPUT" == "execute" ]]; then if [[ "$decision" == "GO" ]]; then execution="aprovada"; else execution="bloqueada"; fi; fi
           { echo "PLANO: $decision"; echo "EXECUÇÃO: $execution"; echo "BUILD: não executado"; echo "DEPLOY: não executado"; echo "VERIFY: não executado"; echo "ROLLBACK: não necessário"; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: staging-deploy-plan-redacted
           path: ${{ runner.temp }}/staging-plan
           retention-days: 14
       - name: Remove temporary staging env
         if: always()
-        run: rm -f "$ENV_FILE"
+        run: rm -f "${ENV_FILE:-}" "$RUNNER_TEMP/staging-plan-config.txt"
+      - name: Enforce staging plan decision
+        if: always()
+        env:
+          FINAL_RC: ${{ steps.decision.outputs.final_rc }}
+        run: |
+          set -euo pipefail
+          case "${FINAL_RC:-20}" in
+            0) exit 0 ;;
+            10) exit 10 ;;
+            *) exit 20 ;;
+          esac
 
   deploy:
     name: deploy
@@ -258,8 +285,11 @@ jobs:
           ENV_FILE="$RUNNER_TEMP/staging.env"; : > "$ENV_FILE"; chmod 600 "$ENV_FILE"
           api_host="$STAGING_API_URL_VALUE"; api_host="${api_host#http://}"; api_host="${api_host#https://}"; api_host="${api_host%%/*}"
           frontend_host="$STAGING_FRONTEND_ORIGIN_VALUE"; frontend_host="${frontend_host#http://}"; frontend_host="${frontend_host#https://}"; frontend_host="${frontend_host%%/*}"
-          append_env(){ printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"; }
+          # shellcheck source=scripts/staging-env-file.sh
+          source scripts/staging-env-file.sh
+          append_env(){ append_bash_env "$ENV_FILE" "$1" "$2"; }
           append_env GCP_PROJECT_ID "$GCP_PROJECT_ID_VALUE"; append_env GCP_REGION "$GCP_REGION_VALUE"; append_env ARTIFACT_REPOSITORY "$ARTIFACT_REPOSITORY_VALUE"; append_env CLOUD_RUN_SERVICE "$CLOUD_RUN_SERVICE_VALUE"; append_env IMAGE_NAME xpex-academy-api; append_env CLOUD_RUN_SA "$CLOUD_RUN_SA_VALUE"; append_env CLOUD_SQL_INSTANCE "$CLOUD_SQL_INSTANCE_VALUE"; append_env DB_NAME "$DB_NAME_VALUE"; append_env DB_USER "$DB_USER_VALUE"; append_env REDIS_INSTANCE "$REDIS_INSTANCE_VALUE"; append_env VPC_CONNECTOR "$VPC_CONNECTOR_VALUE"; append_env STAGING_BUCKET "$STAGING_BUCKET_VALUE"; append_env STAGING_API_HOST "$api_host"; append_env STAGING_API_URL "$STAGING_API_URL_VALUE"; append_env STAGING_FRONTEND_ORIGIN "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env MAX_INSTANCES "$MAX_INSTANCES_VALUE"; append_env SECRET_JWT_NAME "$SECRET_JWT_NAME_VALUE"; append_env SECRET_SQL_NAME "$SECRET_SQL_NAME_VALUE"; append_env SECRET_REDIS_NAME "$SECRET_REDIS_NAME_VALUE"; append_env IMAGE_TAG "$IMAGE_TAG"; append_env LEARNHOUSE_ENV staging; append_env LEARNHOUSE_DEVELOPMENT_MODE false; append_env LEARNHOUSE_SITE_NAME 'XpeX Academy Staging'; append_env LEARNHOUSE_SITE_DESCRIPTION 'XpeX Academy staging API'; append_env LEARNHOUSE_CONTACT_EMAIL staging-ops@example.invalid; append_env LEARNHOUSE_DOMAIN "$api_host"; append_env LEARNHOUSE_FRONTEND_DOMAIN "$frontend_host"; append_env LEARNHOUSE_SSL true; append_env LEARNHOUSE_PORT 8080; append_env LEARNHOUSE_TENANCY single; append_env LEARNHOUSE_ALLOWED_ORIGINS "$STAGING_FRONTEND_ORIGIN_VALUE"; append_env LEARNHOUSE_CONTENT_DELIVERY_TYPE s3api; append_env LEARNHOUSE_S3_API_BUCKET_NAME "$STAGING_BUCKET_VALUE"; append_env LEARNHOUSE_S3_API_ENDPOINT_URL https://storage.googleapis.com; append_env LEARNHOUSE_AUTH_JWT_SECRET_KEY "secret-manager-name:$SECRET_JWT_NAME_VALUE"; append_env LEARNHOUSE_SQL_CONNECTION_STRING "secret-manager-name:$SECRET_SQL_NAME_VALUE"; append_env LEARNHOUSE_REDIS_CONNECTION_STRING "secret-manager-name:$SECRET_REDIS_NAME_VALUE"; append_env LEARNHOUSE_IS_AI_ENABLED false
+          validate_bash_env_round_trip "$ENV_FILE" LEARNHOUSE_SITE_NAME LEARNHOUSE_SITE_DESCRIPTION STAGING_API_URL STAGING_FRONTEND_ORIGIN LEARNHOUSE_ALLOWED_ORIGINS LEARNHOUSE_AUTH_JWT_SECRET_KEY LEARNHOUSE_SQL_CONNECTION_STRING LEARNHOUSE_REDIS_CONNECTION_STRING
           echo "ENV_FILE=$ENV_FILE" >> "$GITHUB_ENV"
       - name: validate-active-revision
         id: active_revision

@@ -10,7 +10,7 @@ Usage: scripts/preflight-staging.sh --env-file .env.staging [--simulated]
 
 Validation-only staging preflight. It never creates resources, never deploys,
 never enables APIs, never changes the active gcloud project, and never prints secrets.
-Exit semantics: GO exits 0; simulated PENDÊNCIA EXTERNA exits 0; NO-GO exits non-zero; invalid arguments exit 2.
+Exit semantics: GO exits 0; PENDÊNCIA EXTERNA exits 10; NO-GO exits 20; invalid arguments exit 2.
 USAGE
 }
 
@@ -174,4 +174,8 @@ else
 fi
 
 printf '\nResultado final: %s\n' "$status"
-[[ "$status" != "NO-GO" ]]
+case "$status" in
+  GO) exit 0 ;;
+  "PENDÊNCIA EXTERNA") exit 10 ;;
+  *) exit 20 ;;
+esac

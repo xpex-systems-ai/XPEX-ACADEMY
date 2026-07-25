@@ -106,8 +106,8 @@ jobs:
           output="$("$@" 2>&1)"
           rc=$?
           set -e
-          if [[ "$rc" -ne 0 ]]; then
-            printf 'Expected pending success for %s, got exit %s\n%s\n' "$label" "$rc" "$output" >&2
+          if [[ "$rc" -ne 10 ]]; then
+            printf 'Expected pending exit 10 for %s, got exit %s\n%s\n' "$label" "$rc" "$output" >&2
             exit 1
           fi
           if [[ "$output" != *'Resultado final: PENDÊNCIA EXTERNA'* ]]; then
@@ -843,6 +843,12 @@ jobs:
           if grep -E 'gcloud (run deploy|builds submit|run services update-traffic)' .github/workflows/staging-deploy-manual.yml; then
             echo 'mutable raw gcloud command found' >&2; exit 1
           fi
+      - name: Test staging env serialization and plan result aggregation
+        run: |
+          set -euo pipefail
+          scripts/tests/test-staging-env-file.sh
+          scripts/tests/test-staging-plan-classification.sh
+          scripts/tests/test-staging-plan-artifacts.sh
       - name: Test staging deploy evidence redaction
         run: |
           set -euo pipefail
