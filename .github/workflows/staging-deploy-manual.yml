@@ -40,6 +40,9 @@ jobs:
   plan:
     name: plan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       decision: ${{ steps.decision.outputs.decision }}
       image_tag: ${{ steps.context.outputs.image_tag }}
@@ -91,6 +94,11 @@ jobs:
           git fetch --no-tags origin dev:refs/remotes/origin/dev
           git merge-base --is-ancestor "$FULL_SHA" refs/remotes/origin/dev
           [[ "$IMAGE_TAG" == "stg-${FULL_SHA:0:12}" ]] || { echo "NO-GO: image_tag differs from approved full_sha" >&2; exit 20; }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_AUDIT_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
       - name: Initialize redacted plan diagnostics
         if: always()
         run: |
