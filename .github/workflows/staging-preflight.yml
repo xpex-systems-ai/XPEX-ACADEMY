@@ -398,8 +398,8 @@ jobs:
           fi
           case "$args" in
             auth\ list*) echo "auditor@example.test" ;;
-            "config get-value project") [[ "$mode" == "project-invalid" ]] && echo "wrong-stage-12345" || echo "xpex-stage-12345" ;;
-            projects\ describe*) [[ "$mode" == "project-invalid" ]] && exit 1 || echo "xpex-stage-12345" ;;
+            "config get-value project") [[ "$mode" == "project-absent" ]] && echo "wrong-stage-12345" || echo "xpex-stage-12345" ;;
+            projects\ describe*) [[ "$mode" == "project-absent" ]] && { echo 'ERROR: NOT_FOUND: configured project was not found' >&2; exit 1; } || echo "xpex-stage-12345" ;;
             billing\ projects\ describe*) [[ "$mode" == "billing-disabled" ]] && echo "false" || echo "true" ;;
             services\ list*)
               [[ "$mode" == "services-list-denied" ]] && { echo "permission denied" >&2; exit 1; }
@@ -478,8 +478,8 @@ jobs:
           grep -F 'artifact-registry' /tmp/audit-resource-missing.out
           run_audit_expect billing-disabled billing-disabled 20
           grep -F 'NO-GO | billing | disabled' /tmp/audit-billing-disabled.out
-          run_audit_expect project-invalid project-invalid 20
-          grep -F 'NO-GO | project' /tmp/audit-project-invalid.out
+          run_audit_expect project-absent project-absent 20
+          grep -F 'NO-GO | project | configured resource was not found by the authenticated read-only query' /tmp/audit-project-absent.out
           run_audit_expect maxscale-invalid maxscale-invalid 20
           grep -F 'maxScale is invalid or exceeds staging guardrail' /tmp/audit-maxscale-invalid.out
           run_audit_expect maxscale-too-high maxscale-too-high 20
