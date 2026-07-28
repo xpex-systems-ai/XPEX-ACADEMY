@@ -61,21 +61,21 @@ require_env_name() {
 }
 
 run_gcloud() {
-  local label="$1" class_on_error="$2"
-  shift 2
+  local label="$1"
+  shift
   local output rc
   set +e
-  output="$($@ 2>&1)"
+  output="$("$@" 2>&1)"
   rc=$?
   set -e
   GCLOUD_OUTPUT="$(printf '%s' "$output" | sed -E 's#(password|token|secret|key)=([^[:space:]]+)#\1=<redacted>#Ig; s#://([^:/@]+):([^@]+)@#://<redacted>:<redacted>@#g')"
   if ((rc == 0)); then
     return 0
   fi
-  if [[ "$class_on_error" == "NO-GO" ]]; then
-    nogo "$label" "gcloud query failed rc=$rc: ${GCLOUD_OUTPUT:-<no output>}"
+  if [[ "$GCLOUD_OUTPUT" =~ NOT_FOUND|[Ww]as[[:space:]]not[[:space:]]found|[Dd]oes[[:space:]]not[[:space:]]exist ]]; then
+    nogo "$label" "configured resource was not found by the authenticated read-only query (rc=$rc)"
   else
-    pending "$label" "gcloud query failed rc=$rc: ${GCLOUD_OUTPUT:-<no output>}"
+    pending "$label" "gcloud read-only query unavailable rc=$rc: ${GCLOUD_OUTPUT:-<no output>}"
   fi
   return "$rc"
 }
@@ -121,21 +121,33 @@ if ! command -v gcloud >/dev/null 2>&1; then
   [[ "$status" == "GO" ]] && exit "$GO_EXIT" || [[ "$status" == "PENDÊNCIA EXTERNA" ]] && exit "$PENDING_EXIT" || exit "$NOGO_EXIT"
 fi
 
-run_gcloud "authenticated-account" "PENDÊNCIA EXTERNA" gcloud auth list --filter=status:ACTIVE --format='value(account)' || true
-active_account="$GCLOUD_OUTPUT"
-[[ -n "$active_account" ]] && go "authenticated-account" "$(redact "$active_account")" || pending "authenticated-account" "no active account returned"
-run_gcloud "active-project" "PENDÊNCIA EXTERNA" gcloud config get-value project || true
-active_project="$GCLOUD_OUTPUT"
-[[ "$active_project" == "$PROJECT_ID" ]] && go "active-project" "$PROJECT_ID" || pending "active-project" "active=$(redact "$active_project"), expected=$PROJECT_ID"
-run_gcloud "project" "NO-GO" gcloud projects describe "$PROJECT_ID" --format='value(projectId)' || true
-project="$GCLOUD_OUTPUT"
-[[ "$project" == "$PROJECT_ID" ]] && go "project" "$PROJECT_ID" || nogo "project" "project not found or inaccessible"
+if run_gcloud "authenticated-account" gcloud auth list --filter=status:ACTIVE --format='value(account)'; then
+  active_account="$GCLOUD_OUTPUT"
+else
+  active_account=""
+fi
+if [[ -z "$active_account" ]]; then
+  pending "authenticated-account" "no active account returned; GCP resource checks were not attempted"
+  printf '\nResultado final: %s\n' "$status"
+  [[ "$status" == "NO-GO" ]] && exit "$NOGO_EXIT" || exit "$PENDING_EXIT"
+fi
+go "authenticated-account" "$(redact "$active_account")"
 
-run_gcloud "billing" "PENDÊNCIA EXTERNA" gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)' || true
-billing="$GCLOUD_OUTPUT"
-[[ "$billing" == "true" ]] && go "billing" "enabled" || { [[ "$billing" == "false" ]] && nogo "billing" "disabled" || pending "billing" "not confirmed"; }
+if run_gcloud "active-project" gcloud config get-value project; then
+  active_project="$GCLOUD_OUTPUT"
+  [[ "$active_project" == "$PROJECT_ID" ]] && go "active-project" "$PROJECT_ID" || pending "active-project" "active=$(redact "$active_project"), expected=$PROJECT_ID"
+fi
+if run_gcloud "project" gcloud projects describe "$PROJECT_ID" --format='value(projectId)'; then
+  project="$GCLOUD_OUTPUT"
+  [[ "$project" == "$PROJECT_ID" ]] && go "project" "$PROJECT_ID" || nogo "project" "project query succeeded but the configured project was absent"
+fi
 
-if run_gcloud "apis" "PENDÊNCIA EXTERNA" gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)'; then
+if run_gcloud "billing" gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)'; then
+  billing="$GCLOUD_OUTPUT"
+  [[ "$billing" == "true" ]] && go "billing" "enabled" || { [[ "$billing" == "false" ]] && nogo "billing" "disabled" || pending "billing" "not confirmed"; }
+fi
+
+if run_gcloud "apis" gcloud services list --project "$PROJECT_ID" --enabled --format='value(config.name)'; then
   apis="$GCLOUD_OUTPUT"
   if [[ -z "$apis" ]]; then
     nogo "apis" "enabled services query succeeded but returned empty output"
@@ -151,7 +163,7 @@ fi
 check_nonempty() {
   local label="$1" required="$2"
   shift 2
-  if run_gcloud "$label" "$required" "$@"; then
+  if run_gcloud "$label" "$@"; then
     if [[ -n "$GCLOUD_OUTPUT" ]]; then
       go "$label" "found $(redact "$GCLOUD_OUTPUT")"
     else
@@ -172,13 +184,11 @@ check_nonempty regional-quotas PENDÊNCIA_EXTERNA gcloud compute regions describ
 
 for secret_var in SECRET_JWT_NAME SECRET_SQL_NAME SECRET_REDIS_NAME; do
   secret_name="${!secret_var}"
-  if run_gcloud "secret:$secret_var" "NO-GO" gcloud secrets describe "$secret_name" --project "$PROJECT_ID" --format='value(name)'; then
+  if run_gcloud "secret:$secret_var" gcloud secrets describe "$secret_name" --project "$PROJECT_ID" --format='value(name)'; then
     [[ -n "$GCLOUD_OUTPUT" ]] && go "secret:$secret_var" "exact secret exists by name only ($(redact "$secret_name")); value not accessed" || nogo "secret:$secret_var" "exact secret describe returned empty output"
   fi
 done
 
-run_gcloud "iam-policy" "PENDÊNCIA EXTERNA" gcloud projects get-iam-policy "$PROJECT_ID" --format=json || true
-iam="$GCLOUD_OUTPUT"
 check_iam_binding() {
   local role="$1" principal="$2"
   IAM_JSON="$iam" python3 - "$role" "$principal" <<'PYIAM'
@@ -194,17 +204,25 @@ for binding in policy.get("bindings", []):
 sys.exit(1)
 PYIAM
 }
-for role in roles/cloudsql.client roles/secretmanager.secretAccessor roles/storage.objectAdmin; do
-  if check_iam_binding "$role" "$RUNTIME_IAM_PRINCIPAL"; then
-    go "iam:$role" "role bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
-  else
-    nogo "iam:$role" "role is not bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
-  fi
-done
+if run_gcloud "iam-policy" gcloud projects get-iam-policy "$PROJECT_ID" --format=json; then
+  iam="$GCLOUD_OUTPUT"
+  for role in roles/cloudsql.client roles/secretmanager.secretAccessor roles/storage.objectAdmin; do
+    if check_iam_binding "$role" "$RUNTIME_IAM_PRINCIPAL"; then
+      go "iam:$role" "role bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
+    else
+      nogo "iam:$role" "role is not bound to runtime principal $(redact "$RUNTIME_IAM_PRINCIPAL")"
+    fi
+  done
+else
+  pending "iam-bindings" "role checks skipped because the IAM policy was not obtained"
+fi
 
-run_gcloud "cloud-run-max-instances" "PENDÊNCIA EXTERNA" gcloud run services describe "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --format='value(spec.template.metadata.annotations.autoscaling.knative.dev/maxScale)' || true
-run_max="$GCLOUD_OUTPUT"
-[[ -z "$run_max" ]] && pending "cloud-run-max-instances" "service absent or annotation not returned" || { [[ "$run_max" =~ ^[0-9]+$ && "$run_max" -le 20 ]] && go "cloud-run-max-instances" "maxScale=$run_max" || nogo "cloud-run-max-instances" "maxScale=$run_max exceeds staging guardrail"; }
+if run_gcloud "cloud-run-max-instances" gcloud run services describe "$SERVICE_NAME" --project "$PROJECT_ID" --region "$REGION" --format='value(spec.template.metadata.annotations.autoscaling.knative.dev/maxScale)'; then
+  run_max="$GCLOUD_OUTPUT"
+  [[ -z "$run_max" ]] && pending "cloud-run-max-instances" "annotation not returned" || { [[ "$run_max" =~ ^[0-9]+$ && "$run_max" -le 20 ]] && go "cloud-run-max-instances" "maxScale=$run_max" || nogo "cloud-run-max-instances" "maxScale is invalid or exceeds staging guardrail"; }
+else
+  pending "cloud-run-max-instances" "maxScale was not evaluated because the service query was unavailable"
+fi
 
 printf '\nResultado final: %s\n' "$status"
 [[ "$status" == "GO" ]] && exit "$GO_EXIT" || [[ "$status" == "PENDÊNCIA EXTERNA" ]] && exit "$PENDING_EXIT" || exit "$NOGO_EXIT"

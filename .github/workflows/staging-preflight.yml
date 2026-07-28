@@ -261,7 +261,7 @@ jobs:
               ;;
             artifacts\ repositories\ describe*) echo "projects/xpex-stage-12345/locations/us-central1/repositories/xpex-academy-staging" ;;
             run\ services\ describe*maxScale*) echo "3" ;;
-            run\ services\ describe*) [[ "$mode" == "previous-absent" ]] && exit 1 || echo "xpex-academy-staging" ;;
+            run\ services\ describe*) [[ "$mode" == "previous-absent" ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; } || echo "xpex-academy-staging" ;;
             iam\ service-accounts\ describe*) echo "xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com" ;;
             sql\ instances\ describe*) echo "xpex-academy-staging-db" ;;
             sql\ databases\ list*) echo "xpex_academy_staging" ;;
@@ -270,7 +270,7 @@ jobs:
             compute\ networks\ vpc-access\ connectors\ describe*) echo "xpex-academy-staging-connector" ;;
             storage\ buckets\ describe*) echo "xpex-academy-staging-media" ;;
             compute\ regions\ describe*) echo "CPUS 24 0" ;;
-            secrets\ describe*) [[ "$mode" == "secret-missing" && "$*" == *"learnhouse-sql-staging"* ]] && exit 1; echo "projects/123/secrets/staging" ;;
+            secrets\ describe*) [[ "$mode" == "secret-missing" && "$*" == *"learnhouse-sql-staging"* ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; }; echo "projects/123/secrets/staging" ;;
             projects\ get-iam-policy*)
               [[ "$mode" == "iam-insufficient" ]] && printf '{"bindings":[]}' || printf '{"bindings":[{"role":"roles/cloudsql.client","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]},{"role":"roles/storage.objectAdmin","members":["serviceAccount:xpex-academy-staging-runner@xpex-stage-12345.iam.gserviceaccount.com"]}]}'
               ;;
@@ -398,14 +398,14 @@ jobs:
           fi
           case "$args" in
             auth\ list*) echo "auditor@example.test" ;;
-            "config get-value project") [[ "$mode" == "project-invalid" ]] && echo "wrong-stage-12345" || echo "xpex-stage-12345" ;;
-            projects\ describe*) [[ "$mode" == "project-invalid" ]] && exit 1 || echo "xpex-stage-12345" ;;
+            "config get-value project") [[ "$mode" == "project-absent" ]] && echo "wrong-stage-12345" || echo "xpex-stage-12345" ;;
+            projects\ describe*) [[ "$mode" == "project-absent" ]] && { echo 'ERROR: NOT_FOUND: configured project was not found' >&2; exit 1; } || echo "xpex-stage-12345" ;;
             billing\ projects\ describe*) [[ "$mode" == "billing-disabled" ]] && echo "false" || echo "true" ;;
             services\ list*)
               [[ "$mode" == "services-list-denied" ]] && { echo "permission denied" >&2; exit 1; }
               printf '%s\n' run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com storage.googleapis.com redis.googleapis.com vpcaccess.googleapis.com
               ;;
-            artifacts\ repositories\ describe*) [[ "$mode" == "resource-missing" ]] && exit 1 || echo "projects/xpex-stage-12345/locations/us-central1/repositories/xpex-academy-staging" ;;
+            artifacts\ repositories\ describe*) [[ "$mode" == "resource-missing" ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; } || echo "projects/xpex-stage-12345/locations/us-central1/repositories/xpex-academy-staging" ;;
             run\ services\ describe*)
               if [[ "$args" == *"metadata.name"* ]]; then
                 echo "xpex-academy-staging"
@@ -427,9 +427,9 @@ jobs:
             storage\ buckets\ describe*) echo "xpex-academy-staging-media" ;;
             compute\ regions\ describe*) echo "CPUS 24 2" ;;
             secrets\ describe*)
-              [[ "$mode" == "secret-jwt-missing" && "$args" == *"learnhouse-auth-jwt-staging"* ]] && exit 1
-              [[ "$mode" == "secret-sql-missing" && "$args" == *"learnhouse-sql-staging"* ]] && exit 1
-              [[ "$mode" == "secret-redis-missing" && "$args" == *"learnhouse-redis-staging"* ]] && exit 1
+              [[ "$mode" == "secret-jwt-missing" && "$args" == *"learnhouse-auth-jwt-staging"* ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; }
+              [[ "$mode" == "secret-sql-missing" && "$args" == *"learnhouse-sql-staging"* ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; }
+              [[ "$mode" == "secret-redis-missing" && "$args" == *"learnhouse-redis-staging"* ]] && { echo 'ERROR: NOT_FOUND: configured resource was not found' >&2; exit 1; }
               case "$args" in
                 *learnhouse-auth-jwt-staging*) echo "projects/123/secrets/learnhouse-auth-jwt-staging" ;;
                 *learnhouse-sql-staging*) echo "projects/123/secrets/learnhouse-sql-staging" ;;
@@ -478,12 +478,12 @@ jobs:
           grep -F 'artifact-registry' /tmp/audit-resource-missing.out
           run_audit_expect billing-disabled billing-disabled 20
           grep -F 'NO-GO | billing | disabled' /tmp/audit-billing-disabled.out
-          run_audit_expect project-invalid project-invalid 20
-          grep -F 'NO-GO | project' /tmp/audit-project-invalid.out
+          run_audit_expect project-absent project-absent 20
+          grep -F 'NO-GO | project | configured resource was not found by the authenticated read-only query' /tmp/audit-project-absent.out
           run_audit_expect maxscale-invalid maxscale-invalid 20
-          grep -F 'maxScale=not-a-number' /tmp/audit-maxscale-invalid.out
+          grep -F 'maxScale is invalid or exceeds staging guardrail' /tmp/audit-maxscale-invalid.out
           run_audit_expect maxscale-too-high maxscale-too-high 20
-          grep -F 'maxScale=99 exceeds staging guardrail' /tmp/audit-maxscale-too-high.out
+          grep -F 'maxScale is invalid or exceeds staging guardrail' /tmp/audit-maxscale-too-high.out
           run_audit_expect secret-jwt-missing secret-jwt-missing 20
           grep -F 'secret:SECRET_JWT_NAME' /tmp/audit-secret-jwt-missing.out
           run_audit_expect secret-sql-missing secret-sql-missing 20
@@ -532,6 +532,12 @@ jobs:
           cp /tmp/env-public /tmp/env-max-instances
           sed -i 's/^MAX_INSTANCES=.*/MAX_INSTANCES=999/' /tmp/env-max-instances
           /tmp/run-expect-fail max-instances scripts/preflight-staging.sh --env-file /tmp/env-max-instances --simulated
+
+      - name: Test staging audit read-only regression suite
+        run: scripts/tests/test-staging-audit-read-only.sh
+
+      - name: Test staging deploy control contract regression suite
+        run: scripts/tests/test-staging-deploy-control-contract.sh
 
       - name: Sync API dependencies
         working-directory: apps/api
@@ -724,7 +730,7 @@ jobs:
           raise 'concurrency invalid' unless data.fetch('concurrency') == {'group' => 'xpex-academy-staging-deploy', 'cancel-in-progress' => false}
           plan = data.fetch('jobs').fetch('plan')
           deploy = data.fetch('jobs').fetch('deploy')
-          raise 'plan must not have id-token permission' if plan.fetch('permissions', {}).to_s.include?('id-token')
+          raise 'plan permissions invalid' unless plan.fetch('permissions') == {'contents' => 'read', 'id-token' => 'write'}
           raise 'deploy permissions invalid' unless deploy.fetch('permissions') == {'contents' => 'read', 'id-token' => 'write'}
           raise 'deploy environment missing' unless deploy.fetch('environment') == 'staging'
           raise "control-plane checkout must use immutable workflow sha; expected #{control_ref.inspect}" unless workflow_raw.scan(control_ref).length >= 2
@@ -733,7 +739,11 @@ jobs:
           raise "full_sha output missing; expected #{full_sha_output.inspect}" unless workflow_raw.include?(full_sha_output)
           raise "plan_config_sha256 output missing; expected #{plan_config_output.inspect}" unless workflow_raw.include?(plan_config_output)
           ['credentials_json', 'GCP_SA_KEY', 'contents: write', 'pull-requests: write', 'issues: write', 'packages: write', 'administration: write', "contains NUL", "$'\\0'"].each { |token| raise "forbidden token #{token}" if workflow_raw.include?(token) || validator_raw.include?(token) }
-          raise 'OIDC actions missing' unless workflow_raw.include?('google-github-actions/auth@v2') && workflow_raw.include?('google-github-actions/setup-gcloud@v2')
+          plan_raw = workflow_raw.split('  plan:', 2).last.split('  deploy:', 2).first
+          raise 'plan OIDC auth missing' unless plan_raw.include?('google-github-actions/auth@v2') && plan_raw.include?('google-github-actions/setup-gcloud@v2')
+          raise 'plan audit identity missing' unless plan_raw.include?('service_account: ${{ vars.GCP_AUDIT_SERVICE_ACCOUNT }}')
+          raise 'deploy identity leaked into plan' if plan_raw.include?('GCP_DEPLOY_SERVICE_ACCOUNT')
+          raise 'secret context forbidden in plan' if plan_raw.match?(/\$\{\{\s*secrets\./)
           raise 'input validator script not reused' unless workflow_raw.scan('scripts/validate-staging-deploy-inputs.sh').length >= 3
           raise 'build wrapper missing' unless workflow_raw.include?('scripts/build-staging.sh --env-file "$ENV_FILE" --image-tag "$IMAGE_TAG" --execute')
           raise 'deploy wrapper missing' unless workflow_raw.include?('DRY_RUN=false IMAGE_TAG="$IMAGE_TAG" scripts/deploy-staging.sh --env-file "$ENV_FILE"')
@@ -756,7 +766,8 @@ jobs:
           raise 'origin/dev ancestry validation missing' unless validator_raw.include?('refs/remotes/origin/dev')
           raise 'exit codes missing' unless validator_raw.include?('0=valid') && validator_raw.include?('20=NO-GO')
           plan_steps = plan.fetch('steps')
-          raise 'plan job can authenticate to Google' if plan_steps.any? { |step| step['uses'].to_s.start_with?('google-github-actions/auth@') }
+          raise 'plan auth action missing' unless plan_steps.any? { |step| step['uses'].to_s == 'google-github-actions/auth@v2' }
+          raise 'plan gcloud setup missing' unless plan_steps.any? { |step| step['uses'].to_s == 'google-github-actions/setup-gcloud@v2' }
           mutable_plan_patterns = {
             'build execute' => /(?:^|[;&|]\s*)scripts\/build-staging\.sh\b[^\n]*--execute/,
             'deploy execute' => /(?:^|[;&|]\s*)DRY_RUN=false\b[^\n]*scripts\/deploy-staging\.sh\b/,
@@ -866,7 +877,6 @@ jobs:
           scripts/tests/test-staging-plan-classification.sh
           scripts/tests/test-staging-plan-artifacts.sh
           scripts/tests/test-staging-control-helpers-historical-sha.sh
-          scripts/tests/test-staging-deploy-control-contract.sh
       - name: Test staging deploy evidence redaction
         run: |
           set -euo pipefail
