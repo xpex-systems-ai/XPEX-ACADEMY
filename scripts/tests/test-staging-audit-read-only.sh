@@ -93,6 +93,16 @@ grep -Fq 'PENDÊNCIA EXTERNA | authenticated-account | gcloud read-only query un
 run_audit authenticated 0
 grep -Fq 'Resultado final: GO' "$tmp/authenticated.out"
 
+sed '/^GCP_REGION=/d' "$tmp/staging.env" > "$tmp/missing-variable.env"
+: > "$tmp/missing-variable.calls"
+set +e
+SCENARIO=authenticated GCLOUD_CALL_LOG="$tmp/missing-variable.calls" PATH="$tmp/bin:$PATH" \
+  "$repo_root/scripts/audit-staging-resources.sh" --env-file "$tmp/missing-variable.env" > "$tmp/missing-variable.out" 2>&1
+rc=$?
+set -e
+[[ "$rc" -eq 20 ]]
+grep -Fq 'NO-GO | env:REGION | missing required audit input' "$tmp/missing-variable.out"
+
 run_audit resource-absent 20
 grep -Fq 'NO-GO | artifact-registry | configured resource was not found by the authenticated read-only query' "$tmp/resource-absent.out"
 
@@ -104,9 +114,11 @@ run_audit maxscale-unavailable 10
 grep -Fq 'maxScale was not evaluated because the service query was unavailable' "$tmp/maxscale-unavailable.out"
 ! grep -Fq 'maxScale=permission denied' "$tmp/maxscale-unavailable.out"
 
-if grep -E '(^| )(deploy|create|delete|update|add-iam-policy-binding|remove-iam-policy-binding|builds submit|artifacts .* upload)( |$)' "$tmp"/*.calls; then
+if grep -E '(^| )(deploy|create|delete|update|add-iam-policy-binding|remove-iam-policy-binding|builds submit|artifacts .* upload|secrets versions access)( |$)' "$tmp"/*.calls; then
   echo 'mutable gcloud command was called by the audit' >&2
   exit 1
 fi
+
+! grep -Eq 'gcloud[[:space:]]+secrets[[:space:]]+versions[[:space:]]+(access|describe)' "$repo_root/scripts/audit-staging-resources.sh"
 
 echo 'staging read-only authenticated audit tests passed'

@@ -4,13 +4,15 @@ This configuration is external to the repository. The workflow declares `environ
 
 ## Repository Variables for read-only `plan`
 
-Repository Variables contain only non-sensitive metadata needed to render and audit the plan without OIDC or deploy approval: `GCP_PROJECT_ID`, `GCP_REGION`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `CLOUD_RUN_SA`, `CLOUD_SQL_INSTANCE`, `DB_NAME`, `DB_USER`, `REDIS_INSTANCE`, `VPC_CONNECTOR`, `STAGING_BUCKET`, `STAGING_API_URL`, `STAGING_FRONTEND_ORIGIN`, `MAX_INSTANCES`, `SECRET_JWT_NAME`, `SECRET_SQL_NAME`, and `SECRET_REDIS_NAME`.
+Repository Variables contain only non-sensitive metadata needed to render and audit the plan without deploy approval: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_AUDIT_SERVICE_ACCOUNT`, `GCP_PROJECT_ID`, `GCP_REGION`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `CLOUD_RUN_SA`, `CLOUD_SQL_INSTANCE`, `DB_NAME`, `DB_USER`, `REDIS_INSTANCE`, `VPC_CONNECTOR`, `STAGING_BUCKET`, `STAGING_API_URL`, `STAGING_FRONTEND_ORIGIN`, `MAX_INSTANCES`, `SECRET_JWT_NAME`, `SECRET_SQL_NAME`, and `SECRET_REDIS_NAME`.
+
+`GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_AUDIT_SERVICE_ACCOUNT` **must be Repository Variables**, because the read-only `plan` job does not attach the protected `staging` environment. The audit service account is separate from the deploy service account. Its GCP IAM policy must grant only the metadata `describe`, `list`, and `get-iam-policy` permissions required by the audit. It must not create or update resources, alter IAM, build or publish images, deploy services, or access Secret Manager secret values.
 
 Only Secret Manager secret names are allowed in `SECRET_*_NAME`; secret values, connection strings, JSON keys, and tokens are forbidden in Repository Variables.
 
 ## Environment `staging` Variables for protected `execute`
 
-The GitHub Environment `staging` must provide protected execution-only variables for OIDC and deployment: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOY_SERVICE_ACCOUNT`, and staging-specific values required by the deploy job. Keep values exclusive to staging and aligned with the Repository Variables reviewed in plan mode.
+The GitHub Environment `staging` must provide protected execution-only variables, including `GCP_DEPLOY_SERVICE_ACCOUNT` and any future variable consumed exclusively by `mode=execute`. The deploy job may use the repository-scoped `GCP_WORKLOAD_IDENTITY_PROVIDER`, but its deploy identity remains environment-scoped and is never available to the `plan` job. Keep execution-only values exclusive to `staging` and aligned with the Repository Variables reviewed in plan mode.
 
 ## Required external controls
 
@@ -22,11 +24,12 @@ The GitHub Environment `staging` must provide protected execution-only variables
 | Deployment branch policy | Restricted to `dev` and approved deploy branches only; never `main`, `prod`, or `production`. | PENDÊNCIA EXTERNA |
 | Bypass | Environment bypass disabled for normal operators. | PENDÊNCIA EXTERNA |
 | Approval record | GitHub deployment approval retained in the run audit log. | GO after configuration |
-| Workload Identity Provider | `GCP_WORKLOAD_IDENTITY_PROVIDER` environment variable points to the approved provider. | PENDÊNCIA EXTERNA |
+| Workload Identity Provider | `GCP_WORKLOAD_IDENTITY_PROVIDER` Repository Variable points to the approved provider. | PENDÊNCIA EXTERNA |
+| Audit service account | `GCP_AUDIT_SERVICE_ACCOUNT` Repository Variable identifies a dedicated read-only identity with no secret-value access or mutable permissions. | PENDÊNCIA EXTERNA |
 | Deploy service account | `GCP_DEPLOY_SERVICE_ACCOUNT` is staging-only and least privilege. | PENDÊNCIA EXTERNA |
 | IAM bindings | Minimal Cloud Run deploy, Cloud Build/Artifact Registry use, read-only audit, and runtime service account checks. | PENDÊNCIA EXTERNA |
 | Repository Variables | Non-sensitive plan metadata only. | PENDÊNCIA EXTERNA |
-| Environment Variables | Protected staging execution metadata and OIDC identifiers. | PENDÊNCIA EXTERNA |
+| Environment Variables | Protected staging execution-only metadata, including `GCP_DEPLOY_SERVICE_ACCOUNT`. | PENDÊNCIA EXTERNA |
 | Secret names | Store only Secret Manager resource names in variables: `SECRET_JWT_NAME`, `SECRET_SQL_NAME`, `SECRET_REDIS_NAME`. | GO when names only |
 | Secret values | Never place secret values, JSON keys, tokens, or connection strings in GitHub variables, repository files, or logs. | NO-GO if present |
 | Budget | Staging budget and billing alert exist before execute. | PENDÊNCIA EXTERNA |
