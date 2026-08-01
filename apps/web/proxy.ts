@@ -2,6 +2,7 @@ import { getAPIUrl } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { isLocalhost as isLocalhostCheck } from './services/utils/ts/hostUtils'
+import { isPublicBetaPath, tenantScopedPath } from './lib/proxyPaths'
 
 // =============================================================================
 // Tenancy
@@ -481,12 +482,25 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 11. Tenant-scoped rewrite — the catch-all that puts us under /orgs/{slug}
+  // 11. Public beta preview — never scope these routes to an organization.
+  //
+  //     The preview has its own App Router pages under app/beta. Let Next.js
+  //     resolve /beta and every /beta/* path directly on apex, tenant
+  //     subdomains, custom domains and single-tenancy hosts alike.
+  // -------------------------------------------------------------------------
+  if (isPublicBetaPath(pathname)) {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
+  }
+
+  // -------------------------------------------------------------------------
+  // 12. Tenant-scoped rewrite — the catch-all that puts us under /orgs/{slug}
   // -------------------------------------------------------------------------
   const resolved = await resolveTenant(req, instance)
   const requestHeaders = tenantRequestHeaders(req, resolved, instance)
   const response = NextResponse.rewrite(
-    new URL(`/orgs/${resolved.slug}${pathname}`, req.url),
+    new URL(tenantScopedPath(resolved.slug, pathname), req.url),
     { request: { headers: requestHeaders } },
   )
   setOrgCookies(response, resolved, instance)
