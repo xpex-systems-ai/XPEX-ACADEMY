@@ -35,7 +35,7 @@ export function XpexAcademyLanding() {
             <a href="#como-funciona" className="hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">Como funciona</a>
             <a href="#faq" className="hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">FAQ</a>
           </div>
-          <Link href="/login" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white hover:border-cyan-300 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-yellow-300">Login</Link>
+          <div className="flex items-center gap-2"><Link href="/beta/aluno" className="hidden rounded-full bg-yellow-300 px-4 py-2 text-sm font-black text-slate-950 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:block">Explorar beta</Link><Link href="/login" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white hover:border-cyan-300 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-yellow-300">Login</Link></div>
         </nav>
       </header>
 
