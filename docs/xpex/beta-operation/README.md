@@ -9,8 +9,11 @@ Este diretório governa a fase atual da XpeX Academy. Em caso de dúvida sobre p
 - **Princípio:** Pessoas primeiro. Plataforma depois.
 - **Regra:** toda decisão deve responder se ajuda um aluno a aprender melhor.
 - **Lema:** Aprenda. Automatize. Construa o Futuro.
-- **Missão atual:** XPEX-BETA-002 está em revisão; sua integração documental não significa que turma, calendário ou projeto foram executados.
-- **Próxima missão após a integração da XPEX-BETA-002:** `XPEX-BETA-003`.
+- **Antes da integração da PR #30:** XPEX-BETA-002 está em revisão; nenhum merge é presumido.
+- **Após a integração da PR #30 em `dev`:** XPEX-BETA-002 deve ser lida como concluída enquanto proposta pedagógica documental.
+- **Missão seguinte após a integração:** `XPEX-BETA-003 — turma piloto e experiência docente`, ainda não executada.
+
+A conclusão documental da XPEX-BETA-002 não afirma que turma, calendário, professor ou projeto tenham sido executados.
 
 ## Documentos
 
