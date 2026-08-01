@@ -1,6 +1,6 @@
 # Estado operacional da Beta
 
-**Atualização de referência:** XPEX-BETA-001. Datas não comprovadas são registradas como `A confirmar`.
+**Atualização de referência:** XPEX-BETA-001. Datas não comprovadas são registradas como `A confirmar`. Durante a revisão, a entrega está na PR #29; somente o merge dessa PR na branch `dev` conclui a missão documental.
 
 ## Quadro de estado
 
@@ -29,6 +29,8 @@
 | Colidir IDs históricos | Reservar `XPEX-BETA-NNN` para a operação atual |
 | Confundir plano/readiness com deploy | Registrar explicitamente que não há declaração de deploy GCP |
 
-## Próxima missão
+## Transição e próxima missão
 
-`XPEX-BETA-002 — Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores`. Escopo e condições estão no [Roadmap Beta](BETA_ROADMAP.md#xpex-beta-002--jornada-calendário-e-primeiro-projeto).
+- **Pré-merge:** XPEX-BETA-001 está em revisão na PR #29; nenhum merge é presumido.
+- **Pós-merge:** a presença deste registro na branch `dev` via PR #29 estabelece a fonte operacional Beta e conclui XPEX-BETA-001.
+- **Próxima missão após a integração:** `XPEX-BETA-002 — Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores`. Escopo e condições estão no [Roadmap Beta](BETA_ROADMAP.md#xpex-beta-002--jornada-calendário-e-primeiro-projeto).

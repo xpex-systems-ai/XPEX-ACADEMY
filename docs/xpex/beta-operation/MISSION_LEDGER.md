@@ -20,7 +20,12 @@ Fonte de verdade para continuidade operacional. `A confirmar` significa que o re
 
 Detalhes históricos continuam no [índice Trinity Flow](../../trinity-flow/README.md). Este resumo não reescreve resultados nem atribui datas ausentes.
 
-## Registro ativo
+## Registro de transição da XPEX-BETA-001
+
+Este registro tem dois estados deliberadamente separados:
+
+- **Antes da integração:** a entrega documental está em revisão na PR #29; isso não afirma que a PR foi mergeada.
+- **Após a integração:** quando este arquivo estiver na branch `dev` por meio do merge da PR #29, a condição de conclusão estará satisfeita e deverá ser lido o estado pós-integração abaixo. Assim, o Ledger integrado não permanece com uma pendência já encerrada.
 
 | Campo | Valor |
 |---|---|
@@ -29,16 +34,19 @@ Detalhes históricos continuam no [índice Trinity Flow](../../trinity-flow/READ
 | Data | A confirmar |
 | Responsável | Junior Sena (comando); GX (orquestração) |
 | Entregáveis | Manifesto, estado operacional, decisões, Ledger, roadmap, métricas, ADR e índices atualizados |
-| Status | Em execução |
-| Auditoria | Base auditada informada: `31166ad76edb2f35257a3e5fd71e68177995b378`; validações locais devem acompanhar a PR |
-| Resultado | Pendente de revisão e merge |
+| Status atual da entrega | Em revisão na PR #29 |
+| Condição de conclusão | Merge da PR #29 na branch `dev` |
+| Estado após integração | Concluída — fonte operacional Beta estabelecida |
+| Auditoria | Base auditada informada: `31166ad76edb2f35257a3e5fd71e68177995b378`; validações da PR #29 acompanham a entrega |
+| Resultado documental | Entregue na PR #29, aguardando integração; após o merge, fonte operacional Beta estabelecida |
 | Lições aprendidas | Pendente de conclusão |
+| Próxima missão após integração | XPEX-BETA-002 |
 
 ## Próximas entradas
 
 | ID | Objetivo | Data | Responsável | Entregáveis | Status | Auditoria | Resultado | Lições aprendidas |
 |---|---|---|---|---|---|---|---|---|
-| XPEX-BETA-002 | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores | A confirmar | A confirmar | Jornada, calendário, currículo inicial e projeto | Próxima — rascunho | Pendente | Não iniciado | Pendente |
+| XPEX-BETA-002 | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores | A confirmar | A confirmar | Jornada, calendário, currículo inicial e projeto | Próxima após integração da PR #29 — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-003 | Configurar turma piloto e experiência mínima do professor | A confirmar | A confirmar | Estrutura de turma e fluxo docente | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-004 | Implementar dashboard mínimo do aluno sem alterar infraestrutura avançada | A confirmar | A confirmar | Escopo e implementação mínima auditável | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-005 | Executar teste controlado com professor e registrar feedback | A confirmar | A confirmar | Roteiro, evidências sem dados pessoais e síntese de feedback | Futura — rascunho | Pendente | Não iniciado | Pendente |

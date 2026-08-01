@@ -9,7 +9,8 @@ Este diretório governa a fase atual da XpeX Academy. Em caso de dúvida sobre p
 - **Princípio:** Pessoas primeiro. Plataforma depois.
 - **Regra:** toda decisão deve responder se ajuda um aluno a aprender melhor.
 - **Lema:** Aprenda. Automatize. Construa o Futuro.
-- **Próxima missão:** `XPEX-BETA-002`.
+- **Transição atual:** XPEX-BETA-001 está em revisão na PR #29; a missão só é concluída quando essa PR for integrada à branch `dev`.
+- **Próxima missão após a integração da PR #29:** `XPEX-BETA-002`.
 
 ## Documentos
 
