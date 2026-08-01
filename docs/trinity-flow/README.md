@@ -22,7 +22,9 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 8. Merge é realizado somente após aprovação.
 9. Deploy e validação pós-merge são registrados.
 
-## Estado atual das missões
+## Histórico técnico integrado
+
+Esta seção registra o histórico `MISSION-NNN`; ela não define a fila atual da Operação Beta. Integração de preparação, planos ou controles de staging **não comprova deploy em Google Cloud**.
 
 | Missão | Status | Observação |
 |--------|--------|------------|
@@ -36,7 +38,16 @@ Este diretório reúne a governança operacional oficial da XpeX Academy para pl
 | MISSION-008 — Platform Core Capability Registry | Concluída | Registro oficial de capacidades do Platform Core criado em [docs/xpex/platform-core](../xpex/platform-core/README.md). |
 | MISSION-009 — Environment and Deployment Readiness Audit | Concluída | Auditoria de readiness registrada em [docs/xpex/deployment-readiness](../xpex/deployment-readiness/README.md), sem deploy ou mutação de provedor. |
 | MISSION-010 — API Container Port and Bind Hardening | Concluída | Hardening funcional do container API para `PORT` > `LEARNHOUSE_PORT` > `9000`, bind `0.0.0.0` e health check alinhado. |
-| MISSION-011 — Staging Configuration Matrix | Em Pull Request | Matriz documental de domínios, CORS, cookies, variáveis, secrets, provider placement e checklists criada em [docs/xpex/staging-configuration](../xpex/staging-configuration/README.md), sem valores reais ou mutação de provedor. |
+| MISSION-011 — Staging Configuration Matrix | Concluída | Matriz documental integrada na PR #15 em [docs/xpex/staging-configuration](../xpex/staging-configuration/README.md), sem valores reais ou mutação de provedor. |
+| Trabalho integrado nas PRs #16–#18 | Concluído | Correções de configuração e preparação de backend/staging; não constitui evidência de deploy GCP. |
+| Trabalho integrado nas PRs #19–#24 | Concluído | Auditorias, readiness, runbooks, pacote controlado e workflow manual com gates; não constitui evidência de deploy GCP. |
+| Trabalho integrado nas PRs #25–#28 | Concluído | Controles e auditorias de execução plan-only/modo plan; não constitui evidência de deploy GCP. |
+
+## Operação Beta atual
+
+As próximas missões usam o namespace `XPEX-BETA-NNN`, separado do histórico acima. A fonte de verdade operacional é o [Mission Ledger da Operação Beta](../xpex/beta-operation/MISSION_LEDGER.md). `XPEX-BETA-001` está em execução documental e `XPEX-BETA-002` é a próxima missão proposta.
+
+Novas expansões Google Cloud estão pausadas, não abandonadas. Os artefatos técnicos existentes permanecem preservados e só devem voltar à fila mediante uso real ou necessidade comprovada e decisão registrada.
 
 ## Regras centrais
 
