@@ -1,6 +1,6 @@
 # Estado operacional da Beta
 
-**Atualização de referência:** XPEX-BETA-002. Datas não comprovadas são registradas como `A confirmar`. Os estados antes e após a integração da PR #30 são separados abaixo para que este arquivo continue coerente quando estiver na branch `dev`.
+**Atualização de referência:** XPEX-BETA-003. Datas não comprovadas são registradas como `A confirmar`. O blueprint operacional está em revisão e não representa configuração real.
 
 ## Quadro de estado
 
@@ -29,9 +29,10 @@
 | Colidir IDs históricos | Reservar `XPEX-BETA-NNN` para a operação atual |
 | Confundir plano/readiness com deploy | Registrar explicitamente que não há declaração de deploy GCP |
 
-## Transição e próxima missão
+## Transição vigente
 
 - **Antes da integração:** XPEX-BETA-002 está em revisão na PR #30; nenhum merge é presumido.
 - **Condição de conclusão:** merge da PR #30 na branch `dev`.
 - **Após a integração:** XPEX-BETA-002 está concluída como proposta pedagógica documental. Isso não comprova que turma, calendário, professor ou projeto tenham sido executados.
-- **Missão seguinte:** `XPEX-BETA-003 — Turma piloto e experiência docente` passa a ser a próxima missão autorizada após a integração. Ela ainda não foi executada. Escopo e limites estão no [Roadmap Beta](BETA_ROADMAP.md#xpex-beta-003--turma-piloto-e-experiência-docente).
+- **Missão documental atual:** `XPEX-BETA-003 — Turma piloto e experiência docente` está em revisão; após o merge da PR da missão, será concluída somente como blueprint operacional documental. Isso não configura turma, professor, usuários ou painel.
+- **Próxima missão após a integração:** `XPEX-BETA-004`, planejada e não executada. Escopo e limites estão no [Roadmap Beta](BETA_ROADMAP.md#xpex-beta-004--dashboard-mínimo-do-aluno).
