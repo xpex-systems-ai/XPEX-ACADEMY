@@ -8,6 +8,18 @@ XpeX Academy é a camada estratégica de produto deste fork, construída sobre o
 
 > **Compliance:** este repositório mantém a licença AGPL-3.0, atribuições e referências legais obrigatórias ao projeto base LearnHouse. O rebranding desta fase é intencionalmente seguro: documentação, configurações padrão e mensagens públicas simples, sem alterar autenticação, pagamentos, banco, permissões ou migrações.
 
+## Operação atual — Beta
+
+> **Pessoas primeiro. Plataforma depois.** A prioridade operacional atual é validar a primeira turma oficial com **10 alunos fundadores**, tendo o **Polo Kelle Digital Lab** como hub inicial. A meta ainda não representa alunos matriculados: é o objetivo que orienta currículo, vídeos, projetos, experiência docente e a plataforma Beta.
+
+- **Regra de decisão:** toda decisão deve responder se ajuda um aluno a aprender melhor.
+- **Rota inicial de entrega:** GitHub para versionamento e governança; Vercel para a entrega web inicial da Beta, respeitando os limites de persistência descritos abaixo.
+- **Infraestrutura:** as capacidades e os artefatos de staging existentes são preservados, mas novas expansões em Google Cloud estão **pausadas, não abandonadas**, até que uso real ou necessidade comprovada justifique retomá-las. Nenhum deploy GCP é declarado por esta decisão.
+- **Próxima missão:** [XPEX-BETA-002 — jornada, calendário e primeiro projeto](docs/xpex/beta-operation/BETA_ROADMAP.md#xpex-beta-002--jornada-calendário-e-primeiro-projeto).
+- **Fonte de verdade atual:** [Operação Beta e Mission Ledger](docs/xpex/beta-operation/README.md).
+
+O lema histórico do produto, “Aprenda. Pratique. Construa. Evolua.”, permanece acima como registro da visão já publicada. Durante a Operação Beta, o lema oficial de execução é **“Aprenda. Automatize. Construa o Futuro.”**; ele orienta a fase sem apagar o patrimônio documental anterior.
+
 ## Módulos Estratégicos
 
 - **Global Skills Hub** — catálogo global de habilidades profissionais e competências emergentes.
