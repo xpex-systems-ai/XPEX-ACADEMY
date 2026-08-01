@@ -1,8 +1,8 @@
 import { getAPIUrl } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isLocalhost as isLocalhostCheck } from './services/utils/ts/hostUtils'
 import { isPublicBetaPath, tenantScopedPath } from './lib/proxyPaths'
+import { isPublicRootRequest } from './lib/proxyHosts'
 
 // =============================================================================
 // Tenancy
@@ -34,32 +34,6 @@ interface InstanceInfo {
 // Cached instance info from backend (30-second TTL)
 let _instanceCache: { data: InstanceInfo; ts: number } | null = null
 const INSTANCE_CACHE_TTL = 30 * 1000
-
-function normalizeHost(value?: string | null): string {
-  if (!value) return ''
-
-  const trimmed = value.trim().toLowerCase()
-  const withoutProtocol = trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//, '')
-  const hostWithOptionalPort = withoutProtocol.split('/')[0]?.split('?')[0]?.split('#')[0] ?? ''
-  const bracketlessIpv6 = hostWithOptionalPort.startsWith('[')
-    ? hostWithOptionalPort.slice(1, hostWithOptionalPort.indexOf(']'))
-    : hostWithOptionalPort
-  const host = bracketlessIpv6.includes(':') && !hostWithOptionalPort.startsWith('[')
-    ? bracketlessIpv6.split(':')[0]
-    : bracketlessIpv6
-
-  return host.replace(/\.$/, '')
-}
-
-function isConfiguredApexHost(fullhost: string | null, instance: InstanceInfo): boolean {
-  const currentHost = normalizeHost(fullhost)
-  if (!currentHost) return false
-
-  return [instance.frontend_domain, instance.top_domain]
-    .map((host) => normalizeHost(host))
-    .filter(Boolean)
-    .some((configuredHost) => configuredHost === currentHost)
-}
 
 async function getInstanceInfo(): Promise<InstanceInfo> {
   if (_instanceCache && Date.now() - _instanceCache.ts < INSTANCE_CACHE_TTL) {
@@ -241,9 +215,18 @@ export const config = {
 }
 
 export default async function proxy(req: NextRequest) {
-  const instance = await getInstanceInfo()
   const { pathname, search } = req.nextUrl
   const fullhost = req.headers.get('host')
+
+  // Vercel deployments and localhost are identifiable from the request alone.
+  // Serve their public root before loading instance metadata so the landing
+  // remains available even when the API is down. Configured apex hosts are
+  // checked after instance metadata is loaded below.
+  if (isPublicRootRequest(pathname, fullhost, [])) {
+    return NextResponse.next()
+  }
+
+  const instance = await getInstanceInfo()
 
   // SEO: canonicalize mixed-case top-level route names (/Login → /login). Scoped
   // to KNOWN static routes only so it never lowercases data-bearing segments
@@ -462,23 +445,22 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 10. Public institutional landing — apex/root domain and localhost only.
+  // 10. Public institutional landing — configured apex/root domain.
   //
   //     The bare apex/default host serves `app/page.tsx` directly. Organization
   //     subdomains and verified custom domains must NOT be captured by the
   //     global landing: they fall through to the tenant-scoped resolver below
-  //     and continue to render `/orgs/{slug}/`. Localhost is explicitly allowed
-  //     so the marketing page remains easy to develop.
+  //     and continue to render `/orgs/{slug}/`. Vercel and localhost requests
+  //     have already returned above without depending on instance metadata.
   // -------------------------------------------------------------------------
-  if (pathname === '/') {
-    const isLocalhost = fullhost ? isLocalhostCheck(fullhost) : false
-    const isApexHost = isConfiguredApexHost(fullhost, instance)
-
-    if (isLocalhost || isApexHost) {
-      const response = NextResponse.next()
-      setInstanceCookies(response, instance)
-      return response
-    }
+  if (isPublicRootRequest(
+    pathname,
+    fullhost,
+    [instance.frontend_domain, instance.top_domain],
+  )) {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
   }
 
   // -------------------------------------------------------------------------
