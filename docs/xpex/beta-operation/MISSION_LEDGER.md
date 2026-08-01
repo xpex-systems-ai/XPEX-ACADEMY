@@ -64,12 +64,35 @@ Este registro tem dois estados deliberadamente separados:
 | Lições aprendidas | A confirmar após integração e futura validação humana |
 | Próxima missão após integração | XPEX-BETA-003 |
 
-Datas, frequência, perfil final, formato, ferramentas, projeto definitivo, responsáveis e política de publicação permanecem **A confirmar**. A missão seguinte após a integração é XPEX-BETA-003 — turma piloto e experiência docente, que ainda não foi executada.
+Datas, frequência, perfil final, formato, ferramentas, projeto definitivo, responsáveis e política de publicação permanecem **A confirmar**. A missão seguinte após a integração é XPEX-BETA-003 — turma piloto e experiência docente.
+
+## Registro de transição da XPEX-BETA-003
+
+Este registro separa revisão e conclusão:
+
+- **Antes da integração:** XPEX-BETA-003 está em revisão; o blueprint não configura entidades na plataforma.
+- **Após a integração:** quando este arquivo estiver na branch `dev` por meio do merge da PR desta missão, XPEX-BETA-003 deverá ser lida como concluída enquanto blueprint operacional documental.
+
+| Campo | Valor |
+|---|---|
+| ID | XPEX-BETA-003 |
+| Objetivo | Definir configuração mínima da turma piloto e experiência docente |
+| Data | A confirmar |
+| Responsável | Junior Sena (comando); GX (orquestração) |
+| Entregáveis | Blueprint, experiência e painel docente, checklist, playbook, progresso, comunicação, contingência, gate e ADR-009 |
+| Antes da integração | Em revisão na PR desta missão |
+| Condição de conclusão | Merge da PR da missão na branch `dev` |
+| Após a integração | Concluída como blueprint operacional documental |
+| Resultado documental | Rotinas e critérios mínimos definidos; não comprova configuração ou início de turma |
+| Auditoria | Validações e commit acompanham a PR |
+| Lições aprendidas | A confirmar após teste humano autorizado |
+| Próxima missão após integração | XPEX-BETA-004 |
+
+A conclusão documental não significa que turma, professor, usuários ou painel foram configurados na plataforma. Datas, participantes, consentimentos, equipamentos, responsáveis e decisões humanas permanecem **A confirmar**.
 
 ## Próximas entradas
 
 | ID | Objetivo | Data | Responsável | Entregáveis | Status | Auditoria | Resultado | Lições aprendidas |
 |---|---|---|---|---|---|---|---|---|
-| XPEX-BETA-003 | Configurar turma piloto e experiência mínima do professor | A confirmar | A confirmar | Estrutura de turma e fluxo docente | Próxima missão autorizada após integração da PR #30; ainda não executada | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-004 | Implementar dashboard mínimo do aluno sem alterar infraestrutura avançada | A confirmar | A confirmar | Escopo e implementação mínima auditável | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-005 | Executar teste controlado com professor e registrar feedback | A confirmar | A confirmar | Roteiro, evidências sem dados pessoais e síntese de feedback | Futura — rascunho | Pendente | Não iniciado | Pendente |

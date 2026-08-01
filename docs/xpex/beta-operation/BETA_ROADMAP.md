@@ -18,13 +18,15 @@ As missões são pequenas, sequenciais e não estão implementadas por este docu
 
 **Título oficial:** Configurar turma piloto e experiência mínima do professor.
 
-**Estado:** próxima missão autorizada após a integração da PR #30; ainda não executada.
+**Estado:** blueprint operacional documental em revisão; após o merge da PR da missão, concluída apenas nesse caráter.
 
-Definir a estrutura de turma, o acesso mínimo e o fluxo do professor com base nos blueprints existentes. A execução futura deve ser reversível e usar somente dados autorizados; este rascunho não cria organização, usuário ou turma.
+Define a estrutura de turma, o acesso mínimo e o fluxo do professor com base nos blueprints existentes. A execução futura deve ser reversível e usar somente dados autorizados; esta missão não cria organização, usuário, turma, role ou painel.
 
 ## XPEX-BETA-004 — Dashboard mínimo do aluno
 
 **Título oficial:** Implementar dashboard mínimo do aluno sem alterar infraestrutura avançada.
+
+**Estado:** próxima missão após a integração da XPEX-BETA-003; planejada e não executada.
 
 Entregar somente a visão necessária à jornada validada: próximos passos, progresso e acesso ao primeiro projeto. Não retomar expansão Google Cloud nem ampliar o escopo antes de demonstrar necessidade pedagógica.
 

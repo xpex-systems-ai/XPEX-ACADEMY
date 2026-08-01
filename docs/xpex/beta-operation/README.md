@@ -11,7 +11,8 @@ Este diretório governa a fase atual da XpeX Academy. Em caso de dúvida sobre p
 - **Lema:** Aprenda. Automatize. Construa o Futuro.
 - **Antes da integração da PR #30:** XPEX-BETA-002 está em revisão; nenhum merge é presumido.
 - **Após a integração da PR #30 em `dev`:** XPEX-BETA-002 deve ser lida como concluída enquanto proposta pedagógica documental.
-- **Missão seguinte após a integração:** `XPEX-BETA-003 — turma piloto e experiência docente`, ainda não executada.
+- **Missão documental atual:** `XPEX-BETA-003 — turma piloto e experiência docente`, em revisão até o merge da PR da missão.
+- **Próxima missão após a integração:** `XPEX-BETA-004`, apenas planejada e não executada.
 
 A conclusão documental da XPEX-BETA-002 não afirma que turma, calendário, professor ou projeto tenham sido executados.
 
@@ -31,8 +32,18 @@ A conclusão documental da XPEX-BETA-002 não afirma que turma, calendário, pro
 - [Rubrica de evidências](LEARNING_EVIDENCE_RUBRIC.md)
 - [Guia docente](TEACHER_SESSION_GUIDE.md)
 - [Ciclo de feedback](FEEDBACK_LOOP.md)
+- [Blueprint da turma piloto](PILOT_CLASS_BLUEPRINT.md)
+- [Experiência mínima da professora](TEACHER_MINIMUM_EXPERIENCE.md)
+- [Requisitos do futuro painel docente](TEACHER_DASHBOARD_REQUIREMENTS.md)
+- [Checklist de preparação](CLASS_SETUP_CHECKLIST.md)
+- [Playbook dos encontros](SESSION_OPERATIONS_PLAYBOOK.md)
+- [Acompanhamento de progresso](STUDENT_PROGRESS_TRACKING.md)
+- [Protocolo de comunicação](COMMUNICATION_PROTOCOL.md)
+- [Incidentes e alternativas](INCIDENT_AND_FALLBACK_PLAN.md)
+- [Gate de prontidão](PILOT_READINESS_GATE.md)
 - [ADR-007 — Beta-first](../adr/ADR-007-BETA-FIRST-EXECUTION.md)
 - [ADR-008 — Jornada inicial](../adr/ADR-008-BETA-INITIAL-LEARNING-JOURNEY.md)
+- [ADR-009 — Turma piloto e experiência docente](../adr/ADR-009-PILOT-CLASS-AND-TEACHER-EXPERIENCE.md)
 
 ## Limites
 
