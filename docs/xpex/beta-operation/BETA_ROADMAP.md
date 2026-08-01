@@ -6,6 +6,8 @@ As missões são pequenas, sequenciais e não estão implementadas por este docu
 
 **Título oficial:** Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores.
 
+**Transição:** em revisão antes do merge da PR #30; concluída como proposta pedagógica documental quando a PR #30 estiver integrada à branch `dev`. Essa conclusão não representa execução da turma, do calendário, do professor ou do projeto.
+
 - Desenhar a jornada do aluno e o currículo inicial.
 - Propor calendário e formato de vídeos/aulas, com datas mantidas como `A confirmar` até aprovação.
 - Definir o primeiro projeto prático e seus critérios de aprendizagem.
@@ -15,6 +17,8 @@ As missões são pequenas, sequenciais e não estão implementadas por este docu
 ## XPEX-BETA-003 — Turma piloto e experiência docente
 
 **Título oficial:** Configurar turma piloto e experiência mínima do professor.
+
+**Estado:** próxima missão autorizada após a integração da PR #30; ainda não executada.
 
 Definir a estrutura de turma, o acesso mínimo e o fluxo do professor com base nos blueprints existentes. A execução futura deve ser reversível e usar somente dados autorizados; este rascunho não cria organização, usuário ou turma.
 

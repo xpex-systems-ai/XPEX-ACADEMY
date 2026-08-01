@@ -9,8 +9,11 @@ Este diretório governa a fase atual da XpeX Academy. Em caso de dúvida sobre p
 - **Princípio:** Pessoas primeiro. Plataforma depois.
 - **Regra:** toda decisão deve responder se ajuda um aluno a aprender melhor.
 - **Lema:** Aprenda. Automatize. Construa o Futuro.
-- **Transição atual:** XPEX-BETA-001 está em revisão na PR #29; a missão só é concluída quando essa PR for integrada à branch `dev`.
-- **Próxima missão após a integração da PR #29:** `XPEX-BETA-002`.
+- **Antes da integração da PR #30:** XPEX-BETA-002 está em revisão; nenhum merge é presumido.
+- **Após a integração da PR #30 em `dev`:** XPEX-BETA-002 deve ser lida como concluída enquanto proposta pedagógica documental.
+- **Missão seguinte após a integração:** `XPEX-BETA-003 — turma piloto e experiência docente`, ainda não executada.
+
+A conclusão documental da XPEX-BETA-002 não afirma que turma, calendário, professor ou projeto tenham sido executados.
 
 ## Documentos
 
@@ -20,7 +23,16 @@ Este diretório governa a fase atual da XpeX Academy. Em caso de dúvida sobre p
 - [Mission Ledger](MISSION_LEDGER.md)
 - [Roadmap Beta](BETA_ROADMAP.md)
 - [Métricas de sucesso](SUCCESS_METRICS.md)
+- [Perfil pedagógico da coorte](FOUNDING_COHORT_PROFILE.md)
+- [Jornada inicial do aluno](STUDENT_JOURNEY_V1.md)
+- [Proposta de calendário](BETA_CALENDAR_PROPOSAL.md)
+- [Currículo inicial](INITIAL_CURRICULUM_V1.md)
+- [Brief do primeiro projeto](FIRST_PROJECT_BRIEF.md)
+- [Rubrica de evidências](LEARNING_EVIDENCE_RUBRIC.md)
+- [Guia docente](TEACHER_SESSION_GUIDE.md)
+- [Ciclo de feedback](FEEDBACK_LOOP.md)
 - [ADR-007 — Beta-first](../adr/ADR-007-BETA-FIRST-EXECUTION.md)
+- [ADR-008 — Jornada inicial](../adr/ADR-008-BETA-INITIAL-LEARNING-JOURNEY.md)
 
 ## Limites
 

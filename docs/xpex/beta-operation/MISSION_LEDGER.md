@@ -42,11 +42,34 @@ Este registro tem dois estados deliberadamente separados:
 | Lições aprendidas | Pendente de conclusão |
 | Próxima missão após integração | XPEX-BETA-002 |
 
+## Registro de transição da XPEX-BETA-002
+
+Este registro tem dois estados deliberadamente separados:
+
+- **Antes da integração:** XPEX-BETA-002 está em revisão na PR #30; isso não afirma que a PR foi mergeada.
+- **Após a integração:** quando este arquivo estiver na branch `dev` por meio do merge da PR #30, XPEX-BETA-002 deverá ser lida como concluída enquanto proposta pedagógica documental. A conclusão não comprova execução de turma, calendário, professor ou projeto.
+
+| Campo | Valor |
+|---|---|
+| ID | XPEX-BETA-002 |
+| Objetivo | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores |
+| Data | A confirmar |
+| Responsável | Junior Sena (comando); GX (orquestração) |
+| Entregáveis | Perfil pedagógico, jornada, duas opções de calendário, currículo, brief, rubrica, guia docente, ciclo de feedback e ADR-008 |
+| Antes da integração | Em revisão na PR #30 |
+| Condição de conclusão | Merge da PR #30 na branch `dev` |
+| Após a integração | Concluída como proposta pedagógica documental |
+| Resultado documental | Jornada, calendário proposto, currículo e primeiro projeto definidos; não comprova execução de calendário, turma, professor ou projeto |
+| Auditoria | Base informada: `ddb9a30a6d6dce84ddc4b86d0e24e4f77033849d`; validações acompanham a PR |
+| Lições aprendidas | A confirmar após integração e futura validação humana |
+| Próxima missão após integração | XPEX-BETA-003 |
+
+Datas, frequência, perfil final, formato, ferramentas, projeto definitivo, responsáveis e política de publicação permanecem **A confirmar**. A missão seguinte após a integração é XPEX-BETA-003 — turma piloto e experiência docente, que ainda não foi executada.
+
 ## Próximas entradas
 
 | ID | Objetivo | Data | Responsável | Entregáveis | Status | Auditoria | Resultado | Lições aprendidas |
 |---|---|---|---|---|---|---|---|---|
-| XPEX-BETA-002 | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores | A confirmar | A confirmar | Jornada, calendário, currículo inicial e projeto | Próxima após integração da PR #29 — rascunho | Pendente | Não iniciado | Pendente |
-| XPEX-BETA-003 | Configurar turma piloto e experiência mínima do professor | A confirmar | A confirmar | Estrutura de turma e fluxo docente | Futura — rascunho | Pendente | Não iniciado | Pendente |
+| XPEX-BETA-003 | Configurar turma piloto e experiência mínima do professor | A confirmar | A confirmar | Estrutura de turma e fluxo docente | Próxima missão autorizada após integração da PR #30; ainda não executada | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-004 | Implementar dashboard mínimo do aluno sem alterar infraestrutura avançada | A confirmar | A confirmar | Escopo e implementação mínima auditável | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-005 | Executar teste controlado com professor e registrar feedback | A confirmar | A confirmar | Roteiro, evidências sem dados pessoais e síntese de feedback | Futura — rascunho | Pendente | Não iniciado | Pendente |
