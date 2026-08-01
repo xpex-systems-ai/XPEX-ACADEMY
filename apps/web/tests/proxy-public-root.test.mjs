@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   isPublicRootRequest,
+  isProxyLocalhost,
   isVercelPreviewHost,
   normalizeProxyHost,
 } from '../lib/proxyHosts.ts'
@@ -32,9 +33,27 @@ describe('public root host routing', () => {
   })
 
   test('keeps localhost and the configured apex public', () => {
-    expect(isPublicRootRequest('/', 'localhost:3000', ['localhost'])).toBe(true)
+    for (const host of [
+      'localhost',
+      'localhost:3000',
+      '127.0.0.1',
+      '127.0.0.1:3000',
+      '[::1]',
+      '[::1]:3000',
+      '::1',
+    ]) {
+      expect(isProxyLocalhost(host)).toBe(true)
+      expect(isPublicRootRequest('/', host, [])).toBe(true)
+    }
     expect(isPublicRootRequest('/', 'academy.example.com', ['academy.example.com']))
       .toBe(true)
+  })
+
+  test('rejects non-loopback IPv6 and malicious localhost lookalikes', () => {
+    expect(isProxyLocalhost('[2001:db8::1]:3000')).toBe(false)
+    expect(isProxyLocalhost('2001:db8::1')).toBe(false)
+    expect(isProxyLocalhost('localhost.evil.com')).toBe(false)
+    expect(isProxyLocalhost('127.0.0.1.evil.com')).toBe(false)
   })
 
   test('rejects the Vercel apex and lookalike suffixes', () => {
