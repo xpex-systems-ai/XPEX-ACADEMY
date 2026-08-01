@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { isPublicRootRequest, isVercelPreviewHost } from '../lib/proxyHosts.ts'
+import {
+  isPublicRootRequest,
+  isVercelPreviewHost,
+  normalizeProxyHost,
+} from '../lib/proxyHosts.ts'
 import { tenantScopedPath } from '../lib/proxyPaths.ts'
 
 describe('public root host routing', () => {
@@ -12,8 +16,18 @@ describe('public root host routing', () => {
   test('recognizes generated Vercel preview deployment hosts', () => {
     expect(isPublicRootRequest(
       '/',
-      'xpex-academy-ai-git-fix-root-xpex.vercel.app',
-      ['localhost'],
+      'xpex-academy-isnyr3at9-gxeon.vercel.app',
+      [],
+    )).toBe(true)
+  })
+
+  test('normalizes protocol, port, trailing slash and letter case', () => {
+    expect(normalizeProxyHost('HTTPS://XPEX-ACADEMY-AI.VERCEL.APP:443/'))
+      .toBe('xpex-academy-ai.vercel.app')
+    expect(isPublicRootRequest(
+      '/',
+      'HTTPS://XPEX-ACADEMY-AI.VERCEL.APP:443/',
+      [],
     )).toBe(true)
   })
 
@@ -26,6 +40,7 @@ describe('public root host routing', () => {
   test('rejects the Vercel apex and lookalike suffixes', () => {
     expect(isVercelPreviewHost('vercel.app')).toBe(false)
     expect(isVercelPreviewHost('vercel.app.evil.com')).toBe(false)
+    expect(isVercelPreviewHost('fakevercel.app')).toBe(false)
     expect(isVercelPreviewHost('preview.vercel.app.evil.com')).toBe(false)
   })
 

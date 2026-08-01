@@ -215,9 +215,18 @@ export const config = {
 }
 
 export default async function proxy(req: NextRequest) {
-  const instance = await getInstanceInfo()
   const { pathname, search } = req.nextUrl
   const fullhost = req.headers.get('host')
+
+  // Vercel deployments and localhost are identifiable from the request alone.
+  // Serve their public root before loading instance metadata so the landing
+  // remains available even when the API is down. Configured apex hosts are
+  // checked after instance metadata is loaded below.
+  if (isPublicRootRequest(pathname, fullhost, [])) {
+    return NextResponse.next()
+  }
+
+  const instance = await getInstanceInfo()
 
   // SEO: canonicalize mixed-case top-level route names (/Login → /login). Scoped
   // to KNOWN static routes only so it never lowercases data-bearing segments
@@ -436,13 +445,13 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 10. Public institutional landing — apex/root, localhost and Vercel deploys.
+  // 10. Public institutional landing — configured apex/root domain.
   //
   //     The bare apex/default host serves `app/page.tsx` directly. Organization
   //     subdomains and verified custom domains must NOT be captured by the
   //     global landing: they fall through to the tenant-scoped resolver below
-  //     and continue to render `/orgs/{slug}/`. Localhost is explicitly allowed
-  //     so the marketing page remains easy to develop.
+  //     and continue to render `/orgs/{slug}/`. Vercel and localhost requests
+  //     have already returned above without depending on instance metadata.
   // -------------------------------------------------------------------------
   if (isPublicRootRequest(
     pathname,
