@@ -42,11 +42,29 @@ Este registro tem dois estados deliberadamente separados:
 | Lições aprendidas | Pendente de conclusão |
 | Próxima missão após integração | XPEX-BETA-002 |
 
+## Registro de transição da XPEX-BETA-002
+
+| Campo | Valor |
+|---|---|
+| ID | XPEX-BETA-002 |
+| Objetivo | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores |
+| Data | A confirmar |
+| Responsável | Junior Sena (comando); GX (orquestração) |
+| Entregáveis | Perfil pedagógico, jornada, duas opções de calendário, currículo, brief, rubrica, guia docente, ciclo de feedback e ADR-008 |
+| Status durante a PR | Em revisão |
+| Condição de conclusão | Merge da PR da missão na branch `dev` |
+| Resultado documental | Proposta pedagógica definida; não comprova execução de calendário, turma ou projeto |
+| Auditoria | Base informada: `ddb9a30a6d6dce84ddc4b86d0e24e4f77033849d`; validações acompanham a PR |
+| Lições aprendidas | A confirmar após integração e futura validação humana |
+| Próxima missão após integração | XPEX-BETA-003 |
+
+Datas, frequência, perfil final, formato, ferramentas, projeto definitivo, responsáveis e política de publicação permanecem **A confirmar**.
+
 ## Próximas entradas
 
 | ID | Objetivo | Data | Responsável | Entregáveis | Status | Auditoria | Resultado | Lições aprendidas |
 |---|---|---|---|---|---|---|---|---|
-| XPEX-BETA-002 | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores | A confirmar | A confirmar | Jornada, calendário, currículo inicial e projeto | Próxima após integração da PR #29 — rascunho | Pendente | Não iniciado | Pendente |
+| XPEX-BETA-002 | Definir jornada, calendário e primeiro projeto dos 10 alunos fundadores | A confirmar | Junior Sena (comando); GX (orquestração) | Jornada, calendário, currículo, projeto e instrumentos docentes | Em revisão; conclui no merge da PR da missão em `dev` | Base e validações registradas na PR | Proposta documental, sem execução | A confirmar |
 | XPEX-BETA-003 | Configurar turma piloto e experiência mínima do professor | A confirmar | A confirmar | Estrutura de turma e fluxo docente | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-004 | Implementar dashboard mínimo do aluno sem alterar infraestrutura avançada | A confirmar | A confirmar | Escopo e implementação mínima auditável | Futura — rascunho | Pendente | Não iniciado | Pendente |
 | XPEX-BETA-005 | Executar teste controlado com professor e registrar feedback | A confirmar | A confirmar | Roteiro, evidências sem dados pessoais e síntese de feedback | Futura — rascunho | Pendente | Não iniciado | Pendente |
