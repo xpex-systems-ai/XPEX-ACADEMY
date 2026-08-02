@@ -107,6 +107,19 @@ export function XpexAcademyLanding() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-7xl px-5 py-20 md:px-8" aria-labelledby="experiencias-title">
+          <SectionHeader eyebrow="Experience preview" title="Três visões. Uma experiência XpeX." description="Conheça a apresentação navegável do aluno, da professora e do Polo Kelle Digital Lab. Todas as informações exibidas são fictícias e não persistem." />
+          <h2 id="experiencias-title" className="sr-only">Experiências demonstrativas XpeX</h2>
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+            {[
+              { label: 'Área do aluno', text: 'Cursos, trilhas, projetos, Laboratório de IA, comunidade e conquistas em uma jornada clara.', href: '/beta/aluno', cta: 'Explorar área do aluno' },
+              { label: 'Área da professora', text: 'Turma piloto, participantes, conteúdos, atividades, mentorias e feedbacks em contexto.', href: '/beta/professora', cta: 'Conhecer área da professora' },
+              { label: 'Polo Kelle Digital Lab', text: 'A visão local de turmas, eventos, propósito educacional e operação do polo piloto.', href: '/beta/polo', cta: 'Conhecer o Polo Kelle Digital Lab' },
+            ].map(item => <article key={item.href} className="rounded-[2rem] border border-orange-500/25 bg-gradient-to-br from-orange-500/[.10] via-white/[.04] to-blue-500/[.08] p-7"><span className="text-xs font-black uppercase tracking-[.2em] text-orange-400">Preview Beta • Dados fictícios</span><h3 className="mt-5 text-2xl font-black text-white">{item.label}</h3><p className="mt-4 min-h-24 leading-7 text-slate-300">{item.text}</p><Link href={item.href} className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-cyan-300">{item.cta}<ArrowRight size={17}/></Link></article>)}
+          </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{['Laboratório de IA e Professor IA','Projetos e portfólio','Comunidade e certificados','Oportunidades — visão futura'].map(item => <div key={item} className="rounded-2xl border border-white/10 bg-[#081321]/80 p-5 text-sm font-bold text-slate-200">{item}</div>)}</div>
+        </section>
+
         <section id="faq" className="mx-auto max-w-4xl px-5 py-20 md:px-8">
           <SectionHeader eyebrow="Transparência" title="Perguntas frequentes" description="Mensagens públicas sem promessa de parceria oficial, certificação externa ou integração técnica ainda inexistente." />
           <div className="mt-10 space-y-4">{xpexFaq.map((item) => <details key={item.question} className="group rounded-2xl border border-white/10 bg-white/[0.05] p-6"><summary className="cursor-pointer text-lg font-black text-white focus:outline-none focus:ring-2 focus:ring-yellow-300">{item.question}</summary><p className="mt-4 leading-7 text-slate-300">{item.answer}</p></details>)}</div>

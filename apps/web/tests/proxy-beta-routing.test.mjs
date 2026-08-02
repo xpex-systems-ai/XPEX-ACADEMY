@@ -10,6 +10,10 @@ describe('public beta proxy routing', () => {
     expect(isPublicBetaPath('/beta/professora')).toBe(true)
   })
 
+  test('/beta/polo bypasses the tenant-scoped rewrite', () => {
+    expect(isPublicBetaPath('/beta/polo')).toBe(true)
+  })
+
   test('the beta root and nested paths are public, without matching lookalikes', () => {
     expect(isPublicBetaPath('/beta')).toBe(true)
     expect(isPublicBetaPath('/beta/estado/vazio')).toBe(true)
