@@ -43,10 +43,15 @@ describe('Vercel Hobby function durations', () => {
 
   test('vercel.json function durations stay within the Hobby limit', async () => {
     const configPath = join(WEB_ROOT, 'vercel.json')
-    const configFile = Bun.file(configPath)
-    if (!(await configFile.exists())) return
+    let configSource
+    try {
+      configSource = await readFile(configPath, 'utf8')
+    } catch (error) {
+      if (error?.code === 'ENOENT') return
+      throw error
+    }
 
-    const config = await configFile.json()
+    const config = JSON.parse(configSource)
     for (const [pattern, functionConfig] of Object.entries(config.functions ?? {})) {
       if (!Object.hasOwn(functionConfig, 'maxDuration')) continue
       const duration = functionConfig.maxDuration
