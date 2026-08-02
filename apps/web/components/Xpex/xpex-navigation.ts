@@ -1,0 +1,10 @@
+import { Award, BookOpen, CalendarDays, ChartNoAxesCombined, CircleHelp, FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Route, Settings, Sparkles, Users, Wrench } from 'lucide-react'
+import type { XpexNavItem, XpexRole } from './xpex-types'
+
+const common = { icon: LayoutDashboard, href: '#visao-geral' }
+export const xpexNavigation: Record<XpexRole, XpexNavItem[]> = {
+  aluno: [{ label: 'Visão geral', ...common }, { label: 'Meus cursos', icon: BookOpen, href: '#cursos' }, { label: 'Trilhas', icon: Route, href: '#trilhas' }, { label: 'Projetos', icon: FileText, href: '#projetos' }, { label: 'Aulas ao vivo', icon: CalendarDays, href: '#eventos' }, { label: 'Comunidade', icon: MessageCircle, href: '#comunidade' }, { label: 'Certificados', icon: Award, href: '#conquistas' }, { label: 'Ferramentas', icon: Wrench, href: '#acoes' }, { label: 'Oportunidades', icon: Sparkles, href: '#acoes' }, { label: 'Suporte', icon: CircleHelp, href: '#avisos' }],
+  professora: [{ label: 'Visão geral', ...common }, { label: 'Minha turma', icon: GraduationCap, href: '#turma' }, { label: 'Alunos', icon: Users, href: '#participantes' }, { label: 'Conteúdos', icon: Library, href: '#conteudos' }, { label: 'Atividades', icon: FileText, href: '#atividades' }, { label: 'Feedbacks', icon: MessageCircle, href: '#atividades' }, { label: 'Mentorias', icon: CalendarDays, href: '#eventos' }, { label: 'Relatórios', icon: ChartNoAxesCombined, href: '#metricas' }, { label: 'Configurações', icon: Settings, href: '#avisos' }],
+  polo: [{ label: 'Visão geral', ...common }, { label: 'Alunos', icon: Users, href: '#metricas' }, { label: 'Turmas', icon: GraduationCap, href: '#turmas' }, { label: 'Cursos', icon: BookOpen, href: '#turmas' }, { label: 'Trilhas', icon: Route, href: '#turmas' }, { label: 'Mentorias', icon: MessageCircle, href: '#eventos' }, { label: 'Eventos', icon: CalendarDays, href: '#eventos' }, { label: 'Conteúdos', icon: Library, href: '#atividades' }, { label: 'Relatórios', icon: ChartNoAxesCombined, href: '#metricas' }, { label: 'Certificados', icon: Award, href: '#avisos' }, { label: 'Configurações', icon: Settings, href: '#avisos' }],
+}
+
