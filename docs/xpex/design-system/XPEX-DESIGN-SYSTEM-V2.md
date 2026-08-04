@@ -19,6 +19,16 @@ Os tokens CSS `--xpex-*` em `xpex.css` são a fonte para fundos, superfícies, t
 
 Ações mantêm foco visível, progresso usa atributos ARIA e a navegação oferece skip link. Layouts partem de mobile e ganham colunas progressivamente. Transições são pequenas e `prefers-reduced-motion` reduz animação e movimento.
 
-## Escopo inicial
+## Experiências por papel
 
-A composição premium estreia somente em `/beta/aluno`. Professora e polo continuam no shell v1, preservando rotas, alternância de papéis e âncoras existentes.
+A composição premium atende `/beta/aluno`, `/beta/professora` e `/beta/polo`. Cada papel possui uma experiência isolada, enquanto o `BetaShell` se limita a selecionar a experiência e envolvê-la no shell compartilhado.
+
+- **Aluno:** continuidade da aprendizagem, trilha, projeto e comunidade.
+- **Professora:** liderança pedagógica, pulso da turma, prioridade de feedback e preparação de mentorias.
+- **Polo:** presença educacional local, operação piloto, agenda comunitária e ativação do laboratório.
+
+Professora e polo reutilizam a mesma hierarquia de hero, seções, painéis, indicadores, progresso e ações. Laranja destaca prioridades e ações; ciano identifica contexto, inteligência e progresso. As diferenças entre os papéis vêm da hierarquia de informação, não de uma linguagem visual paralela.
+
+## Transparência de demonstração
+
+Indicadores, participantes, turmas, projetos, eventos e ações precisam trazer contexto explícito de ficção, demonstração ou piloto. Botões das experiências beta são demonstrativos, não consultam backend e não persistem ações. A experiência de polo também evita alegações financeiras, de matrícula, parceria ou resultado oficial.
