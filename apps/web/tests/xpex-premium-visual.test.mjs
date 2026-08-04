@@ -10,6 +10,10 @@ describe('XpeX premium visual foundation', () => {
     for (const component of ['XpexHero', 'XpexSectionHeader', 'XpexFeatureCard', 'XpexProgressBar']) expect(student).toContain(component)
     for (const id of ['visao-geral','cursos','trilhas','projetos','eventos','comunidade','conquistas','acoes','avisos']) expect(student + primitives).toContain(`id="${id}"`)
   })
+  test('attaches the live-class navigation anchor to visible content', () => {
+    expect(student).toContain('<div id="eventos"><XpexFeatureCard icon={CalendarDays} eyebrow="Próxima aula"')
+    expect(student).not.toContain('<span id="eventos" className="sr-only">')
+  })
   test('offers typed reusable premium primitives', () => {
     for (const name of ['XpexHero','XpexSectionHeader','XpexPanel','XpexMetricCard','XpexActionCard','XpexProgressBar','XpexStatusBadge','XpexFeatureCard','XpexAmbientGlow']) expect(primitives).toMatch(new RegExp(`export (function|const) ${name}`))
   })
