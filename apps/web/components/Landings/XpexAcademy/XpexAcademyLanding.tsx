@@ -1,148 +1,83 @@
 import Link from 'next/link'
-import { ArrowRight, Bot, BriefcaseBusiness, CheckCircle2, GraduationCap, Layers3, Sparkles } from 'lucide-react'
-import { XPEX_BRAND, xpexFaq, xpexHowItWorks, xpexStrategicModules } from '@/lib/xpex-brand'
+import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react'
+import { XPEX_BRAND, xpexBetaExperiences, xpexHowItWorks, xpexHumanLayer, xpexPilotCourse, xpexStrategicModules, xpexTransparencyNotes } from '@/lib/xpex-brand'
+import '../../Xpex/xpex.css'
 
 function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
-    <div className="mx-auto max-w-3xl text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">{eyebrow}</p>
-      <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-50 md:text-5xl">{title}</h2>
-      <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">{description}</p>
+    <div className="max-w-3xl">
+      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#16D9FF]">{eyebrow}</p>
+      <h2 className="mt-4 text-3xl font-black tracking-tight text-[#F8FAFC] md:text-5xl">{title}</h2>
+      <p className="mt-5 text-base leading-8 text-[#A8B4C4] md:text-lg">{description}</p>
     </div>
   )
 }
 
+const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#16D9FF]'
+
 export function XpexAcademyLanding() {
   return (
-    <div className="min-h-screen overflow-hidden bg-[#020617] text-slate-50 selection:bg-cyan-300 selection:text-slate-950">
-      <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-full focus:bg-yellow-300 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950">Pular para o conteúdo</a>
-      <div className="pointer-events-none fixed inset-0 opacity-70" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.25),transparent_28%),radial-gradient(circle_at_75%_10%,rgba(250,204,21,0.16),transparent_24%),linear-gradient(135deg,#020617_0%,#071B33_48%,#020617_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_78%)]" />
+    <div className="xpex-root min-h-screen overflow-hidden bg-[#02050B] text-[#F8FAFC] selection:bg-[#16D9FF] selection:text-[#02050B]">
+      <a href="#conteudo" className={`sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-xl focus:bg-[#FF6A00] focus:px-4 focus:py-2 focus:text-sm focus:font-black focus:text-white ${focusRing}`}>Pular para o conteúdo</a>
+      <div className="pointer-events-none fixed inset-0 opacity-80" aria-hidden="true">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(255,106,0,0.18),transparent_30%),radial-gradient(circle_at_80%_14%,rgba(8,124,255,0.18),transparent_26%),radial-gradient(circle_at_50%_95%,rgba(22,217,255,0.10),transparent_30%),linear-gradient(145deg,#02050B_0%,#050D18_52%,#02050B_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.035)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
       </div>
 
-      <header className="relative z-10 border-b border-white/10 bg-slate-950/35 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8" aria-label="Navegação pública XpeX Academy">
-          <Link href="/" className="group flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2 focus:ring-offset-slate-950">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300/10 text-lg font-black text-cyan-200 shadow-[0_0_30px_rgba(56,189,248,0.25)]">XP</span>
-            <span>
-              <span className="block text-sm font-black tracking-[0.22em] text-white">{XPEX_BRAND.name}</span>
-              <span className="block text-xs text-slate-400">{XPEX_BRAND.slogan}</span>
-            </span>
+      <header className="relative z-10 border-b border-[rgba(148,163,184,0.14)] bg-[#02050B]/75 backdrop-blur-xl">
+        <nav className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-8" aria-label="Navegação pública XpeX Academy">
+          <Link href="/" className={`group flex w-fit items-center gap-3 rounded-full ${focusRing}`}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#FF6A00]/35 bg-[#FF6A00]/10 text-lg font-black text-[#FF8A2A] shadow-[0_0_30px_rgba(255,106,0,0.18)]">XP</span>
+            <span><span className="block text-sm font-black tracking-[0.22em] text-white">{XPEX_BRAND.name}</span><span className="block text-xs text-[#A8B4C4]">{XPEX_BRAND.slogan}</span></span>
           </Link>
-          <div className="hidden items-center gap-6 text-sm font-medium text-slate-300 md:flex">
-            <a href="#modulos" className="hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">Módulos</a>
-            <a href="#como-funciona" className="hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">Como funciona</a>
-            <a href="#faq" className="hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-yellow-300">FAQ</a>
+          <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-[#A8B4C4] md:gap-6">
+            <a href="#experiencias" className={`hover:text-[#16D9FF] ${focusRing}`}>Experiências</a>
+            <a href="#ecossistema" className={`hover:text-[#16D9FF] ${focusRing}`}>Ecossistema</a>
+            <a href="#como-funciona" className={`hover:text-[#16D9FF] ${focusRing}`}>Como funciona</a>
+            <a href="#transparencia" className={`hover:text-[#16D9FF] ${focusRing}`}>Transparência</a>
           </div>
-          <div className="flex items-center gap-2"><Link href="/beta/aluno" className="hidden rounded-full bg-yellow-300 px-4 py-2 text-sm font-black text-slate-950 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:block">Explorar beta</Link><Link href="/login" className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white hover:border-cyan-300 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-yellow-300">Login</Link></div>
+          <div className="flex items-center gap-2"><Link href="/beta/aluno" className={`rounded-full bg-[#FF6A00] px-4 py-2 text-sm font-black text-white shadow-[0_0_28px_rgba(255,106,0,0.22)] hover:bg-[#FF8A2A] ${focusRing}`}>Explorar experiência</Link><Link href="/login" className={`rounded-full border border-[rgba(148,163,184,0.22)] px-4 py-2 text-sm font-bold text-white hover:border-[#16D9FF] hover:bg-[#16D9FF]/10 ${focusRing}`}>Entrar</Link></div>
         </nav>
       </header>
 
       <main id="conteudo" className="relative z-10">
-        <section className="mx-auto grid max-w-7xl gap-12 px-5 py-20 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-28">
+        <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div className="flex flex-col justify-center">
-            <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-200"><Sparkles size={15} /> {XPEX_BRAND.positioning}</p>
-            <h1 className="max-w-4xl text-5xl font-black tracking-[-0.05em] text-white md:text-7xl">XpeX Academy</h1>
-            <p className="mt-6 max-w-2xl text-2xl font-semibold leading-snug text-slate-100 md:text-3xl">Aprenda habilidades reais, pratique com projetos, construa seu portfólio e evolua com orientação inteligente.</p>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">A XpeX Academy organiza cursos, trilhas, ferramentas, projetos, certificados, comunidade e oportunidades profissionais em um único ecossistema de aprendizagem.</p>
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-              <a href="#lista-espera" className="inline-flex items-center justify-center gap-2 rounded-full bg-yellow-300 px-6 py-4 text-sm font-black text-slate-950 shadow-[0_0_35px_rgba(250,204,21,0.35)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-950">Entrar na lista de espera <ArrowRight size={18} /></a>
-              <a href="#modulos" className="inline-flex items-center justify-center rounded-full border border-cyan-300/30 bg-white/5 px-6 py-4 text-sm font-bold text-cyan-100 backdrop-blur transition hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-yellow-300">Conhecer o ecossistema</a>
-            </div>
-            <p className="mt-6 text-sm text-slate-400">Base técnica construída sobre tecnologia open-source e preparada para evolução modular.</p>
+            <p className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-[#FF6A00]/30 bg-[#FF6A00]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#FF8A2A]"><Sparkles size={15} aria-hidden="true" /> Preview Beta da XpeX Academy</p>
+            <h1 className="max-w-4xl text-5xl font-black tracking-[-0.05em] text-white md:text-7xl">Aprender, criar e evoluir com inteligência artificial</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#A8B4C4] md:text-xl">A XpeX Academy é um {XPEX_BRAND.positioning} que combina aprendizagem guiada, projetos práticos, suporte inteligente e acompanhamento humano.</p>
+            <div className="mt-9 flex flex-col gap-4 sm:flex-row"><Link href="/beta/aluno" className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6A00] px-6 py-4 text-sm font-black text-white shadow-[0_0_35px_rgba(255,106,0,0.28)] transition hover:-translate-y-0.5 hover:bg-[#FF8A2A] ${focusRing}`}>Explorar área do aluno <ArrowRight size={18} aria-hidden="true" /></Link><a href="#experiencias" className={`inline-flex items-center justify-center rounded-full border border-[#16D9FF]/30 bg-white/5 px-6 py-4 text-sm font-bold text-[#16D9FF] backdrop-blur transition hover:bg-[#16D9FF]/10 ${focusRing}`}>Conhecer as três experiências</a></div>
+            <ul className="mt-6 flex flex-wrap gap-3 text-sm text-[#A8B4C4]">{['plataforma em evolução', 'experiência demonstrativa', 'dados fictícios nas telas beta'].map(item => <li key={item} className="rounded-full border border-[rgba(148,163,184,0.14)] bg-[#081321]/80 px-3 py-2">{item}</li>)}</ul>
           </div>
 
-          <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 shadow-2xl backdrop-blur-xl">
-            <div className="rounded-[1.5rem] border border-cyan-300/20 bg-slate-950/70 p-5">
-              <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
-                <div><p className="text-xs uppercase tracking-[0.22em] text-slate-400">Dashboard preview</p><p className="font-bold text-white">Evolução profissional</p></div>
-                <span className="rounded-full bg-green-400/15 px-3 py-1 text-xs font-bold text-green-300">Roadmap ativo</span>
-              </div>
-              <div className="space-y-4">
-                {[['Trilhas com projetos', '86%'], ['Portfólio de evidências', '64%'], ['Ferramentas e curadoria', '72%']].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="mb-2 flex justify-between text-sm"><span>{label}</span><span className="text-cyan-200">{value}</span></div>
-                    <div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-gradient-to-r from-cyan-300 to-yellow-300" style={{ width: value }} /></div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                {['IA planejada', 'Comunidade', 'Certificados', 'Jobs Hub'].map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-[#071B33]/70 p-4 text-sm font-semibold text-slate-200">{item}</div>)}
-              </div>
+          <div className="rounded-[2rem] border border-[rgba(148,163,184,0.14)] bg-[#081321]/80 p-5 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-[1.5rem] border border-[#087CFF]/25 bg-[#050D18]/85 p-5">
+              <div className="mb-5 flex items-center justify-between border-b border-[rgba(148,163,184,0.14)] pb-4"><div><p className="text-xs uppercase tracking-[0.22em] text-[#A8B4C4]">Preview público</p><p className="font-bold text-white">Jornada demonstrativa</p></div><span className="rounded-full bg-[#087CFF]/15 px-3 py-1 text-xs font-bold text-[#16D9FF]">Beta transparente</span></div>
+              {['Aprendizagem guiada', 'Projeto prático', 'Acompanhamento humano'].map((label, index) => <div key={label} className="mb-4 rounded-2xl border border-[rgba(148,163,184,0.14)] bg-white/[0.04] p-4"><div className="mb-2 flex justify-between text-sm"><span>{label}</span><span className="text-[#16D9FF]">Etapa {index + 1}</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-gradient-to-r from-[#FF6A00] via-[#087CFF] to-[#16D9FF]" style={{ width: `${55 + index * 18}%` }} /></div></div>)}
+              <div className="grid grid-cols-2 gap-3">{['Aluno', 'Professora', 'Polo', 'Roadmap'].map(item => <div key={item} className="rounded-2xl border border-[rgba(148,163,184,0.14)] bg-[#0E1E30]/70 p-4 text-sm font-semibold text-slate-200">{item}</div>)}</div>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-5 py-10 md:px-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            {['Aprendizagem orientada por competências.', 'Prática com projetos reais.', 'Portfólio como prova de evolução.'].map((item) => <div key={item} className="rounded-3xl border border-white/10 bg-white/[0.05] p-6 text-lg font-bold text-white backdrop-blur"><CheckCircle2 className="mb-4 text-yellow-300" />{item}</div>)}
-          </div>
+        <section id="experiencias" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
+          <SectionHeader eyebrow="Experiências beta" title="Três experiências. Um único ecossistema." description="As áreas de aluno, professora e polo conectam a narrativa pública ao produto beta com dados fictícios e sem persistência." />
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">{xpexBetaExperiences.map(item => <article key={item.href} className="rounded-[2rem] border border-[#FF6A00]/25 bg-gradient-to-br from-[#FF6A00]/10 via-[#081321]/90 to-[#087CFF]/10 p-7 backdrop-blur"><span className="text-xs font-black uppercase tracking-[.2em] text-[#FF8A2A]">{item.role} • Preview Beta</span><h3 className="mt-5 text-2xl font-black text-white">Experiência {item.role}</h3><p className="mt-4 leading-7 text-[#A8B4C4]">{item.summary}</p><ul className="mt-5 flex flex-wrap gap-2">{item.focus.map(focus => <li key={focus} className="rounded-full border border-[#16D9FF]/20 bg-[#16D9FF]/10 px-3 py-1 text-xs font-bold text-[#16D9FF]">{focus}</li>)}</ul><Link href={item.href} className={`mt-6 inline-flex items-center gap-2 rounded-full bg-[#FF6A00] px-5 py-3 text-sm font-black text-white hover:bg-[#FF8A2A] ${focusRing}`}>{item.label}<ArrowRight size={17} aria-hidden="true" /></Link></article>)}</div>
         </section>
 
-        <section id="modulos" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
-          <SectionHeader eyebrow="Ecossistema estratégico" title="Do aprendizado à oportunidade profissional" description="Módulos apresentados como visão de produto e roadmap evolutivo, sem integrações reais com terceiros nesta fase." />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {xpexStrategicModules.map(({ icon: Icon, title, description }) => <article key={title} className="rounded-3xl border border-white/10 bg-white/[0.055] p-6 backdrop-blur transition hover:-translate-y-1 hover:border-cyan-300/35"><Icon className="mb-5 text-cyan-200" size={28} aria-hidden="true" /><h3 className="text-xl font-black text-white">{title}</h3><p className="mt-3 leading-7 text-slate-300">{description}</p></article>)}
-          </div>
-        </section>
+        <section className="mx-auto max-w-7xl px-5 py-16 md:px-8"><div className="rounded-[2rem] border border-[#087CFF]/25 bg-[#081321]/85 p-8 md:p-12"><p className="text-sm font-black uppercase tracking-[.24em] text-[#16D9FF]">{xpexPilotCourse.code}</p><h2 className="mt-4 text-3xl font-black text-white md:text-5xl">{xpexPilotCourse.title}</h2><p className="mt-3 text-lg font-bold text-[#FF8A2A]">{xpexPilotCourse.module}</p><p className="mt-5 max-w-4xl leading-8 text-[#A8B4C4]">{xpexPilotCourse.description}</p><div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{xpexPilotCourse.includes.map(item => <div key={item} className="rounded-2xl border border-[rgba(148,163,184,0.14)] bg-[#050D18]/70 p-5 font-bold text-slate-100"><CheckCircle2 className="mb-4 text-[#16D9FF]" aria-hidden="true" />{item}</div>)}</div></div></section>
 
-        <section id="como-funciona" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
-          <SectionHeader eyebrow="Jornada do aluno" title="Aprenda. Pratique. Construa. Evolua." description="A experiência pública comunica uma jornada simples, progressiva e orientada por resultados práticos." />
-          <div className="mt-12 grid gap-5 lg:grid-cols-5">
-            {xpexHowItWorks.map((step) => <article key={step.step} className="rounded-3xl border border-white/10 bg-[#071B33]/70 p-6"><span className="text-3xl font-black text-yellow-300">{step.step}</span><h3 className="mt-5 text-lg font-black text-white">{step.title}</h3><p className="mt-3 text-sm leading-6 text-slate-300">{step.description}</p></article>)}
-          </div>
-        </section>
+        <section id="ecossistema" className="mx-auto max-w-7xl px-5 py-16 md:px-8"><SectionHeader eyebrow="Ecossistema" title="Beta presente e roadmap futuro sem misturar promessas." description="Cada módulo deixa claro o que é demonstrativo agora e o que ainda é visão planejada para evolução da plataforma." /><div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{xpexStrategicModules.map(({ icon: Icon, title, status, description }) => <article key={title} className="rounded-3xl border border-[rgba(148,163,184,0.14)] bg-[#081321]/85 p-6 backdrop-blur transition hover:-translate-y-1 hover:border-[#16D9FF]/35"><Icon className="mb-5 text-[#16D9FF]" size={28} aria-hidden="true" /><span className="rounded-full bg-[#087CFF]/15 px-3 py-1 text-xs font-black text-[#16D9FF]">{status}</span><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-3 leading-7 text-[#A8B4C4]">{description}</p></article>)}</div></section>
 
-        <section className="mx-auto grid max-w-7xl gap-5 px-5 py-16 md:px-8 lg:grid-cols-3">
-          {[{ icon: Layers3, title: 'Global Skills Hub', text: 'Organiza habilidades, plataformas, trilhas e ferramentas para reduzir ruído e criar direção.' }, { icon: Bot, title: 'Professor IA', text: 'Módulo planejado para orientação de estudos, recomendações e revisão de projetos em fase futura.' }, { icon: BriefcaseBusiness, title: 'Jobs & Freelance Hub', text: 'Visão de conexão entre projetos, portfólio e oportunidades profissionais, sem integração real nesta fase.' }].map(({ icon: Icon, title, text }) => <article key={title} className="rounded-[2rem] border border-cyan-300/15 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-7 backdrop-blur"><Icon className="text-yellow-300" size={34} /><h2 className="mt-6 text-2xl font-black text-white">{title}</h2><p className="mt-4 leading-7 text-slate-300">{text}</p></article>)}
-        </section>
+        <section id="como-funciona" className="mx-auto max-w-7xl px-5 py-16 md:px-8"><SectionHeader eyebrow="Como funciona" title="Aprenda. Pratique. Construa. Compartilhe. Evolua." description="A metodologia é prática e educacional, sem prometer emprego, renda, certificação externa ou integração institucional." /><div className="mt-12 grid gap-5 lg:grid-cols-5">{xpexHowItWorks.map((step, index) => <article key={step.step} className="rounded-3xl border border-[rgba(148,163,184,0.14)] bg-[#0E1E30]/70 p-6"><span className="text-sm font-black text-[#FF8A2A]">0{index + 1}</span><h3 className="mt-5 text-xl font-black text-white">{step.step}</h3><p className="mt-3 text-sm leading-6 text-[#A8B4C4]">{step.description}</p></article>)}</div></section>
 
-        <section className="mx-auto max-w-7xl px-5 py-16 md:px-8">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-8 backdrop-blur md:p-12">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-              <div><GraduationCap className="text-cyan-200" size={42} /><h2 className="mt-5 text-3xl font-black text-white md:text-4xl">Portfólio, certificados, Blog, XpeX TV e Comunidade</h2><p className="mt-5 leading-8 text-slate-300">A landing apresenta a visão integrada de evidências práticas, mídia educacional e colaboração como extensão natural da aprendizagem.</p></div>
-              <div className="grid gap-3 sm:grid-cols-2">{['Certificados por competência', 'Projetos e estudos de caso', 'Tutoriais e demonstrações', 'Networking e desafios'].map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 font-bold text-slate-100">{item}</div>)}</div>
-            </div>
-          </div>
-        </section>
+        <section className="mx-auto max-w-7xl px-5 py-16 md:px-8"><SectionHeader eyebrow="Camada humana" title="Tecnologia com acompanhamento humano" description="A inteligência artificial aparece como suporte educacional, enquanto aluno, professora e polo mantêm protagonismo na aprendizagem." /><div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">{xpexHumanLayer.map(({ icon: Icon, title, description }) => <article key={title} className="rounded-3xl border border-[#FF6A00]/18 bg-[#081321]/85 p-6"><Icon className="text-[#FF8A2A]" size={30} aria-hidden="true" /><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-3 leading-7 text-[#A8B4C4]">{description}</p></article>)}</div></section>
 
-        <section className="mx-auto max-w-7xl px-5 py-20 md:px-8" aria-labelledby="experiencias-title">
-          <SectionHeader eyebrow="Experience preview" title="Três visões. Uma experiência XpeX." description="Conheça a apresentação navegável do aluno, da professora e do Polo Kelle Digital Lab. Todas as informações exibidas são fictícias e não persistem." />
-          <h2 id="experiencias-title" className="sr-only">Experiências demonstrativas XpeX</h2>
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
-            {[
-              { label: 'Área do aluno', text: 'Cursos, trilhas, projetos, Laboratório de IA, comunidade e conquistas em uma jornada clara.', href: '/beta/aluno', cta: 'Explorar área do aluno' },
-              { label: 'Área da professora', text: 'Turma piloto, participantes, conteúdos, atividades, mentorias e feedbacks em contexto.', href: '/beta/professora', cta: 'Conhecer área da professora' },
-              { label: 'Polo Kelle Digital Lab', text: 'A visão local de turmas, eventos, propósito educacional e operação do polo piloto.', href: '/beta/polo', cta: 'Conhecer o Polo Kelle Digital Lab' },
-            ].map(item => <article key={item.href} className="rounded-[2rem] border border-orange-500/25 bg-gradient-to-br from-orange-500/[.10] via-white/[.04] to-blue-500/[.08] p-7"><span className="text-xs font-black uppercase tracking-[.2em] text-orange-400">Preview Beta • Dados fictícios</span><h3 className="mt-5 text-2xl font-black text-white">{item.label}</h3><p className="mt-4 min-h-24 leading-7 text-slate-300">{item.text}</p><Link href={item.href} className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-cyan-300">{item.cta}<ArrowRight size={17}/></Link></article>)}
-          </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{['Laboratório de IA e Professor IA','Projetos e portfólio','Comunidade e certificados','Oportunidades — visão futura'].map(item => <div key={item} className="rounded-2xl border border-white/10 bg-[#081321]/80 p-5 text-sm font-bold text-slate-200">{item}</div>)}</div>
-        </section>
+        <section id="transparencia" className="mx-auto max-w-7xl px-5 py-16 md:px-8"><div className="rounded-[2rem] border border-[#16D9FF]/20 bg-gradient-to-br from-[#087CFF]/12 via-[#081321]/90 to-[#FF6A00]/10 p-8 md:p-12"><SectionHeader eyebrow="Transparência" title="O que esta página afirma — e o que não afirma." description="A comunicação pública evita alegações não verificadas e identifica conteúdos beta, fictícios e de roadmap." /><ul className="mt-10 grid gap-4 md:grid-cols-2">{xpexTransparencyNotes.map(note => <li key={note} className="rounded-2xl border border-[rgba(148,163,184,0.14)] bg-[#02050B]/45 p-5 leading-7 text-[#A8B4C4]"><CheckCircle2 className="mb-3 text-[#16D9FF]" aria-hidden="true" />{note}</li>)}</ul></div></section>
 
-        <section id="faq" className="mx-auto max-w-4xl px-5 py-20 md:px-8">
-          <SectionHeader eyebrow="Transparência" title="Perguntas frequentes" description="Mensagens públicas sem promessa de parceria oficial, certificação externa ou integração técnica ainda inexistente." />
-          <div className="mt-10 space-y-4">{xpexFaq.map((item) => <details key={item.question} className="group rounded-2xl border border-white/10 bg-white/[0.05] p-6"><summary className="cursor-pointer text-lg font-black text-white focus:outline-none focus:ring-2 focus:ring-yellow-300">{item.question}</summary><p className="mt-4 leading-7 text-slate-300">{item.answer}</p></details>)}</div>
-        </section>
-
-        <section id="lista-espera" className="mx-auto max-w-5xl px-5 py-20 md:px-8">
-          <div className="rounded-[2rem] border border-yellow-300/25 bg-gradient-to-br from-yellow-300/15 via-cyan-300/10 to-white/[0.04] p-8 shadow-[0_0_50px_rgba(56,189,248,0.16)] backdrop-blur md:p-12">
-            <h2 className="text-3xl font-black text-white md:text-5xl">Entre na lista de espera da XpeX Academy</h2>
-            <p className="mt-5 max-w-3xl leading-8 text-slate-300">Acompanhe a construção da plataforma e receba novidades sobre trilhas, cursos, ferramentas e abertura da comunidade.</p>
-            <form className="mt-8 grid gap-4 md:grid-cols-3" aria-label="Formulário visual de lista de espera">
-              <input className="rounded-2xl border border-white/15 bg-slate-950/70 px-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Nome" aria-label="Nome" />
-              <input className="rounded-2xl border border-white/15 bg-slate-950/70 px-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Email" aria-label="Email" type="email" />
-              <input className="rounded-2xl border border-white/15 bg-slate-950/70 px-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-300" placeholder="Objetivo profissional" aria-label="Objetivo profissional" />
-              <button type="button" className="rounded-2xl bg-yellow-300 px-5 py-4 font-black text-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-300 md:col-span-3">Quero acompanhar a construção</button>
-            </form>
-            <p className="mt-4 text-sm text-slate-400">TODO Fase futura: conectar este formulário a um backend seguro de captação sem criar banco novo nesta etapa.</p>
-          </div>
-        </section>
+        <section className="mx-auto max-w-5xl px-5 py-20 md:px-8"><div className="rounded-[2rem] border border-[#FF6A00]/25 bg-gradient-to-br from-[#FF6A00]/15 via-[#087CFF]/10 to-white/[0.04] p-8 shadow-[0_0_50px_rgba(255,106,0,0.14)] backdrop-blur md:p-12"><h2 className="text-3xl font-black text-white md:text-5xl">Conheça a XpeX Academy em funcionamento</h2><p className="mt-5 max-w-3xl leading-8 text-[#A8B4C4]">Sem lista de espera visual ou formulário fictício: use os links abaixo para navegar pelas experiências demonstrativas disponíveis.</p><div className="mt-8 flex flex-col gap-4 sm:flex-row"><Link href="/beta/aluno" className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6A00] px-6 py-4 text-sm font-black text-white hover:bg-[#FF8A2A] ${focusRing}`}>Entrar na experiência do aluno <ArrowRight size={18} aria-hidden="true" /></Link><Link href="/beta/professora" className={`inline-flex items-center justify-center rounded-full border border-[#16D9FF]/30 px-6 py-4 text-sm font-bold text-[#16D9FF] hover:bg-[#16D9FF]/10 ${focusRing}`}>Ver professora</Link><Link href="/beta/polo" className={`inline-flex items-center justify-center rounded-full border border-[#16D9FF]/30 px-6 py-4 text-sm font-bold text-[#16D9FF] hover:bg-[#16D9FF]/10 ${focusRing}`}>Ver polo</Link></div></div></section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/10 px-5 py-10 text-center text-sm text-slate-400 md:px-8">
-        <p>© 2026 XpeX Academy. Experiência pública premium construída sobre base técnica open-source LearnHouse, preservando atribuição e licença AGPL-3.0.</p>
-      </footer>
+      <footer className="relative z-10 border-t border-[rgba(148,163,184,0.14)] px-5 py-10 text-center text-sm text-[#A8B4C4] md:px-8"><p>© 2026 XpeX Academy. Experiência pública premium construída sobre base técnica open-source LearnHouse, preservando atribuição e licença AGPL-3.0.</p></footer>
     </div>
   )
 }
