@@ -16,7 +16,7 @@ export function StudentExperience() {
     </div>
 
     <div className="grid gap-5 md:grid-cols-3">
-      <XpexFeatureCard icon={CalendarDays} eyebrow="Próxima aula" title="IA no nosso dia a dia" description="Aula ao vivo demonstrativa • amanhã, 19h" />
+      <div id="eventos"><XpexFeatureCard icon={CalendarDays} eyebrow="Próxima aula" title="IA no nosso dia a dia" description="Aula ao vivo demonstrativa • amanhã, 19h" /></div>
       <div id="projetos"><XpexFeatureCard icon={Rocket} eyebrow="Projeto atual" title="Meu mapa da IA cotidiana" description="Rascunho fictício • 1 de 3 evidências" tone="orange" /></div>
       <div id="conquistas"><XpexFeatureCard icon={Award} eyebrow="Conquista" title="Primeiro acesso" description="Selo demonstrativo da jornada piloto" /></div>
     </div>
@@ -26,6 +26,5 @@ export function StudentExperience() {
     <div id="acoes" className="grid gap-4 md:grid-cols-3"><XpexActionCard icon={Sparkles} title="Laboratório de IA" description="Explore ferramentas e prompts guiados."/><XpexActionCard icon={MessageSquareText} title="Feedback da professora" description="Leia uma orientação demonstrativa."/><XpexActionCard icon={BookOpen} title="Materiais da aula" description="Revise a curadoria do módulo piloto."/></div>
 
     <div className="grid gap-5 lg:grid-cols-2"><XpexPanel id="comunidade"><UsersRound className="text-cyan-300"/><p className="xpex-label mt-5">Comunidade XpeX</p><h2 className="mt-2 text-xl font-black text-white">Aprender também é trocar</h2><p className="mt-3 text-sm leading-6 text-slate-400">Compartilhe descobertas e projetos com a turma piloto neste espaço demonstrativo.</p></XpexPanel><XpexPanel id="avisos"><Lightbulb className="text-orange-400"/><p className="mt-5 text-xs font-bold uppercase tracking-widest text-orange-400">Suporte e avisos</p><h2 className="mt-2 text-xl font-black text-white">Precisa de orientação?</h2><p className="mt-3 text-sm leading-6 text-slate-400">Consulte os combinados ou leve sua dúvida ao próximo encontro. Canal apenas demonstrativo.</p></XpexPanel></div>
-    <span id="eventos" className="sr-only">Próxima aula demonstrativa</span>
   </div>
 }
