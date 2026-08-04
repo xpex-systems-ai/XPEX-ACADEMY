@@ -32,3 +32,11 @@ Professora e polo reutilizam a mesma hierarquia de hero, seções, painéis, ind
 ## Transparência de demonstração
 
 Indicadores, participantes, turmas, projetos, eventos e ações precisam trazer contexto explícito de ficção, demonstração ou piloto. Botões das experiências beta são demonstrativos, não consultam backend e não persistem ações. A experiência de polo também evita alegações financeiras, de matrícula, parceria ou resultado oficial.
+
+## Landing pública premium
+
+A rota pública `/` também deve consumir a identidade Premium v2: fundo `#02050B`, superfícies `#081321`/`#0E1E30`, ações em `#FF6A00`/`#FF8A2A` e azul/ciano `#087CFF`/`#16D9FF` para inteligência, navegação e progresso. A landing não deve retomar o sistema legado amarelo/dourado.
+
+A narrativa pública conecta cedo as três experiências beta (`/beta/aluno`, `/beta/professora` e `/beta/polo`) e apresenta o curso piloto `XPEX-PILOT-01 — Primeiros Passos com IA` como jornada demonstrativa. Conteúdos de roadmap precisam continuar identificados como futuros ou planejados, Professor IA deve ser descrito como apoio e não substituição da professora, e formulários visuais sem backend não devem aparecer.
+
+A seção de transparência pública precisa preservar a atribuição à base open-source LearnHouse e à licença AGPL-3.0, além de declarar que dashboards beta usam dados fictícios, não persistem informações reais e não implicam integrações ativas com terceiros, matrículas reais, resultados financeiros ou certificações externas.

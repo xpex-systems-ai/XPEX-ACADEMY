@@ -1,47 +1,67 @@
-import { BadgeCheck, Bot, Briefcase, Globe2, GraduationCap, Handshake, Newspaper, Rocket, Route, Users, Video, Wrench } from 'lucide-react'
+import { Bot, Briefcase, GraduationCap, Handshake, Layers3, Lightbulb, MapPinned, Route, Users, Wrench } from 'lucide-react'
 
 export const XPEX_BRAND = {
   name: 'XpeX Academy',
-  positioning: 'Plataforma Global de Desenvolvimento Profissional com Inteligência Artificial',
+  positioning: 'Ecossistema de aprendizagem, criação e desenvolvimento com inteligência artificial',
   slogan: 'Aprenda. Pratique. Construa. Evolua.',
   colors: {
-    primaryDark: '#020617',
-    navy: '#071B33',
-    blue: '#0B3A66',
-    gold: '#FACC15',
-    cyan: '#38BDF8',
-    green: '#22C55E',
-    white: '#F8FAFC',
-    muted: '#94A3B8',
+    background0: '#02050B',
+    background1: '#050D18',
+    surface1: '#081321',
+    surface2: '#0E1E30',
+    orangePrimary: '#FF6A00',
+    orangeSecondary: '#FF8A2A',
+    bluePrimary: '#087CFF',
+    cyanPrimary: '#16D9FF',
+    textPrimary: '#F8FAFC',
+    textSecondary: '#A8B4C4',
+    borderSoft: 'rgba(148,163,184,0.14)',
   },
 } as const
 
+export const xpexBetaExperiences = [
+  { role: 'Aluno', href: '/beta/aluno', label: 'Explorar área do aluno', summary: 'Cursos, trilhas, projetos e comunidade em uma jornada demonstrativa para aprender e construir evidências.', focus: ['cursos', 'trilhas', 'projetos', 'comunidade'] },
+  { role: 'Professora', href: '/beta/professora', label: 'Conhecer área da professora', summary: 'Acompanhamento pedagógico, turma piloto, feedback e mentorias com dados fictícios para visualização.', focus: ['acompanhamento pedagógico', 'turma', 'feedback', 'mentorias'] },
+  { role: 'Polo', href: '/beta/polo', label: 'Conhecer experiência do polo', summary: 'Presença local, operação piloto, eventos e aprendizagem comunitária sem dados reais de matrícula.', focus: ['presença local', 'operação piloto', 'eventos', 'aprendizagem comunitária'] },
+] as const
+
+export const xpexPilotCourse = {
+  code: 'XPEX-PILOT-01',
+  title: 'Primeiros Passos com IA',
+  module: 'Módulo 0 — Primeiro Contato com a Inteligência Artificial',
+  description: 'Primeira jornada demonstrativa de aprendizagem para acolher, explicar usos cotidianos de IA e orientar uma atividade prática com evidência inicial de portfólio.',
+  includes: ['Introdução acolhedora', 'Entendimento da IA no cotidiano', 'Atividade prática guiada', 'Primeira evidência de portfólio'],
+} as const
+
 export const xpexStrategicModules = [
-  { icon: Globe2, title: 'Global Skills Hub', description: 'Catálogo organizado de habilidades, plataformas, trilhas e recursos para desenvolvimento profissional contínuo.' },
-  { icon: Route, title: 'Trilhas XpeX', description: 'Jornadas guiadas por objetivo: IA, tecnologia, carreira, marketing, automação, design, dados e negócios.' },
-  { icon: GraduationCap, title: 'Cursos Oficiais', description: 'Curadoria de conteúdos e cursos externos de fontes confiáveis, organizados para facilitar a evolução do aluno.' },
-  { icon: Rocket, title: 'Cursos Próprios', description: 'Cursos XpeX Originals com foco em prática, projetos reais, IA aplicada e mercado de trabalho.' },
-  { icon: Wrench, title: 'Hub de Ferramentas', description: 'Biblioteca de ferramentas gratuitas e pagas para estudar, produzir, automatizar e empreender.' },
-  { icon: Bot, title: 'Professor IA', description: 'Camada inteligente planejada para orientar estudos, sugerir trilhas, revisar projetos e apoiar a evolução profissional.' },
-  { icon: BadgeCheck, title: 'Certificados', description: 'Registro de conquistas, cursos concluídos, evidências de aprendizagem e evolução por competência.' },
-  { icon: Briefcase, title: 'Portfólio', description: 'Espaço para reunir projetos, sites, automações, estudos de caso, apresentações e provas práticas.' },
-  { icon: Video, title: 'XpeX TV', description: 'Área de vídeos, tutoriais, demonstrações, lives, aulas rápidas e conteúdos educacionais.' },
-  { icon: Newspaper, title: 'Blog', description: 'Conteúdos editoriais sobre IA, tecnologia, carreira, ferramentas, mercado e produtividade.' },
-  { icon: Users, title: 'Comunidade', description: 'Ambiente para networking, desafios, grupos, fóruns, colaboração e crescimento coletivo.' },
-  { icon: Handshake, title: 'Jobs & Freelance Hub', description: 'Módulo planejado para aproximar alunos de vagas, freelas, portfólios, propostas e oportunidades profissionais.' },
+  { icon: Route, title: 'Cursos e trilhas', status: 'Beta demonstrativo', description: 'Organização de jornadas educacionais guiadas, com foco em prática e progressão clara.' },
+  { icon: Briefcase, title: 'Projetos e portfólio', status: 'Beta demonstrativo', description: 'Evidências de aprendizagem apresentadas como construção prática, sem prometer contratação ou renda.' },
+  { icon: Bot, title: 'Professor IA', status: 'Roadmap', description: 'Camada planejada para apoiar estudos e revisão de projetos, sempre como suporte à professora.' },
+  { icon: Wrench, title: 'Laboratório de IA', status: 'Roadmap', description: 'Espaço futuro para ferramentas, experimentos e automações educacionais com orientação.' },
+  { icon: Users, title: 'Comunidade', status: 'Beta demonstrativo', description: 'Ambiente de colaboração e desafios apresentado em telas beta com informações fictícias.' },
+  { icon: Handshake, title: 'Oportunidades futuras', status: 'Roadmap', description: 'Visão futura para aproximar portfólio e oportunidades, sem integração ativa com terceiros.' },
 ] as const
 
 export const xpexHowItWorks = [
-  { step: '01', title: 'Escolha sua trilha', description: 'O aluno começa por um objetivo claro: carreira, IA, tecnologia, design, marketing, dados ou empreendedorismo.' },
-  { step: '02', title: 'Aprenda com curadoria', description: 'A plataforma organiza cursos, conteúdos e ferramentas para reduzir confusão e acelerar a evolução.' },
-  { step: '03', title: 'Pratique com projetos', description: 'Cada trilha deve levar o aluno a construir algo real, útil e apresentável.' },
-  { step: '04', title: 'Monte seu portfólio', description: 'Projetos, certificados e evidências viram uma vitrine profissional.' },
-  { step: '05', title: 'Evolua para oportunidades', description: 'O próximo passo é conectar conhecimento a trabalho, freelas, estágios, negócios e carreira.' },
+  { step: 'Aprenda', description: 'Comece por conceitos claros, curadoria e objetivos de aprendizagem alcançáveis.' },
+  { step: 'Pratique', description: 'Transforme conteúdo em exercícios guiados, experimentos e pequenas entregas.' },
+  { step: 'Construa', description: 'Organize projetos que demonstrem evolução real e possam compor um portfólio.' },
+  { step: 'Compartilhe', description: 'Receba acompanhamento humano, troque aprendizados e melhore com feedback.' },
+  { step: 'Evolua', description: 'Reflita sobre progresso, próximos passos e novas trilhas sem promessas de resultado externo.' },
 ] as const
 
-export const xpexFaq = [
-  { question: 'A XpeX Academy é um LMS?', answer: 'Ela usa uma base de LMS, mas nasce como um ecossistema de desenvolvimento profissional com trilhas, ferramentas, IA, portfólio, comunidade e oportunidades.' },
-  { question: 'Os cursos de empresas externas são oficiais da XpeX?', answer: 'Não. A XpeX Academy organiza e recomenda conteúdos de fontes externas quando permitido, respeitando marcas, links e condições de uso de cada plataforma.' },
-  { question: 'O Professor IA já estará ativo?', answer: 'Nesta fase, o Professor IA será apresentado como módulo estratégico planejado. A integração real será feita em fase posterior.' },
-  { question: 'A plataforma vai gerar certificados?', answer: 'O módulo de certificados faz parte do roadmap e será integrado conforme a evolução técnica da plataforma.' },
+export const xpexTransparencyNotes = [
+  'A landing apresenta uma experiência beta em evolução.',
+  'As telas beta usam dados fictícios e demonstrativos.',
+  'Não há alegação de integrações ativas com terceiros nesta etapa.',
+  'Não são exibidos dados reais de matrícula, operação financeira ou certificação externa.',
+  'Módulos de roadmap aparecem identificados como futuros ou planejados.',
+  'A base técnica open-source LearnHouse e a referência AGPL-3.0 permanecem atribuídas.',
+] as const
+
+export const xpexHumanLayer = [
+  { icon: GraduationCap, title: 'Autonomia do aluno', description: 'A jornada incentiva escolha, prática e reflexão sobre evidências de aprendizagem.' },
+  { icon: Lightbulb, title: 'Liderança pedagógica', description: 'A professora permanece como referência humana para acompanhamento, feedback e mentoria.' },
+  { icon: MapPinned, title: 'Apoio local do polo', description: 'O polo contextualiza encontros, eventos e aprendizagem comunitária em operação piloto.' },
+  { icon: Layers3, title: 'IA como suporte', description: 'Recursos inteligentes são descritos como apoio planejado, não substituição da professora.' },
 ] as const
