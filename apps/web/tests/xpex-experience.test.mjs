@@ -15,7 +15,7 @@ describe('XpeX presentation routes', () => {
   })
 
   test('keeps demo dashboards isolated from APIs and transparent', () => {
-    const dashboard = read('components/Beta/BetaShell.tsx') + read('components/Xpex/experiences/StudentExperience.tsx')
+    const dashboard = read('components/Beta/BetaShell.tsx') + read('components/Xpex/experiences/StudentExperience.tsx') + read('components/Xpex/experiences/TeacherExperience.tsx') + read('components/Xpex/experiences/PoleExperience.tsx')
     expect(dashboard).not.toContain('fetch(')
     expect(dashboard).not.toContain('getAPIUrl')
     expect(dashboard).toContain('Dados fictícios')
@@ -24,29 +24,24 @@ describe('XpeX presentation routes', () => {
 
   test('every in-page navigation target is rendered by its role experience', () => {
     const navigation = read('components/Xpex/xpex-navigation.ts')
-    const dashboard = read('components/Beta/BetaShell.tsx')
-    const student = read('components/Xpex/experiences/StudentExperience.tsx') + read('components/Xpex/XpexPrimitives.tsx')
+    const primitives = read('components/Xpex/XpexPrimitives.tsx')
     const roles = [
-      { role: 'aluno', nextRole: 'professora', component: 'Student', nextComponent: 'Teacher' },
-      { role: 'professora', nextRole: 'polo', component: 'Teacher', nextComponent: 'Pole' },
-      { role: 'polo', component: 'Pole' },
+      { role: 'aluno', nextRole: 'professora', file: 'StudentExperience.tsx' },
+      { role: 'professora', nextRole: 'polo', file: 'TeacherExperience.tsx' },
+      { role: 'polo', file: 'PoleExperience.tsx' },
     ]
 
-    for (const { role, nextRole, component, nextComponent } of roles) {
+    for (const { role, nextRole, file } of roles) {
       const navStart = navigation.indexOf(`  ${role}: [`)
       const navEnd = nextRole ? navigation.indexOf(`  ${nextRole}: [`) : navigation.indexOf('\n}')
       const roleNavigation = navigation.slice(navStart, navEnd)
       const targets = [...roleNavigation.matchAll(/href: '(#[^']+)'/g)].map(match => match[1])
       if (roleNavigation.includes('...common')) targets.push('#visao-geral')
 
-      const source = role === 'aluno' ? student : dashboard
-      const componentStart = role === 'aluno' ? 0 : source.indexOf(`function ${component}()`)
-      const componentEnd = role === 'aluno' ? source.length : nextComponent ? source.indexOf(`function ${nextComponent}()`) : source.indexOf('\nexport type BetaRole')
-      const roleExperience = source.slice(componentStart, componentEnd)
-      const sharedHeader = dashboard.slice(dashboard.indexOf('function Header('), componentStart)
+      const roleExperience = read(`components/Xpex/experiences/${file}`) + primitives
 
       for (const target of new Set(targets)) {
-        expect(roleExperience + sharedHeader).toContain(`id="${target.slice(1)}"`)
+        expect(roleExperience).toContain(`id="${target.slice(1)}"`)
       }
     }
   })
