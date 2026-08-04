@@ -15,7 +15,7 @@ describe('XpeX presentation routes', () => {
   })
 
   test('keeps demo dashboards isolated from APIs and transparent', () => {
-    const dashboard = read('components/Beta/BetaShell.tsx')
+    const dashboard = read('components/Beta/BetaShell.tsx') + read('components/Xpex/experiences/StudentExperience.tsx')
     expect(dashboard).not.toContain('fetch(')
     expect(dashboard).not.toContain('getAPIUrl')
     expect(dashboard).toContain('Dados fictícios')
@@ -25,6 +25,7 @@ describe('XpeX presentation routes', () => {
   test('every in-page navigation target is rendered by its role experience', () => {
     const navigation = read('components/Xpex/xpex-navigation.ts')
     const dashboard = read('components/Beta/BetaShell.tsx')
+    const student = read('components/Xpex/experiences/StudentExperience.tsx') + read('components/Xpex/XpexPrimitives.tsx')
     const roles = [
       { role: 'aluno', nextRole: 'professora', component: 'Student', nextComponent: 'Teacher' },
       { role: 'professora', nextRole: 'polo', component: 'Teacher', nextComponent: 'Pole' },
@@ -38,9 +39,10 @@ describe('XpeX presentation routes', () => {
       const targets = [...roleNavigation.matchAll(/href: '(#[^']+)'/g)].map(match => match[1])
       if (roleNavigation.includes('...common')) targets.push('#visao-geral')
 
-      const componentStart = dashboard.indexOf(`function ${component}()`)
-      const componentEnd = nextComponent ? dashboard.indexOf(`function ${nextComponent}()`) : dashboard.indexOf('\nexport type BetaRole')
-      const roleExperience = dashboard.slice(componentStart, componentEnd)
+      const source = role === 'aluno' ? student : dashboard
+      const componentStart = role === 'aluno' ? 0 : source.indexOf(`function ${component}()`)
+      const componentEnd = role === 'aluno' ? source.length : nextComponent ? source.indexOf(`function ${nextComponent}()`) : source.indexOf('\nexport type BetaRole')
+      const roleExperience = source.slice(componentStart, componentEnd)
       const sharedHeader = dashboard.slice(dashboard.indexOf('function Header('), componentStart)
 
       for (const target of new Set(targets)) {
