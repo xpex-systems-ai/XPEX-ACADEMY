@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react'
 import { XPEX_BRAND, xpexBetaExperiences, xpexHowItWorks, xpexHumanLayer, xpexPilotCourse, xpexStrategicModules, xpexTransparencyNotes } from '@/lib/xpex-brand'
+import '../../Xpex/xpex.css'
 
 function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
