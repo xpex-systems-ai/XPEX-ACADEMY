@@ -1,5 +1,5 @@
-import { ArrowRight, Award, BookOpen, CalendarDays, CheckCircle2, Clock3, Lightbulb, MessageSquareText, Rocket, Sparkles, UsersRound } from 'lucide-react'
-import { XpexActionCard, XpexBadge, XpexFeatureCard, XpexHero, XpexMetricCard, XpexPanel, XpexProgressBar, XpexSectionHeader } from '../XpexPrimitives'
+import { Award, BookOpen, CalendarDays, CheckCircle2, Clock3, Lightbulb, MessageSquareText, Rocket, Sparkles, UsersRound } from 'lucide-react'
+import { XpexActionCard, XpexBadge, XpexDemoButton, XpexFeatureCard, XpexHero, XpexMetricCard, XpexPanel, XpexProgressBar, XpexSectionHeader } from '../XpexPrimitives'
 
 const demo = <span className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-500">Dados fictícios</span>
 const modules = ['Boas-vindas e combinados', 'O que é inteligência artificial?', 'IA no nosso dia a dia']
@@ -11,12 +11,12 @@ export function StudentExperience() {
     </XpexHero>
 
     <div className="grid gap-5 xl:grid-cols-[1.5fr_.5fr]">
-      <XpexPanel id="cursos" className="relative overflow-hidden border-orange-500/25"><XpexSectionHeader eyebrow="Curso piloto • XPEX-PILOT-01" title="Primeiros Passos com IA" detail={demo}/><p className="mt-3 text-slate-400">Módulo 0 — Primeiro Contato com a Inteligência Artificial</p><div className="mt-7"><XpexProgressBar value={35} label="Progresso demonstrativo" /></div><button className="xpex-primary">Continuar aprendizagem <ArrowRight size={17}/></button></XpexPanel>
+      <XpexPanel id="cursos" className="relative overflow-hidden border-orange-500/25"><XpexSectionHeader eyebrow="Curso piloto • XPEX-PILOT-01" title="Primeiros Passos com IA" detail={demo}/><p className="mt-3 text-slate-400">Módulo 0 — Primeiro Contato com a Inteligência Artificial</p><div className="mt-7"><XpexProgressBar value={35} label="Progresso demonstrativo" /></div><XpexDemoButton>Continuar aprendizagem</XpexDemoButton></XpexPanel>
       <XpexMetricCard icon={Clock3} value="28 min" label="Ritmo semanal" detail="Meta fictícia: 45 min" tone="orange" />
     </div>
 
     <div className="grid gap-5 md:grid-cols-3">
-      <div id="eventos"><XpexFeatureCard icon={CalendarDays} eyebrow="Próxima aula" title="IA no nosso dia a dia" description="Aula ao vivo demonstrativa • amanhã, 19h" /></div>
+      <div id="eventos"><XpexFeatureCard icon={CalendarDays} eyebrow="Próxima aula" title="IA no nosso dia a dia" description="Encontro demonstrativo • agenda configurável" /></div>
       <div id="projetos"><XpexFeatureCard icon={Rocket} eyebrow="Projeto atual" title="Meu mapa da IA cotidiana" description="Rascunho fictício • 1 de 3 evidências" tone="orange" /></div>
       <div id="conquistas"><XpexFeatureCard icon={Award} eyebrow="Conquista" title="Primeiro acesso" description="Selo demonstrativo da jornada piloto" /></div>
     </div>
