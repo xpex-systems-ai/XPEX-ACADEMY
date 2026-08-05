@@ -67,6 +67,18 @@ A primeira tentativa com `git.deploymentEnabled: false` foi rejeitada antes do m
 
 Essas guardas são uma quarentena técnica. Elas não transformam os projetos duplicados em fallback e não substituem a futura desconexão da integração Git pelo painel da Vercel.
 
+## Cancelamento automático de jobs obsoletos
+
+Os três escopos Vercel declaram `github.autoJobCancelation: true` em seus respectivos arquivos de configuração:
+
+- `/vercel.json` para o projeto ligado à raiz;
+- `/apps/vercel.json` para o projeto ligado a `apps`;
+- `/apps/web/vercel.json` para o projeto oficial.
+
+O objetivo é impedir que vários commits da mesma branch sejam construídos em sequência quando apenas o commit mais recente ainda importa. Nos duplicados, o cancelamento automático complementa o `ignoreCommand`. No projeto oficial, ele prioriza o Preview ou deployment público mais recente sem desabilitar o build.
+
+Essa configuração não substitui cancelamento manual de deployments históricos de outras branches e não autoriza aumento de plano, concorrência elástica ou gasto adicional.
+
 ## Migração recomendada para produção estável
 
 Quando a plataforma estiver pronta para sair da Beta visual:
