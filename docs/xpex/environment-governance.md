@@ -52,6 +52,21 @@ Nenhuma alteração deve ser enviada diretamente para `dev` como fluxo normal.
 - Marca XpeX preservada nas superfícies públicas.
 - Atribuição ao motor open-source e à licença preservada onde aplicável.
 
+## Guardas versionadas para escopos Vercel incorretos
+
+Os projetos duplicados estavam ligados ao mesmo repositório com Root Directories incompatíveis e disparavam builds caros para cada commit. Para impedir novos builds nesses escopos sem excluir projetos ou tocar em domínios e secrets, o repositório mantém guardas condicionais em `/vercel.json` e `/apps/vercel.json`.
+
+As duas guardas usam `ignoreCommand` e consultam `VERCEL_PROJECT_ID`:
+
+- `prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y` (`xpex-academy`) retorna código `0` e o deployment é ignorado;
+- `prj_lusVrpATbArDHBafb4VQAvh14TyE` (`xpex-academy-536s`) retorna código `0` e o deployment é ignorado;
+- qualquer outro Project ID retorna código `1`, permitindo que o build continue;
+- o projeto oficial `xpex-academy-ai`, ID `prj_EvLi9wcPcy2p7op1ChdvI8kPksKV`, permanece habilitado.
+
+A primeira tentativa com `git.deploymentEnabled: false` foi rejeitada antes do merge porque também impedia a criação do Preview oficial. A configuração condicional evita esse efeito global.
+
+Essas guardas são uma quarentena técnica. Elas não transformam os projetos duplicados em fallback e não substituem a futura desconexão da integração Git pelo painel da Vercel.
+
 ## Migração recomendada para produção estável
 
 Quando a plataforma estiver pronta para sair da Beta visual:
