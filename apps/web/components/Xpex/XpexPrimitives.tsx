@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { AlertTriangle, ArrowRight, Inbox, LoaderCircle } from 'lucide-react'
+import { AlertTriangle, Inbox, LoaderCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 export function XpexBadge({ children, tone = 'orange' }: { children: ReactNode; tone?: 'orange' | 'blue' }) {
@@ -39,8 +39,12 @@ export function XpexPanel({ children, className = '', id }: { children: ReactNod
   return <section id={id} className={`xpex-card p-5 md:p-6 ${className}`}>{children}</section>
 }
 
+export function XpexDemoButton({ children }: { children: ReactNode }) {
+  return <button type="button" disabled aria-disabled="true" className="xpex-primary cursor-not-allowed opacity-75"><span>{children}</span><span className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider">Demo</span></button>
+}
+
 export function XpexActionCard({ icon: Icon, title, description }: { icon: LucideIcon; title: string; description: string }) {
-  return <button type="button" className="xpex-card group w-full p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><Icon aria-hidden="true" className="text-orange-400" size={22} /><strong className="mt-4 block text-white">{title}</strong><span className="mt-2 block text-sm leading-6 text-slate-400">{description}</span><ArrowRight aria-hidden="true" className="mt-4 text-cyan-300 transition group-hover:translate-x-1" size={17} /></button>
+  return <article className="xpex-card w-full p-5 text-left"><div className="flex items-start justify-between gap-3"><Icon aria-hidden="true" className="text-orange-400" size={22} /><span className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-cyan-200">Preview</span></div><strong className="mt-4 block text-white">{title}</strong><span className="mt-2 block text-sm leading-6 text-slate-400">{description}</span><span className="mt-4 block text-xs font-bold text-slate-500">Ação demonstrativa — sem persistência</span></article>
 }
 
 export function XpexEmptyState() { return <div className="xpex-card grid min-h-80 place-items-center border-dashed p-8 text-center"><div><Inbox className="mx-auto text-cyan-300" size={36} /><h2 className="mt-4 text-xl font-black text-white">Nada para mostrar</h2><p className="mt-2 text-sm text-slate-400">Este estado também faz parte da apresentação. Nenhum dado real foi consultado.</p></div></div> }

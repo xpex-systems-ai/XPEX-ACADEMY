@@ -8,7 +8,6 @@ A Vercel pode ser usada para landing pages, páginas institucionais e protótipo
 
 Limitação: o produto completo exige API FastAPI, PostgreSQL, Redis, storage, e-mail e processos de backend que não devem depender apenas de um deploy estático/serverless simples.
 
-
 ## Landing pública e domínios de organização
 
 A landing institucional da XpeX Academy deve responder em `/` apenas em `localhost` para desenvolvimento ou no domínio raiz/apex configurado da plataforma. O proxy compara o host recebido com `frontend_domain` e `top_domain` da instância depois de normalizar protocolo, path, porta, caixa e ponto final.
@@ -38,7 +37,6 @@ Para operar a plataforma completa, recomenda-se uma infraestrutura com serviços
 - Variáveis de ambiente de produção
 - Política de backup e restore
 - Monitoramento de logs e saúde dos serviços
-
 
 ## JWT Secret obrigatório
 
@@ -74,3 +72,9 @@ O setup oficial guia domínio, banco, Redis, admin, recursos opcionais e geraç�
 2. **Fase 02:** publicar landing institucional em Vercel ou ambiente equivalente.
 3. **Fase 03+:** validar deploy full-stack com PostgreSQL, Redis, storage, domínio, e-mail e backup.
 4. **Produção:** usar Docker/Railway/Render/Fly.io/VPS com secrets reais fora do Git.
+
+## Governança de branches e ambientes
+
+A política oficial de branches, Preview, Beta pública, promoção e rollback está documentada em [`environment-governance.md`](./environment-governance.md).
+
+Durante a fase Beta, a branch `dev` pode alimentar temporariamente o ambiente público apenas quando toda alteração passar por branch isolada, Pull Request, Preview verde e smoke test. A migração futura para uma branch `production` deve ocorrer como mudança controlada, nunca como ajuste direto e sem rollback no painel da Vercel.

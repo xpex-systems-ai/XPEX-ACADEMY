@@ -1,8 +1,7 @@
 'use client'
+
 import React from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import learnhouseIcon from 'public/learnhouse_bigicon_1.png'
 import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { getUriWithOrg } from '@services/config/config'
 
@@ -21,8 +20,14 @@ export default function AuthMobileHeader({ org }: AuthMobileHeaderProps) {
   } = authBranding
   const UNSPLASH_UTM = '?utm_source=LearnHouse&utm_medium=referral'
   const withUtm = (url: string) => (url ? `${url}${UNSPLASH_UTM}` : '')
+  const noOrg = !org
 
   const getBackgroundStyle = (): React.CSSProperties => {
+    if (noOrg) {
+      return {
+        background: 'radial-gradient(circle at 20% 20%, rgba(255,106,0,.28), transparent 38%), radial-gradient(circle at 80% 20%, rgba(8,124,255,.26), transparent 36%), linear-gradient(145deg, #02050B 0%, #050D18 100%)',
+      }
+    }
     if (background_type === 'gradient' || !background_image) {
       return {
         background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
@@ -47,45 +52,35 @@ export default function AuthMobileHeader({ org }: AuthMobileHeaderProps) {
     }
   }
 
-  const hasCustomBackground = background_type !== 'gradient' && background_image
+  const hasCustomBackground = !noOrg && background_type !== 'gradient' && background_image
 
   return (
     <div
-      className="relative flex items-center gap-4 px-5 py-4 rounded-b-2xl overflow-hidden"
+      className="relative flex items-center gap-4 overflow-hidden rounded-b-2xl px-5 py-4"
       style={getBackgroundStyle()}
     >
-      {hasCustomBackground && (
-        <div className="absolute inset-0 bg-black/30" />
-      )}
+      {hasCustomBackground && <div className="absolute inset-0 bg-black/30" />}
 
-      <Link prefetch href={getUriWithOrg(org?.slug, '/')} className="relative z-10">
-        <div className="w-10 h-10 rounded-lg ring-1 ring-inset ring-white/10 bg-white flex items-center justify-center overflow-hidden shrink-0">
+      <Link prefetch href={org ? getUriWithOrg(org?.slug, '/') : '/'} className="relative z-10">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-white/10">
           {org?.logo_image ? (
             <img
               src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
               alt={org.name}
-              className="w-full h-full object-contain p-1.5"
+              className="h-full w-full object-contain p-1.5"
             />
           ) : (
-            <Image
-              quality={100}
-              width={40}
-              height={40}
-              src={learnhouseIcon}
-              alt="LearnHouse"
-              className="object-contain"
-            />
+            <span className="grid h-full w-full place-items-center bg-gradient-to-br from-[#FF6A00] to-[#FF8A2A] text-sm font-black text-white">XP</span>
           )}
         </div>
       </Link>
 
-      <span className="relative z-10 font-semibold text-white text-lg truncate">
-        {org?.name || 'LearnHouse'}
+      <span className="relative z-10 truncate text-lg font-semibold text-white">
+        {org?.name || 'XpeX Academy'}
       </span>
 
-      {/* Unsplash attribution (required by Unsplash API guidelines) */}
       {background_type === 'unsplash' && background_image && unsplash_photographer_name && (
-        <span className="relative z-10 ml-auto text-[10px] leading-tight text-white/70 truncate max-w-[45%] text-right">
+        <span className="relative z-10 ml-auto max-w-[45%] truncate text-right text-[10px] leading-tight text-white/70">
           Photo by{' '}
           <a
             href={withUtm(unsplash_photographer_url) || withUtm(unsplash_photo_url)}

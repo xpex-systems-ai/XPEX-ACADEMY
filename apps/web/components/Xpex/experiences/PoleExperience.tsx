@@ -3,9 +3,9 @@ import { XpexActionCard, XpexAmbientGlow, XpexBadge, XpexHero, XpexMetricCard, X
 
 const demoLabel = <span className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-500">Dados demonstrativos</span>
 const events = [
-  ['Encontro de boas-vindas', '05 AGO • 19H'],
-  ['Laboratório aberto de prompts', '12 AGO • 19H'],
-  ['Mentoria e roda da comunidade', '19 AGO • 19H'],
+  ['Encontro de boas-vindas', 'Data demonstrativa'],
+  ['Laboratório aberto de prompts', 'Agenda configurável'],
+  ['Mentoria e roda da comunidade', 'Planejamento demonstrativo'],
 ]
 
 export function PoleExperience() {
@@ -20,7 +20,7 @@ export function PoleExperience() {
 
     <div className="grid gap-5 xl:grid-cols-2">
       <XpexPanel id="turmas"><XpexSectionHeader eyebrow="Turmas e cursos demonstrativos" title="Operação piloto" detail={demoLabel} /><div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-5"><div className="flex flex-wrap justify-between gap-3"><strong className="text-white">Primeiros Passos com IA</strong><XpexBadge tone="blue">Piloto ativo</XpexBadge></div><p className="mt-2 text-sm text-slate-400">4 participantes fictícios • Módulo 0 • curso demonstrativo</p><div className="mt-5"><XpexProgressBar value={51} label="Progresso médio demonstrativo da turma" /></div></div></XpexPanel>
-      <XpexPanel id="eventos"><XpexSectionHeader eyebrow="Datas demonstrativas" title="Agenda do polo" detail={demoLabel} />{events.map(([title, date]) => <article key={title} className="mt-4 flex items-center gap-4 rounded-xl border border-white/10 bg-black/20 p-4"><span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-orange-500/15 text-orange-400"><CalendarDays size={20} /></span><div><h3 className="text-sm font-bold text-white">{title}</h3><p className="mt-1 text-xs text-slate-500">{date} • informação fictícia</p></div></article>)}</XpexPanel>
+      <XpexPanel id="eventos"><XpexSectionHeader eyebrow="Agenda demonstrativa" title="Agenda do polo" detail={demoLabel} />{events.map(([title, status]) => <article key={title} className="mt-4 flex items-center gap-4 rounded-xl border border-white/10 bg-black/20 p-4"><span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-orange-500/15 text-orange-400"><CalendarDays size={20} /></span><div><h3 className="text-sm font-bold text-white">{title}</h3><p className="mt-1 text-xs text-slate-500">{status} • informação fictícia</p></div></article>)}</XpexPanel>
     </div>
 
     <section id="atividades"><XpexSectionHeader eyebrow="Ativação local" title="Próximas ações do polo" /><div className="mt-4 grid gap-4 md:grid-cols-3"><XpexActionCard icon={UsersRound} title="Acompanhar turma" description="Observar a jornada piloto com acolhimento." /><XpexActionCard icon={CalendarDays} title="Organizar encontro" description="Planejar uma agenda demonstrativa." /><XpexActionCard icon={Sparkles} title="Ativar laboratório de IA" description="Explorar o conceito educacional local." /></div></section>

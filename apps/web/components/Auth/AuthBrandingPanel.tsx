@@ -1,4 +1,5 @@
 'use client'
+
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,13 +12,11 @@ import { usePlan } from '@components/Hooks/usePlan'
 interface AuthBrandingPanelProps {
   org: any
   welcomeText?: string
-  // No-org (apex) panel copy — platform-style title + subtitle shown at the top
-  // of the illustration. Falls back to the login wording when omitted.
   title?: string
   subtitle?: string
 }
 
-export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }: AuthBrandingPanelProps) {
+export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPanelProps) {
   const authBranding = org?.config?.config?.customization?.auth_branding || org?.config?.config?.general?.auth_branding || {}
   const {
     welcome_message = '',
@@ -31,25 +30,17 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
   const UNSPLASH_UTM = '?utm_source=LearnHouse&utm_medium=referral'
   const withUtm = (url: string) => (url ? `${url}${UNSPLASH_UTM}` : '')
 
-  // Check if org has enterprise plan - hide LearnHouse branding for enterprise users
-  // In OSS mode, always show branding regardless of plan
   const plan = usePlan()
   const isEnterprise = plan === 'enterprise'
-
-  // No org context (the generic apex login) → use the platform's auth
-  // illustration instead of the flat gradient.
   const noOrg = !org
 
   const getBackgroundStyle = (): React.CSSProperties => {
     if (noOrg) {
       return {
-        backgroundImage: 'url(/auth-default.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        background: 'radial-gradient(circle at 18% 12%, rgba(255,106,0,.30), transparent 34%), radial-gradient(circle at 82% 16%, rgba(8,124,255,.30), transparent 32%), linear-gradient(145deg, #02050B 0%, #050D18 56%, #02050B 100%)',
       }
     }
     if (background_type === 'gradient' || !background_image) {
-      // Keep the original black gradient
       return {
         background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
       }
@@ -74,22 +65,13 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
   }
 
   const displayMessage = welcome_message || welcomeText || ''
-  // No-org platform copy (defaults mirror the platform login illustration).
-  const noOrgTitle = title || 'Welcome back to LearnHouse.'
-  const noOrgSubtitle =
-    subtitle || 'Pick up where you left off — your courses, students, and tools are waiting.'
-  // Treat the no-org illustration like a photo background: dark scrim, no
-  // blueprint-grid overlay.
-  const hasCustomBackground = noOrg || (background_type !== 'gradient' && background_image)
+  const hasCustomBackground = !noOrg && background_type !== 'gradient' && background_image
 
   return (
     <div className="relative h-full w-full">
-      {/* Inset rounded card (platform-style) */}
-      <div className="absolute inset-16 rounded-2xl overflow-hidden">
-        {/* Base layer: org's chosen background (gradient | custom | unsplash) */}
+      <div className="absolute inset-16 overflow-hidden rounded-2xl">
         <div className="absolute inset-0" style={getBackgroundStyle()} />
 
-        {/* Blueprint + dot overlays — ONLY for gradient fallback (no photo) */}
         {!hasCustomBackground && (
           <>
             <div
@@ -112,37 +94,9 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
           </>
         )}
 
-        {/* Dark scrim for org photo backgrounds (centered text needs it).
-            The no-org illustration stays vivid — it's darkened only at the top. */}
-        {hasCustomBackground && !noOrg && (
-          <div className="absolute inset-0 bg-black/30" />
-        )}
+        {hasCustomBackground && <div className="absolute inset-0 bg-black/30" />}
 
-        {/* No-org: top blur + darken so the platform-style heading reads over
-            the illustration (mirrors the platform login panel). */}
-        {noOrg && (
-          <>
-            <div
-              className="absolute top-0 left-0 right-0 h-[38%] z-[5] backdrop-blur-sm"
-              style={{
-                maskImage: 'linear-gradient(to bottom, black 10%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to bottom, black 10%, transparent 100%)',
-              }}
-            />
-            <div
-              className="absolute top-0 left-0 right-0 h-[38%] z-[5] bg-black/35"
-              style={{
-                maskImage: 'linear-gradient(to bottom, black 10%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to bottom, black 10%, transparent 100%)',
-              }}
-            />
-          </>
-        )}
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col h-full p-10">
-          {/* Top bar with LearnHouse lrn.svg logo - hidden for enterprise users
-              and for the no-org apex panel (platform shows no logo on the image). */}
+        <div className="relative z-10 flex h-full flex-col p-10">
           {!isEnterprise && !noOrg && (
             <div className="login-topbar">
               <Link prefetch href="https://learnhouse.app" target="_blank">
@@ -152,8 +106,8 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
                   width={30}
                   height={30}
                   className={cn(
-                    "transition-opacity hover:opacity-100",
-                    text_color === 'light' ? "opacity-60 invert" : "opacity-40"
+                    'transition-opacity hover:opacity-100',
+                    text_color === 'light' ? 'opacity-60 invert' : 'opacity-40',
                   )}
                 />
               </Link>
@@ -161,32 +115,43 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
           )}
 
           {noOrg ? (
-            /* No-org apex panel — platform layout: heading at the TOP, no logo
-               box, platform copy. */
-            <div className="max-w-md text-white">
-              <h1 className="font-black text-[28px] leading-tight tracking-tight">
-                {noOrgTitle}
-              </h1>
-              <p className="mt-3 text-white/55 text-base font-medium leading-relaxed">
-                {noOrgSubtitle}
+            <div className="flex h-full flex-col text-white">
+              <Link href="/" className="inline-flex w-fit items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16D9FF]">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#FF6A00] to-[#FF8A2A] text-lg font-black shadow-[0_0_32px_rgba(255,106,0,.30)]">XP</span>
+                <span>
+                  <strong className="block tracking-[.2em]">XpeX</strong>
+                  <small className="text-[10px] font-bold uppercase tracking-[.24em] text-white/55">Academy</small>
+                </span>
+              </Link>
+
+              <div className="my-auto max-w-md">
+                <p className="text-xs font-black uppercase tracking-[.24em] text-[#16D9FF]">Portal educacional Beta</p>
+                <h1 className="mt-5 text-[38px] font-black leading-tight tracking-tight">
+                  Aprenda, crie e evolua com inteligência artificial.
+                </h1>
+                <p className="mt-5 text-base font-medium leading-8 text-white/65">
+                  Uma experiência guiada que conecta aluno, professora e polo com projetos práticos, acompanhamento humano e tecnologia.
+                </p>
+              </div>
+
+              <p className="text-xs leading-5 text-white/40">
+                Ambiente Beta em integração. Dados demonstrativos e acesso institucional controlado.
               </p>
             </div>
           ) : (
-            /* Org panel — centered logo + name (unchanged). */
             <>
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-1 items-center justify-center">
                 <div className={cn(
-                  "flex flex-col items-center text-center gap-6",
-                  text_color === 'light' ? "text-white" : "text-gray-900"
+                  'flex flex-col items-center gap-6 text-center',
+                  text_color === 'light' ? 'text-white' : 'text-gray-900',
                 )}>
-                  {/* Organization logo */}
                   <Link prefetch href={getUriWithOrg(org?.slug, '/')}>
-                    <div className="w-24 h-24 rounded-2xl ring-1 ring-inset ring-white/10 bg-white flex items-center justify-center overflow-hidden">
+                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-white ring-1 ring-inset ring-white/10">
                       {org?.logo_image ? (
                         <img
                           src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
                           alt={org.name}
-                          className="w-full h-full object-contain p-3"
+                          className="h-full w-full object-contain p-3"
                         />
                       ) : (
                         <Image
@@ -201,13 +166,12 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
                     </div>
                   </Link>
 
-                  {/* Text content */}
                   <div className="space-y-1">
-                    <h1 className="font-black text-3xl tracking-tight">{org?.name || 'LearnHouse'}</h1>
+                    <h1 className="text-3xl font-black tracking-tight">{org?.name || 'XpeX Academy'}</h1>
                     {displayMessage && (
                       <p className={cn(
-                        "text-lg max-w-sm leading-relaxed",
-                        text_color === 'light' ? "text-white/70" : "text-gray-600"
+                        'max-w-sm text-lg leading-relaxed',
+                        text_color === 'light' ? 'text-white/70' : 'text-gray-600',
                       )}>
                         {displayMessage}
                       </p>
@@ -215,24 +179,21 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
                   </div>
                 </div>
               </div>
-
-              {/* Bottom spacer for visual balance */}
               <div className="h-10" />
             </>
           )}
 
-          {/* Unsplash attribution (required by Unsplash API guidelines) */}
           {background_type === 'unsplash' && background_image && unsplash_photographer_name && (
             <div className={cn(
-              "absolute bottom-3 left-4 right-4 z-10 text-[11px] leading-tight",
-              text_color === 'light' ? "text-white/70" : "text-gray-700"
+              'absolute bottom-3 left-4 right-4 z-10 text-[11px] leading-tight',
+              text_color === 'light' ? 'text-white/70' : 'text-gray-700',
             )}>
               Photo by{' '}
               <a
                 href={withUtm(unsplash_photographer_url) || withUtm(unsplash_photo_url)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:opacity-100 opacity-90"
+                className="underline opacity-90 hover:opacity-100"
               >
                 {unsplash_photographer_name}
               </a>
@@ -241,7 +202,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
                 href={`https://unsplash.com/${UNSPLASH_UTM}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:opacity-100 opacity-90"
+                className="underline opacity-90 hover:opacity-100"
               >
                 Unsplash
               </a>

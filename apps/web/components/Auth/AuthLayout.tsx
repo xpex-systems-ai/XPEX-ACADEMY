@@ -1,4 +1,5 @@
 'use client'
+
 import React from 'react'
 import LanguageSwitcher from '@components/Utils/LanguageSwitcher'
 import AuthBrandingPanel from '@components/Auth/AuthBrandingPanel'
@@ -8,7 +9,6 @@ import { AuthFooter } from '@components/Footers/LegalFooters'
 interface AuthLayoutProps {
   org: any
   welcomeText?: string
-  // No-org (apex) branding copy — platform-style title + subtitle.
   title?: string
   subtitle?: string
   children: React.ReactNode
@@ -16,10 +16,9 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ org, welcomeText, title, subtitle, children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen lg:h-screen bg-white flex flex-col lg:flex-row relative overflow-hidden">
-      {/* Page-level blueprint grid, bottom-anchored */}
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-white lg:h-screen lg:flex-row">
       <div
-        className="absolute inset-0 pointer-events-none z-0"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           backgroundImage: `
             linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px),
@@ -32,27 +31,28 @@ export default function AuthLayout({ org, welcomeText, title, subtitle, children
         }}
       />
 
-      {/* Language switcher — must sit ABOVE the right-hand branding panel
-          (z-10), otherwise the panel intercepts its clicks. `z-dropdown`
-          resolves to z-index:auto here, so use a concrete z-50. */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute right-4 top-4 z-50">
         <LanguageSwitcher />
       </div>
 
-      {/* Mobile Header - visible only on small screens */}
-      <div className="lg:hidden relative z-10">
+      <div className="relative z-10 lg:hidden">
         <AuthMobileHeader org={org} />
       </div>
 
-      {/* Left Panel - Content / form */}
-      <div className="relative z-10 flex flex-col flex-1 lg:h-full overflow-auto bg-transparent">
-        <div className="flex-1 flex flex-col">{children}</div>
-        {/* Terms footer (platform-style) */}
-        <AuthFooter className="shrink-0" />
+      <div className="relative z-10 flex flex-1 flex-col overflow-auto bg-transparent lg:h-full">
+        <div className="flex flex-1 flex-col">{children}</div>
+        {org ? (
+          <AuthFooter className="shrink-0" />
+        ) : (
+          <div className="shrink-0 px-6 pb-8 pt-6 text-center">
+            <p className="text-[13px] font-medium text-black/35">
+              XpeX Academy • Ambiente Beta • Acesso institucional em integração.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Right Panel - Branding (hidden on mobile) */}
-      <div className="hidden lg:block w-[48%] relative z-10 shrink-0">
+      <div className="relative z-10 hidden w-[48%] shrink-0 lg:block">
         <AuthBrandingPanel
           org={org}
           welcomeText={welcomeText}
