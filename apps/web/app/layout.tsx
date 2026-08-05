@@ -1,13 +1,14 @@
 import '../styles/globals.css'
 import React from 'react'
 import Providers from '@components/Providers'
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html className="font-default" lang="en" suppressHydrationWarning>
+    <html className="font-default" lang="pt-BR" suppressHydrationWarning>
       <head>
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}
@@ -20,9 +21,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <main className="animate-fade-in">
-            {children}
-          </main>
+          <div className="animate-fade-in">{children}</div>
         </Providers>
       </body>
     </html>
