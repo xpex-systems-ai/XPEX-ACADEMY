@@ -52,6 +52,16 @@ Nenhuma alteração deve ser enviada diretamente para `dev` como fluxo normal.
 - Marca XpeX preservada nas superfícies públicas.
 - Atribuição ao motor open-source e à licença preservada onde aplicável.
 
+## Guardas versionadas para escopos Vercel incorretos
+
+Os projetos duplicados estavam ligados ao mesmo repositório com Root Directories incompatíveis e disparavam builds caros para cada commit. Para impedir novos Git deployments nesses escopos sem excluir projetos ou tocar em domínios e secrets, o repositório mantém:
+
+- `/vercel.json` com `git.deploymentEnabled: false` para o projeto duplicado apontado para a raiz;
+- `/apps/vercel.json` com `git.deploymentEnabled: false` para o projeto duplicado apontado para `apps`;
+- o projeto oficial em `apps/web`, fora do alcance dessas duas configurações, continua habilitado.
+
+Essas guardas são uma quarentena técnica. Elas não transformam os projetos duplicados em fallback e não substituem a futura desconexão da integração Git pelo painel da Vercel.
+
 ## Migração recomendada para produção estável
 
 Quando a plataforma estiver pronta para sair da Beta visual:
