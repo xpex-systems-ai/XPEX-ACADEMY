@@ -8,8 +8,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const orgslug = await getAuthOrgSlug()
 
   if (!orgslug) {
-    // Apex (org-less) login.
-    return { title: 'Login — LearnHouse', robots: { index: false, follow: false } }
+    return {
+      title: 'Acesso | XpeX Academy',
+      description: 'Portal de acesso da experiência Beta da XpeX Academy.',
+      robots: { index: false, follow: false },
+    }
   }
 
   let org: any = null
@@ -19,11 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
       tags: ['organizations'],
     })
   } catch {
-    // Stale cookie or unknown org — fall back to generic title
+    // Stale cookie, unavailable backend or unknown org — use safe XpeX metadata.
   }
 
   return {
-    title: 'Login' + ` — ${org?.name || 'LearnHouse'}`,
+    title: `Acesso — ${org?.name || 'XpeX Academy'}`,
+    description: 'Acesso seguro à experiência educacional XpeX Academy.',
     robots: { index: false, follow: false },
   }
 }
@@ -31,7 +35,6 @@ export async function generateMetadata(): Promise<Metadata> {
 const Login = async () => {
   const orgslug = await getAuthOrgSlug()
 
-  // No org slug → bare apex (learn.io) → generic, org-less login.
   let org: any = null
   if (orgslug) {
     try {
@@ -42,17 +45,15 @@ const Login = async () => {
     } catch {
       org = null
     }
-    // A subdomain (or single-tenancy) slug that can't be resolved is a real error.
+
+    // Keep the access route useful and transparent when the organization
+    // backend is not available in the visual Beta environment.
     if (!org) {
       return <OrgNotFound />
     }
   }
 
-  return (
-    <div>
-      <LoginClient org={org}></LoginClient>
-    </div>
-  )
+  return <LoginClient org={org} />
 }
 
 export default Login
