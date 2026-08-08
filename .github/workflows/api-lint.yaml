@@ -21,4 +21,4 @@ jobs:
         with:
           src: "./apps/api"
           args: >-
-            --extend-per-file-ignores=apps/api/config/config.py:I001,UP045
+            check --extend-per-file-ignores=apps/api/config/config.py:I001,UP045
