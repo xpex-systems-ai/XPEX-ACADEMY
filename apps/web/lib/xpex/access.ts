@@ -12,12 +12,13 @@ const ROLE_NAMES: Record<string, XpexExperienceRole> = {
   teacher: 'professora',
   member: 'aluno',
   student: 'aluno',
+  user: 'aluno',
 }
 
 export function xpexRoleForMembership(membership: LearnHouseMembership): XpexExperienceRole | null {
   const candidates = [membership.role?.name, membership.role?.role_uuid]
   for (const candidate of candidates) {
-    const normalized = candidate?.toLowerCase().replace(/^role_(global|organization)_/, '')
+    const normalized = candidate?.trim().toLowerCase().replace(/^role_(global|organization)_/, '')
     if (normalized && ROLE_NAMES[normalized]) return ROLE_NAMES[normalized]
   }
   return null
