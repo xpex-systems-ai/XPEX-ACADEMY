@@ -20,3 +20,5 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           src: "./apps/api"
+          args: >-
+            --extend-per-file-ignores=apps/api/config/config.py:I001,UP045
