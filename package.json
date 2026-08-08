@@ -11,6 +11,7 @@
     "build": "bun run install:web && cd apps/web && bun run build",
     "start": "cd apps/web && bun run start --hostname 0.0.0.0",
     "lint": "cd apps/web && bun run lint",
+    "lint:strict": "cd apps/web && bun run lint:strict",
     "test": "cd apps/web && bun run test",
     "typecheck": "cd apps/web && bunx tsc --noEmit"
   },

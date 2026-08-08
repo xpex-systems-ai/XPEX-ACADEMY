@@ -476,6 +476,19 @@ export default async function proxy(req: NextRequest) {
     return response
   }
 
+  // Authenticated XpeX shell. The marker only enables an early redirect; the
+  // page revalidates the bearer session and organization role with the API.
+  if (pathname === '/xpex' || pathname.startsWith('/xpex/')) {
+    if (!req.cookies.get('LH_session')?.value) {
+      const login = new URL('/login', req.url)
+      login.searchParams.set('next', pathname)
+      return NextResponse.redirect(login)
+    }
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
+  }
+
   // -------------------------------------------------------------------------
   // 12. Tenant-scoped rewrite — the catch-all that puts us under /orgs/{slug}
   // -------------------------------------------------------------------------
