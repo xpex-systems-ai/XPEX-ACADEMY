@@ -50,13 +50,12 @@ dependencies = [
 ]
 
 [tool.ruff]
+extend-exclude = ["migrations"]
 lint.ignore = ["E501", "E712"]
 
 [tool.ruff.lint.per-file-ignores]
 "app.py" = ["I001"]
 "config/config.py" = ["BLE001", "I001", "SIM102", "UP032", "UP045"]
-"migrations/env.py" = ["I001"]
-"migrations/payments_to_offers_migration.py" = ["DTZ005", "I001"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
