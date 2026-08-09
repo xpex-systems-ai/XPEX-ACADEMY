@@ -52,6 +52,10 @@ dependencies = [
 [tool.ruff]
 lint.ignore = ["E501", "E712"]
 
+[tool.ruff.lint.per-file-ignores]
+"app.py" = ["I001"]
+"config/config.py" = ["I001", "UP045"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
