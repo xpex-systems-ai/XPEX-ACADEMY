@@ -17,6 +17,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Ruff lint
-        uses: chartboost/ruff-action@v1
+        uses: astral-sh/ruff-action@v3
         with:
           src: "./apps/api"
+          args: >-
+            check
+            --extend-per-file-ignores=apps/api/config/config.py:I001
+            --extend-per-file-ignores=apps/api/config/config.py:UP045

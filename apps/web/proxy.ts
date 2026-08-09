@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { isPublicBetaPath, tenantScopedPath } from './lib/proxyPaths'
 import { isPublicRootRequest } from './lib/proxyHosts'
+import { safeLoginNext } from './lib/xpex/access'
 
 // =============================================================================
 // Tenancy
@@ -403,18 +404,16 @@ export default async function proxy(req: NextRequest) {
   // 8. Auth redirect bridge (cross-domain return path)
   // -------------------------------------------------------------------------
   if (pathname === '/redirect_from_auth') {
-    const queryString = req.nextUrl.searchParams.toString()
+    const requestedNext = req.nextUrl.searchParams.get('next')
+    const nextPath = requestedNext ? safeLoginNext(requestedNext) : '/'
     const customDomain = req.cookies.get('LH_custom_domain')?.value
 
     let redirectUrl: URL
     if (customDomain) {
       const protocol = req.nextUrl.protocol + '//'
-      redirectUrl = new URL(`${protocol}${customDomain}/`)
+      redirectUrl = new URL(nextPath, `${protocol}${customDomain}`)
     } else {
-      redirectUrl = new URL('/', req.url)
-    }
-    if (queryString) {
-      redirectUrl.search = queryString
+      redirectUrl = new URL(nextPath, req.url)
     }
     return NextResponse.redirect(redirectUrl)
   }
@@ -471,6 +470,19 @@ export default async function proxy(req: NextRequest) {
   //     subdomains, custom domains and single-tenancy hosts alike.
   // -------------------------------------------------------------------------
   if (isPublicBetaPath(pathname)) {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
+  }
+
+  // Authenticated XpeX shell. The marker only enables an early redirect; the
+  // page revalidates the bearer session and organization role with the API.
+  if (pathname === '/xpex' || pathname.startsWith('/xpex/')) {
+    if (!req.cookies.get('LH_session')?.value) {
+      const login = new URL('/login', req.url)
+      login.searchParams.set('next', pathname)
+      return NextResponse.redirect(login)
+    }
     const response = NextResponse.next()
     setInstanceCookies(response, instance)
     return response

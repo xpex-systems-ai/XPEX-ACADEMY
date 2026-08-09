@@ -11,11 +11,11 @@
 
 import logging
 
-import uvicorn
 import sentry_sdk
-from sentry_sdk.integrations.logging import LoggingIntegration
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 from config.config import LearnHouseConfig, get_learnhouse_config
 from src.core.ee_hooks import register_ee_middlewares
