@@ -7,3 +7,10 @@ export function isPublicBetaPath(pathname: string): boolean {
 export function tenantScopedPath(slug: string, pathname: string): string {
   return `/orgs/${slug}${pathname}`
 }
+
+/** Accept only same-origin absolute paths for the post-auth bridge. */
+export function safeAuthReturnPath(target: string | null): string {
+  return target?.startsWith('/') && !target.startsWith('//') && !target.includes('\\')
+    ? target
+    : '/'
+}

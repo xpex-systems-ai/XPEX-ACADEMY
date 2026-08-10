@@ -30,6 +30,37 @@ from src.services.setup.setup import (
 cli = typer.Typer()
 
 
+@cli.command("xpex-pilot-readiness")
+def xpex_pilot_readiness():
+    """Print configuration states without printing configuration values."""
+    from src.services.setup.xpex_pilot import readiness_environment
+    for name, state in readiness_environment().items():
+        print(f"{name}: {state}")
+
+
+@cli.command("xpex-pilot-bootstrap")
+def xpex_pilot_bootstrap():
+    """Create/verify the three explicitly configured non-production test users."""
+    from src.services.setup.xpex_pilot import PilotAccount, bootstrap_pilot
+
+    async def run():
+        config = get_learnhouse_config()
+        engine = create_async_engine(_to_async_url(config.database_config.sql_connection_string), pool_pre_ping=True)  # type: ignore
+        try:
+            accounts = [PilotAccount(role, os.environ[f"XPEX_PILOT_{prefix}_USERNAME"],
+                                     os.environ[f"XPEX_PILOT_{prefix}_EMAIL"],
+                                     os.environ[f"XPEX_PILOT_{prefix}_PASSWORD"])
+                        for role, prefix in (("administrator", "ADMIN"), ("teacher", "TEACHER"), ("student", "STUDENT"))]
+            async with AsyncSession(engine, expire_on_commit=False) as session:
+                result = await bootstrap_pilot(session, accounts)
+            print("Pilot bootstrap completed; credentials were not displayed.")
+            for item, state in result.items():
+                print(f"{item}: {state}")
+        finally:
+            await engine.dispose()
+    asyncio.run(run())
+
+
 def _to_async_url(url: str) -> str:
     if "+asyncpg" in url:
         return url

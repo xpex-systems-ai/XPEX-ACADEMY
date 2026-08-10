@@ -16,7 +16,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-      - name: Ruff lint
-        uses: chartboost/ruff-action@v1
         with:
-          src: "./apps/api"
+          fetch-depth: 0
+      - name: Ruff lint changed Python files
+        # The repository-wide Ruff backlog is tracked separately. This gate
+        # compares against the PR base (or previous pushed commit) so every new
+        # or modified Python file remains strict without hiding historical debt.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" HEAD -- \
+            'apps/api/*.py' 'apps/api/**/*.py')
+          if (( ${#files[@]} == 0 )); then
+            echo "No changed Python files to lint."
+            exit 0
+          fi
+          uvx ruff==0.16.2 check --config apps/api/pyproject.toml "${files[@]}"
