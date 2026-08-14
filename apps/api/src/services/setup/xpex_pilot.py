@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
+from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -16,7 +18,7 @@ from src.db.organizations import Organization
 from src.db.roles import Role
 from src.db.user_organizations import UserOrganization
 from src.db.users import User, UserCreate
-from src.security.security import security_hash_password
+from src.security.security import security_hash_password, security_verify_password
 from src.services.security.password_validation import validate_password_complexity
 
 PILOT_SLUG = "kelle-digital-lab"
@@ -33,7 +35,26 @@ REQUIRED_ENV = (
     "LEARNHOUSE_TENANCY",
     "LEARNHOUSE_EMAIL_PROVIDER",
     "LEARNHOUSE_SYSTEM_EMAIL_ADDRESS",
+    "ALLOW_PILOT_BOOTSTRAP",
+    "XPEX_PILOT_ADMIN_USERNAME",
+    "XPEX_PILOT_ADMIN_EMAIL",
+    "XPEX_PILOT_ADMIN_PASSWORD",
+    "XPEX_PILOT_TEACHER_USERNAME",
+    "XPEX_PILOT_TEACHER_EMAIL",
+    "XPEX_PILOT_TEACHER_PASSWORD",
+    "XPEX_PILOT_STUDENT_USERNAME",
+    "XPEX_PILOT_STUDENT_EMAIL",
+    "XPEX_PILOT_STUDENT_PASSWORD",
 )
+PILOT_ACCOUNT_ENV = {
+    "administrator": "ADMIN",
+    "teacher": "TEACHER",
+    "student": "STUDENT",
+}
+
+
+class PilotConfigurationError(RuntimeError):
+    """Controlled configuration error that never includes secret values."""
 
 
 @dataclass(frozen=True)
@@ -47,7 +68,45 @@ class PilotAccount:
 def readiness_environment(environ: dict[str, str] | None = None) -> dict[str, str]:
     """Report names and states only; values and connection strings never leave this function."""
     env = environ if environ is not None else os.environ
-    return {name: "ready" if env.get(name, "").strip() else "missing" for name in REQUIRED_ENV}
+    states = {name: "ready" if env.get(name, "").strip() else "missing" for name in REQUIRED_ENV}
+    gate = env.get("ALLOW_PILOT_BOOTSTRAP", "")
+    if gate and gate != "true":
+        states["ALLOW_PILOT_BOOTSTRAP"] = "invalid"
+    environment = env.get("LEARNHOUSE_ENV", "")
+    if environment and (environment != environment.strip() or environment.lower() not in ALLOWED_BOOTSTRAP_ENVS):
+        states["LEARNHOUSE_ENV"] = "invalid"
+    for prefix in PILOT_ACCOUNT_ENV.values():
+        username_name = f"XPEX_PILOT_{prefix}_USERNAME"
+        email_name = f"XPEX_PILOT_{prefix}_EMAIL"
+        password_name = f"XPEX_PILOT_{prefix}_PASSWORD"
+        username = env.get(username_name, "")
+        email = env.get(email_name, "")
+        password = env.get(password_name, "")
+        if username and username != username.strip():
+            states[username_name] = "invalid"
+        if email:
+            try:
+                TypeAdapter(EmailStr).validate_python(email.strip().lower())
+            except ValidationError:
+                states[email_name] = "invalid"
+        if password and not validate_password_complexity(password).is_valid:
+            states[password_name] = "invalid"
+    return states
+
+
+def pilot_accounts_from_environment(environ: dict[str, str] | None = None) -> list[PilotAccount]:
+    """Load pilot identities without KeyError and without echoing configured values."""
+    env = environ if environ is not None else os.environ
+    missing: list[str] = []
+    accounts: list[PilotAccount] = []
+    for role, prefix in PILOT_ACCOUNT_ENV.items():
+        names = [f"XPEX_PILOT_{prefix}_{field}" for field in ("USERNAME", "EMAIL", "PASSWORD")]
+        values = [env.get(name, "") for name in names]
+        missing.extend(name for name, value in zip(names, values, strict=True) if not value.strip())
+        accounts.append(PilotAccount(role, values[0].strip(), values[1].strip().lower(), values[2]))
+    if missing:
+        raise PilotConfigurationError(f"Missing required pilot configuration names: {', '.join(missing)}")
+    return accounts
 
 
 def assert_bootstrap_allowed(environ: dict[str, str] | None = None) -> None:
@@ -59,10 +118,53 @@ def assert_bootstrap_allowed(environ: dict[str, str] | None = None) -> None:
         raise RuntimeError("Pilot bootstrap requires an explicitly allowed non-production environment")
 
 
+def validate_distinct_accounts(accounts: list[PilotAccount]) -> list[PilotAccount]:
+    """Normalize and prove that every configured role represents one identity."""
+    normalized = [PilotAccount(a.role, a.username.strip(), a.email.strip().lower(), a.password) for a in accounts]
+    for field in ("username", "email"):
+        seen: dict[str, str] = {}
+        for account in normalized:
+            value = getattr(account, field)
+            canonical = value.lower() if field == "email" else value
+            if not canonical:
+                raise PilotConfigurationError(f"Empty {field} for pilot role {account.role}")
+            if canonical in seen:
+                raise PilotConfigurationError(
+                    f"Duplicate pilot {field} for roles {seen[canonical]} and {account.role}"
+                )
+            seen[canonical] = account.role
+    return normalized
+
+
+def _assert_existing_user_can_login(user: User, account: PilotAccount) -> None:
+    if not user.email_verified:
+        raise ValueError(f"Existing account for role {account.role} is not email-verified")
+    if user.locked_until:
+        try:
+            locked_until = datetime.fromisoformat(str(user.locked_until))
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=UTC)
+            if locked_until > datetime.now(UTC):
+                raise ValueError(f"Existing account for role {account.role} is locked")
+        except ValueError as exc:
+            if "is locked" in str(exc):
+                raise
+            raise ValueError(f"Existing account for role {account.role} has an invalid lock state") from exc
+    try:
+        password_matches = bool(user.password) and security_verify_password(account.password, user.password)
+    except Exception:
+        password_matches = False
+    if not password_matches:
+        raise ValueError(
+            f"Existing account credentials cannot be verified for role {account.role}; password was not changed"
+        )
+
+
 async def bootstrap_pilot(db: AsyncSession, accounts: list[PilotAccount]) -> dict[str, str]:
     assert_bootstrap_allowed()
     if {account.role for account in accounts} != set(ROLE_IDS):
         raise ValueError("Exactly one administrator, teacher and student test account is required")
+    accounts = validate_distinct_accounts(accounts)
     for account in accounts:
         validation = validate_password_complexity(account.password)
         if not validation.is_valid:
@@ -78,13 +180,17 @@ async def bootstrap_pilot(db: AsyncSession, accounts: list[PilotAccount]) -> dic
     org = (await db.execute(select(Organization).where(Organization.slug == PILOT_SLUG))).scalars().first()
     users_by_role: dict[str, User | None] = {}
     for account in accounts:
-        by_email = (await db.execute(select(User).where(User.email == account.email))).scalars().first()
+        by_email = (await db.execute(select(User).where(func.lower(User.email) == account.email))).scalars().first()
         by_username = (await db.execute(select(User).where(User.username == account.username))).scalars().first()
         if by_email and by_email.username != account.username:
             raise ValueError(f"Existing account conflict for role {account.role}; nothing was overwritten")
         if by_username and by_username.email != account.email:
             raise ValueError(f"Existing username conflict for role {account.role}; nothing was overwritten")
         user = by_email or by_username
+        if by_email and by_username and by_email.id != by_username.id:
+            raise ValueError(f"Ambiguous existing identity for role {account.role}; nothing was overwritten")
+        if user:
+            _assert_existing_user_can_login(user, account)
         users_by_role[account.role] = user
         if user and org:
             membership = (await db.execute(select(UserOrganization).where(
@@ -93,6 +199,10 @@ async def bootstrap_pilot(db: AsyncSession, accounts: list[PilotAccount]) -> dic
             ))).scalars().first()
             if membership and membership.role_id != ROLE_IDS[account.role]:
                 raise ValueError(f"Existing membership conflict for role {account.role}; nothing was overwritten")
+
+    existing_user_ids = [user.id for user in users_by_role.values() if user]
+    if len(existing_user_ids) != len(set(existing_user_ids)):
+        raise ValueError("Two pilot roles resolve to the same existing user; nothing was overwritten")
 
     now = datetime.now(UTC).isoformat()
     try:

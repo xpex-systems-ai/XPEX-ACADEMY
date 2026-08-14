@@ -26,6 +26,8 @@ Os previews `/beta/aluno`, `/beta/professora` e `/beta/polo` continuam públicos
 
 Rate limiting, lockout, verificação de e-mail, Turnstile, cookies, CSRF e safe redirect existentes não foram desativados. Contas criadas pelo bootstrap são verificadas individualmente para o teste autorizado; isso não altera a política global. Esta alteração não comprova disponibilidade de PostgreSQL, Redis, e-mail, login em navegador nem deploy público: esses itens exigem o ambiente integrado e a revisão manual.
 
+Contas preexistentes não são marcadas como prontas apenas por coincidência de username/e-mail: o preflight exige estado verificável, senha compatível, e-mail verificado, ausência de lockout vigente e membership/papel coerentes. Senhas existentes nunca são redefinidas pelo bootstrap.
+
 ## Rollback
 
 Reverta o commit desta missão. Se o bootstrap foi executado, remova primeiro as três associações de teste e contas de teste pela administração LearnHouse e depois o polo somente se estiver vazio. Não execute SQL destrutivo e não remova contas ou organizações preexistentes.

@@ -12,5 +12,5 @@ export function tenantScopedPath(slug: string, pathname: string): string {
 export function safeAuthReturnPath(target: string | null): string {
   return target?.startsWith('/') && !target.startsWith('//') && !target.includes('\\')
     ? target
-    : '/'
+    : '/xpex'
 }

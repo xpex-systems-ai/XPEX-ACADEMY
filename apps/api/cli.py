@@ -41,16 +41,27 @@ def xpex_pilot_readiness():
 @cli.command("xpex-pilot-bootstrap")
 def xpex_pilot_bootstrap():
     """Create/verify the three explicitly configured non-production test users."""
-    from src.services.setup.xpex_pilot import PilotAccount, bootstrap_pilot
+    from src.services.setup.xpex_pilot import (
+        PilotConfigurationError,
+        assert_bootstrap_allowed,
+        bootstrap_pilot,
+        pilot_accounts_from_environment,
+    )
 
     async def run():
-        config = get_learnhouse_config()
-        engine = create_async_engine(_to_async_url(config.database_config.sql_connection_string), pool_pre_ping=True)  # type: ignore
         try:
-            accounts = [PilotAccount(role, os.environ[f"XPEX_PILOT_{prefix}_USERNAME"],
-                                     os.environ[f"XPEX_PILOT_{prefix}_EMAIL"],
-                                     os.environ[f"XPEX_PILOT_{prefix}_PASSWORD"])
-                        for role, prefix in (("administrator", "ADMIN"), ("teacher", "TEACHER"), ("student", "STUDENT"))]
+            assert_bootstrap_allowed()
+            try:
+                accounts = pilot_accounts_from_environment()
+            except PilotConfigurationError as exc:
+                print(f"Pilot bootstrap refused: {exc}")
+                raise typer.Exit(code=2) from None
+            config = get_learnhouse_config()
+            engine = create_async_engine(_to_async_url(config.database_config.sql_connection_string), pool_pre_ping=True)  # type: ignore
+        except RuntimeError as exc:
+            print(f"Pilot bootstrap refused: {exc}")
+            raise typer.Exit(code=2) from None
+        try:
             async with AsyncSession(engine, expire_on_commit=False) as session:
                 result = await bootstrap_pilot(session, accounts)
             print("Pilot bootstrap completed; credentials were not displayed.")

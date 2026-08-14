@@ -23,6 +23,10 @@ Use somente identidades de teste, com dados mínimos. Não use estudantes reais.
 
 O comando instala/verifica os papéis LearnHouse, cria ou verifica a organização, cria uma conta de teste administrator (Admin), teacher (Instructor) e student (Member), e cria associações ausentes. Reexecução não duplica registros. Conflitos de username, papel ou associação são recusados sem sobrescrita silenciosa. Produção é recusada mesmo com a flag.
 
+As três identidades precisam ter usernames e e-mails distintos (e-mails são comparados após trim/lowercase). Uma conta já existente só é reutilizada quando identidade, e-mail verificado, bloqueio, senha configurada e papel existente são compatíveis. O bootstrap verifica a senha sem alterá-la; incompatibilidade aborta todo o preflight. Variável ausente produz erro controlado contendo apenas o nome da configuração ausente.
+
+Organização, usuários novos e memberships são gravados em um único commit lógico. Falha posterior ao primeiro `flush` executa rollback, inclusive da organização recém-criada. O operador deve executar o comando três vezes no ambiente de teste e confirmar que todas retornam `ready` sem crescimento das contagens antes do ciclo de login no navegador.
+
 ## Primeiro ciclo de acesso
 
 Em janela anônima, teste cada conta em `/login`, confirme `/xpex` e logout. Para aluno, tente `/xpex/professora` e `/xpex/polo`; para professora, tente `/xpex/polo`. Todos devem negar. Teste `next=//example.org`, cookie de organização obsoleto, API e Redis indisponíveis, navegação/mobile e logout. Confirme que indicadores da Beta permanecem declarados fictícios. Não declare o ciclo aprovado sem evidência do backend e do navegador.
