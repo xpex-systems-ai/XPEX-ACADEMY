@@ -91,6 +91,12 @@ def readiness_environment(environ: dict[str, str] | None = None) -> dict[str, st
                 states[email_name] = "invalid"
         if password and not validate_password_complexity(password).is_valid:
             states[password_name] = "invalid"
+    configuration_states = tuple(states.values())
+    states["XPEX_PILOT_READINESS"] = (
+        "invalid" if "invalid" in configuration_states
+        else "pending" if "missing" in configuration_states
+        else "ready"
+    )
     return states
 
 

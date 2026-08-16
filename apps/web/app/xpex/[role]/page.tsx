@@ -7,5 +7,5 @@ const roles = new Set<XpexExperienceRole>(['aluno', 'professora', 'polo'])
 export default async function XpexRolePage({ params }: { params: Promise<{ role: string }> }) {
   const { role } = await params
   if (!roles.has(role as XpexExperienceRole)) notFound()
-  return <AuthenticatedXpexExperience requestedRole={role as XpexExperienceRole} />
+  return <AuthenticatedXpexExperience requestedRole={role as XpexExperienceRole} returnPath={`/xpex/${role}`} />
 }

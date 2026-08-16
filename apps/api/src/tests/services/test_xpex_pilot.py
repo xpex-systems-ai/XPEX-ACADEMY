@@ -37,7 +37,9 @@ def test_readiness_reports_names_and_states_without_values():
     ],
 )
 def test_readiness_reports_every_missing_pilot_variable(name):
-    assert readiness_environment({})[name] == "missing"
+    result = readiness_environment({})
+    assert result[name] == "missing"
+    assert result["XPEX_PILOT_READINESS"] == "pending"
 
 
 def test_readiness_never_returns_password_values():
@@ -45,6 +47,34 @@ def test_readiness_never_returns_password_values():
     result = readiness_environment({"XPEX_PILOT_ADMIN_PASSWORD": password})
     assert result["XPEX_PILOT_ADMIN_PASSWORD"] == "ready"
     assert password not in repr(result)
+
+
+def test_complete_valid_configuration_can_advance_readiness():
+    environment = {name: "configured" for name in (
+        "LEARNHOUSE_AUTH_JWT_SECRET_KEY",
+        "LEARNHOUSE_SQL_CONNECTION_STRING",
+        "LEARNHOUSE_REDIS_CONNECTION_STRING",
+        "LEARNHOUSE_SITE_NAME",
+        "LEARNHOUSE_SITE_DESCRIPTION",
+        "LEARNHOUSE_DEVELOPMENT_MODE",
+        "LEARNHOUSE_TENANCY",
+        "LEARNHOUSE_EMAIL_PROVIDER",
+        "LEARNHOUSE_SYSTEM_EMAIL_ADDRESS",
+    )}
+    environment.update({
+        "LEARNHOUSE_ENV": "test",
+        "ALLOW_PILOT_BOOTSTRAP": "true",
+        **{
+            f"XPEX_PILOT_{prefix}_{field}": (
+                f"{prefix.lower()}-test" if field == "USERNAME"
+                else f"{prefix.lower()}@example.com" if field == "EMAIL"
+                else f"Test-{prefix}-Password-123!"
+            )
+            for prefix in ("ADMIN", "TEACHER", "STUDENT")
+            for field in ("USERNAME", "EMAIL", "PASSWORD")
+        },
+    })
+    assert readiness_environment(environment)["XPEX_PILOT_READINESS"] == "ready"
 
 
 def test_missing_account_environment_is_a_controlled_error_without_keyerror():

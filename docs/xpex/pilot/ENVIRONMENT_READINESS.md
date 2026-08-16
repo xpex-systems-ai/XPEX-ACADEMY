@@ -15,6 +15,8 @@ Execute `cd apps/api && uv run python cli.py xpex-pilot-readiness`. O relatório
 
 O diagnóstico cobre cada um desses dez nomes de bootstrap individualmente. Ausência/whitespace retorna `missing`; gate ou ambiente não permitido retorna `invalid`. O comando de bootstrap usa a mesma lista e recusa configuração incompleta com erro controlado, sem `KeyError` e sem imprimir valores.
 
+`XPEX_PILOT_READINESS` é o estado agregado: somente retorna `ready` quando todos os nomes obrigatórios estão válidos; retorna `pending` se algum estiver ausente e `invalid` se qualquer valor configurado falhar na validação.
+
 Valores secretos pertencem exclusivamente aos secret stores dos provedores. Nunca registre JWT, senha, hash, URL SQL/Redis completa ou token. Armazenamento persistente/S3 é requisito de prontidão para conteúdo, mas não é provisionado nesta missão.
 
 ## Estado operacional esperado

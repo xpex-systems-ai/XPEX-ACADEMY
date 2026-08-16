@@ -5,23 +5,15 @@ export interface LearnHouseMembership {
   org?: { slug?: string }
 }
 
-const ROLE_NAMES: Record<string, XpexExperienceRole> = {
-  admin: 'polo',
-  administrator: 'polo',
-  instructor: 'professora',
-  teacher: 'professora',
-  member: 'aluno',
-  student: 'aluno',
-  user: 'aluno',
+const CANONICAL_ROLE_UUIDS: Record<string, XpexExperienceRole> = {
+  role_global_admin: 'polo',
+  role_global_instructor: 'professora',
+  role_global_user: 'aluno',
 }
 
 export function xpexRoleForMembership(membership: LearnHouseMembership): XpexExperienceRole | null {
-  const candidates = [membership.role?.name, membership.role?.role_uuid]
-  for (const candidate of candidates) {
-    const normalized = candidate?.toLowerCase().replace(/^role_(global|organization)_/, '')
-    if (normalized && ROLE_NAMES[normalized]) return ROLE_NAMES[normalized]
-  }
-  return null
+  const roleUuid = membership.role?.role_uuid?.toLowerCase()
+  return roleUuid ? CANONICAL_ROLE_UUIDS[roleUuid] ?? null : null
 }
 
 export function resolveXpexAccess(

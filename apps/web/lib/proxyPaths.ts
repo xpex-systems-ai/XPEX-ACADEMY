@@ -10,7 +10,12 @@ export function tenantScopedPath(slug: string, pathname: string): string {
 
 /** Accept only same-origin absolute paths for the post-auth bridge. */
 export function safeAuthReturnPath(target: string | null): string {
-  return target?.startsWith('/') && !target.startsWith('//') && !target.includes('\\')
-    ? target
-    : '/xpex'
+  if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return '/xpex'
+  try {
+    const decoded = decodeURIComponent(target)
+    if (decoded.startsWith('//') || decoded.includes('\\') || /[\u0000-\u001f]/.test(decoded)) return '/xpex'
+    return target
+  } catch {
+    return '/xpex'
+  }
 }

@@ -2,9 +2,11 @@
 
 ## Arquitetura reutilizada
 
-Esta missão **não cria autenticação, usuário, organização ou tenant paralelo**. O login usa `apps/api/src/routers/auth.py`; a sessão autenticada vem de `GET /api/v1/users/session`; `User`, `Organization`, `UserOrganization` e `Role` continuam sendo as fontes de verdade. A associação retornada pela API contém, no mesmo registro, a organização e o papel. A experiência `/xpex` filtra essa resposta pelo slug `kelle-digital-lab` e mapeia `Admin → polo`, `Instructor → professora` e `Member → aluno`. Um segmento de URL ou seletor visual nunca concede função.
+Esta missão **não cria autenticação, usuário, organização ou tenant paralelo**. O login usa `apps/api/src/routers/auth.py`; a sessão autenticada vem de `GET /api/v1/users/session`; `User`, `Organization`, `UserOrganization` e `Role` continuam sendo as fontes de verdade. A associação retornada pela API contém, no mesmo registro, a organização e o papel. A experiência `/xpex` filtra essa resposta pelo slug `kelle-digital-lab` e mapeia somente os UUIDs canônicos `role_global_admin → polo`, `role_global_instructor → professora` e `role_global_user → aluno`. Nome semelhante, segmento de URL ou seletor visual nunca concede função.
 
 Os previews `/beta/aluno`, `/beta/professora` e `/beta/polo` continuam públicos e explicitamente fictícios. `/xpex` é o shell autenticado. O cookie marcador `LH_session` serve somente para redirecionamento antecipado; a autorização final depende da sessão obtida da API. Associação ausente, organização diferente ou papel desconhecido falham sem fallback privilegiado e exibem orientação em pt-BR.
+
+As páginas `/xpex` e `/xpex/[role]` resolvem a sessão LearnHouse no servidor antes de renderizar. O parâmetro da rota apenas solicita uma experiência: ele é aceito somente quando a membership da organização piloto contém aquele papel. Alterar a URL, localStorage ou o seletor visual não concede autorização.
 
 ## Fluxos existentes auditados
 

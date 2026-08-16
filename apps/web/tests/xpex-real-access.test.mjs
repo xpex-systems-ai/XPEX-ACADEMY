@@ -1,24 +1,25 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 import { resolveXpexAccess, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
 import { safeAuthReturnPath } from '../lib/proxyPaths.ts'
 
-const membership = (name, slug = 'kelle-digital-lab', role_uuid) => ({ role: { name, role_uuid }, org: { slug } })
+const membership = (role_uuid, slug = 'kelle-digital-lab', name) => ({ role: { name, role_uuid }, org: { slug } })
 
 describe('XpeX server-authoritative role mapping', () => {
   test('maps existing LearnHouse roles without accepting a requested UI role', () => {
-    expect(xpexRoleForMembership(membership('Admin'))).toBe('polo')
-    expect(xpexRoleForMembership(membership('Instructor'))).toBe('professora')
-    expect(xpexRoleForMembership(membership('Member'))).toBe('aluno')
-    expect(xpexRoleForMembership(membership(undefined, 'kelle-digital-lab', 'role_global_user'))).toBe('aluno')
+    expect(xpexRoleForMembership(membership('role_global_admin'))).toBe('polo')
+    expect(xpexRoleForMembership(membership('role_global_instructor'))).toBe('professora')
+    expect(xpexRoleForMembership(membership('role_global_user'))).toBe('aluno')
+    expect(xpexRoleForMembership(membership('custom_role', 'kelle-digital-lab', 'Admin'))).toBeNull()
   })
 
   test('scopes roles to the pilot organization and never elevates unknown roles', () => {
-    expect(resolveXpexAccess([membership('Member'), membership('Admin', 'other-org')], 'kelle-digital-lab')).toEqual(['aluno'])
-    expect(resolveXpexAccess([membership('Owner')], 'kelle-digital-lab')).toEqual([])
+    expect(resolveXpexAccess([membership('role_global_user'), membership('role_global_admin', 'other-org')], 'kelle-digital-lab')).toEqual(['aluno'])
+    expect(resolveXpexAccess([membership('role_unknown')], 'kelle-digital-lab')).toEqual([])
   })
 
   test('allows multiple experiences only when memberships really provide them', () => {
-    expect(resolveXpexAccess([membership('Instructor'), membership('Member')], 'kelle-digital-lab')).toEqual(['professora', 'aluno'])
+    expect(resolveXpexAccess([membership('role_global_instructor'), membership('role_global_user')], 'kelle-digital-lab')).toEqual(['professora', 'aluno'])
   })
 })
 
@@ -39,5 +40,26 @@ describe('safe login return path', () => {
     expect(safeAuthReturnPath('javascript:alert(1)')).toBe('/xpex')
     expect(safeAuthReturnPath('data:text/html,evil')).toBe('/xpex')
     expect(safeAuthReturnPath('/\\evil.example')).toBe('/xpex')
+    expect(safeAuthReturnPath('/%2f%2fevil.example')).toBe('/xpex')
+    expect(safeAuthReturnPath('/%5cevil.example')).toBe('/xpex')
+    expect(safeAuthReturnPath('/%E0%A4%A')).toBe('/xpex')
+  })
+})
+
+describe('server-authoritative XpeX routes', () => {
+  const boundary = readFileSync(new URL('../components/Xpex/AuthenticatedXpexExperience.tsx', import.meta.url), 'utf8')
+  const rolePage = readFileSync(new URL('../app/xpex/[role]/page.tsx', import.meta.url), 'utf8')
+
+  test('resolves the LearnHouse server session before selecting an experience', () => {
+    expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
+    expect(boundary).toContain('const session = await getServerSession()')
+    expect(boundary).toContain("resolveXpexAccess(memberships, PILOT_ORG_SLUG)")
+    expect(boundary).not.toContain("'use client'")
+  })
+
+  test('redirects unauthenticated requests and denies missing, unsupported, or tampered roles', () => {
+    expect(boundary).toContain('if (!session?.user) redirect(')
+    expect(boundary).toContain('if (!role || !roles.includes(role)) return <AccessDenied />')
+    expect(rolePage).toContain('requestedRole={role as XpexExperienceRole}')
   })
 })
