@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from pwdlib.exceptions import PwdlibError
 from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import func
 from sqlmodel import select
@@ -150,15 +151,13 @@ def _assert_existing_user_can_login(user: User, account: PilotAccount) -> None:
             locked_until = datetime.fromisoformat(str(user.locked_until))
             if locked_until.tzinfo is None:
                 locked_until = locked_until.replace(tzinfo=UTC)
-            if locked_until > datetime.now(UTC):
-                raise ValueError(f"Existing account for role {account.role} is locked")
         except ValueError as exc:
-            if "is locked" in str(exc):
-                raise
             raise ValueError(f"Existing account for role {account.role} has an invalid lock state") from exc
+        if locked_until > datetime.now(UTC):
+            raise ValueError(f"Existing account for role {account.role} is locked")
     try:
         password_matches = bool(user.password) and security_verify_password(account.password, user.password)
-    except Exception:
+    except (PwdlibError, TypeError, ValueError):
         password_matches = False
     if not password_matches:
         raise ValueError(

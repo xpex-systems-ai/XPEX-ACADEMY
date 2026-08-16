@@ -172,9 +172,11 @@ def _accounts():
 async def test_three_bootstrap_runs_remain_idempotent():
     db = _StatefulSession()
     environment = {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}
-    with patch("src.services.setup.xpex_pilot.select", side_effect=lambda model: _Query(model)):
-        with patch.dict("os.environ", environment, clear=True):
-            results = [await bootstrap_pilot(db, _accounts()) for _ in range(3)]
+    with (
+        patch("src.services.setup.xpex_pilot.select", side_effect=lambda model: _Query(model)),
+        patch.dict("os.environ", environment, clear=True),
+    ):
+        results = [await bootstrap_pilot(db, _accounts()) for _ in range(3)]
 
     assert all(result == {"organization": "ready", "administrator": "ready", "teacher": "ready", "student": "ready"} for result in results)
     assert len(db.organizations) == 1
@@ -221,9 +223,11 @@ async def test_username_conflict_is_detected_before_any_mutation():
     existing = User(id=99, username="admin-test", email="someone-else@example.test")
     db.execute = AsyncMock(side_effect=[_result(Organization(id=1, name="Pilot", slug="kelle-digital-lab", email="")), _result(None), _result(existing)])
 
-    with patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True):
-        with pytest.raises(ValueError, match="username conflict"):
-            await bootstrap_pilot(db, _accounts())
+    with (
+        patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True),
+        pytest.raises(ValueError, match="username conflict"),
+    ):
+        await bootstrap_pilot(db, _accounts())
 
     db.add.assert_not_called()
     db.commit.assert_not_called()
@@ -251,9 +255,11 @@ async def test_existing_unusable_account_is_refused_without_mutation(verified, l
     )
     db.execute = AsyncMock(side_effect=[_result(Organization(id=1, name="Pilot", slug="kelle-digital-lab", email="")), _result(existing), _result(existing)])
 
-    with patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True):
-        with pytest.raises(ValueError, match=message):
-            await bootstrap_pilot(db, _accounts())
+    with (
+        patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True),
+        pytest.raises(ValueError, match=message),
+    ):
+        await bootstrap_pilot(db, _accounts())
 
     db.add.assert_not_called()
     db.commit.assert_not_called()
@@ -278,9 +284,11 @@ async def test_existing_conflicting_membership_is_refused_before_mutation():
         _result(membership),
     ])
 
-    with patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True):
-        with pytest.raises(ValueError, match="membership conflict"):
-            await bootstrap_pilot(db, _accounts())
+    with (
+        patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True),
+        pytest.raises(ValueError, match="membership conflict"),
+    ):
+        await bootstrap_pilot(db, _accounts())
 
     db.add.assert_not_called()
     db.commit.assert_not_called()
@@ -295,9 +303,11 @@ async def test_intermediate_failure_rolls_back_without_commit():
     db.commit = AsyncMock()
     db.rollback = AsyncMock()
 
-    with patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True):
-        with pytest.raises(RuntimeError, match="simulated failure"):
-            await bootstrap_pilot(db, _accounts())
+    with (
+        patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True),
+        pytest.raises(RuntimeError, match="simulated failure"),
+    ):
+        await bootstrap_pilot(db, _accounts())
 
     db.commit.assert_not_awaited()
     db.rollback.assert_awaited_once()
@@ -318,12 +328,14 @@ async def test_membership_creation_failure_rolls_back_created_user():
 
     def add(value):
         if isinstance(value, UserOrganization):
-            raise RuntimeError("membership insert failed")
+            raise OSError("membership insert failed")
 
     db.add.side_effect = add
-    with patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True):
-        with pytest.raises(RuntimeError, match="membership insert failed"):
-            await bootstrap_pilot(db, _accounts())
+    with (
+        patch.dict("os.environ", {"ALLOW_PILOT_BOOTSTRAP": "true", "LEARNHOUSE_ENV": "test"}, clear=True),
+        pytest.raises(OSError, match="membership insert failed"),
+    ):
+        await bootstrap_pilot(db, _accounts())
 
     db.commit.assert_not_awaited()
     db.rollback.assert_awaited_once()
