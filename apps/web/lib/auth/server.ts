@@ -8,7 +8,11 @@ const REFRESH_TOKEN_COOKIE = 'LH_refresh'
 
 // Types matching the client-side session structure
 export interface Session {
-  user: any | undefined
+  user: {
+    username?: string
+    first_name?: string
+    [key: string]: unknown
+  } | undefined
   roles?: unknown[] | undefined
   tokens?: {
     access_token?: string | undefined
