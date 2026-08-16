@@ -13,7 +13,6 @@ from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.organization_config import OrganizationConfig, OrganizationConfigV2Base
 from src.db.organizations import Organization
 from src.db.roles import Role

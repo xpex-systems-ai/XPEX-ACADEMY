@@ -5,12 +5,11 @@ from typing import Annotated
 
 import typer
 from botocore.exceptions import BotoCoreError, ClientError
+from config.config import get_learnhouse_config
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from config.config import get_learnhouse_config
 from src.db.organizations import OrganizationCreate
 from src.db.users import UserCreate
 from src.services.setup.setup import (

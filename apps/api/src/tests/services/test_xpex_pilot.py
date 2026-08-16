@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
 from src.db.organizations import Organization
 from src.db.roles import Role
 from src.db.user_organizations import UserOrganization
