@@ -42,6 +42,8 @@ describe('safe login return path', () => {
     expect(safeAuthReturnPath('/\\evil.example')).toBe('/xpex')
     expect(safeAuthReturnPath('/%2f%2fevil.example')).toBe('/xpex')
     expect(safeAuthReturnPath('/%5cevil.example')).toBe('/xpex')
+    expect(safeAuthReturnPath('/xpex%00/evil')).toBe('/xpex')
+    expect(safeAuthReturnPath('/xpex%0a/evil')).toBe('/xpex')
     expect(safeAuthReturnPath('/%E0%A4%A')).toBe('/xpex')
   })
 })

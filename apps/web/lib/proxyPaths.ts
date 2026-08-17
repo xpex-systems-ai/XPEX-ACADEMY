@@ -13,7 +13,8 @@ export function safeAuthReturnPath(target: string | null): string {
   if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return '/xpex'
   try {
     const decoded = decodeURIComponent(target)
-    if (decoded.startsWith('//') || decoded.includes('\\') || /[\u0000-\u001f]/.test(decoded)) return '/xpex'
+    const containsControlCharacter = Array.from(decoded).some((character) => character.charCodeAt(0) <= 0x1f)
+    if (decoded.startsWith('//') || decoded.includes('\\') || containsControlCharacter) return '/xpex'
     return target
   } catch {
     return '/xpex'
