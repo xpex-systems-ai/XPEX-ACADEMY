@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { getBackendUrl } from '@services/config/config'
 
 function getAuthBackendUrl(): string {
-  return getBackendUrl().replace(/\/+$/, '')
+  const backendUrl = getBackendUrl().replace(/\/+$/, '')
+  return backendUrl === 'http://localhost' ? 'http://localhost:1338' : backendUrl
 }
 
 // Cookie names (must match the API routes)
