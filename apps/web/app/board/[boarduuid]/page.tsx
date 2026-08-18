@@ -40,12 +40,19 @@ async function BoardEditorPage(props: any) {
     ? params.boarduuid
     : `board_${params.boarduuid}`
 
+  const username =
+    typeof session?.user?.username === 'string'
+      ? session.user.username
+      : typeof session?.user?.email === 'string'
+        ? session.user.email
+        : 'Anonymous'
+
   return (
     <BoardCanvasClient
       boardUuid={boardUuid}
       accessToken={access_token}
       orgslug={orgslug}
-      username={session?.user?.username || session?.user?.email || 'Anonymous'}
+      username={username}
     />
   )
 }

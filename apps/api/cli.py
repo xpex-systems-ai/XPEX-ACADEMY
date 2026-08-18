@@ -1,24 +1,15 @@
-# ruff: noqa: E402
-# stdout/stderr reconfig must run before any other import that might print.
 import asyncio
 import os
 import sys
 from typing import Annotated
 
-# Force UTF-8 so install messages with emoji don't crash cp1252 consoles (Windows).
-for _stream in (sys.stdout, sys.stderr):
-    if hasattr(_stream, "reconfigure"):
-        try:
-            _stream.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
+import typer
+from botocore.exceptions import BotoCoreError, ClientError
+from config.config import get_learnhouse_config
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-import typer
-from config.config import get_learnhouse_config
 from src.db.organizations import OrganizationCreate
 from src.db.users import UserCreate
 from src.services.setup.setup import (
@@ -27,7 +18,57 @@ from src.services.setup.setup import (
     install_default_elements,
 )
 
+# Force UTF-8 so install messages with emoji don't crash cp1252 consoles (Windows).
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError) as exc:
+            print(f"Warning: UTF-8 stream configuration failed: {exc}", file=sys.stderr)
+
 cli = typer.Typer()
+
+
+@cli.command("xpex-pilot-readiness")
+def xpex_pilot_readiness():
+    """Print configuration states without printing configuration values."""
+    from src.services.setup.xpex_pilot import readiness_environment
+    for name, state in readiness_environment().items():
+        print(f"{name}: {state}")
+
+
+@cli.command("xpex-pilot-bootstrap")
+def xpex_pilot_bootstrap():
+    """Create/verify the three explicitly configured non-production test users."""
+    from src.services.setup.xpex_pilot import (
+        PilotConfigurationError,
+        assert_bootstrap_allowed,
+        bootstrap_pilot,
+        pilot_accounts_from_environment,
+    )
+
+    async def run():
+        try:
+            assert_bootstrap_allowed()
+            try:
+                accounts = pilot_accounts_from_environment()
+            except PilotConfigurationError as exc:
+                print(f"Pilot bootstrap refused: {exc}")
+                raise typer.Exit(code=2) from None
+            config = get_learnhouse_config()
+            engine = create_async_engine(_to_async_url(config.database_config.sql_connection_string), pool_pre_ping=True)  # type: ignore
+        except RuntimeError as exc:
+            print(f"Pilot bootstrap refused: {exc}")
+            raise typer.Exit(code=2) from None
+        try:
+            async with AsyncSession(engine, expire_on_commit=False) as session:
+                result = await bootstrap_pilot(session, accounts)
+            print("Pilot bootstrap completed; credentials were not displayed.")
+            for item, state in result.items():
+                print(f"{item}: {state}")
+        finally:
+            await engine.dispose()
+    asyncio.run(run())
 
 
 def _to_async_url(url: str) -> str:
@@ -127,7 +168,7 @@ async def _install_async(short: bool) -> None:
 
                 # Show the user how to login
                 print("Installation completed ✅")
-                print("")
+                print()
                 print("Login with the following credentials:")
                 print("email: " + email)
                 print("password: (the password you set in LEARNHOUSE_INITIAL_ADMIN_PASSWORD)")
@@ -171,7 +212,7 @@ async def _install_async(short: bool) -> None:
 
                 # Show the user how to login
                 print("Installation completed ✅")
-                print("")
+                print()
                 print("Login with the following credentials:")
                 print("email: " + email)
                 print("password: The password you entered")
@@ -195,15 +236,16 @@ def backfill_faststart(
     skipped.
     """
     import tempfile
+
     from src.services.courses.transfer.storage_utils import (
-        is_s3_enabled,
-        get_storage_client,
         get_s3_bucket_name,
+        get_storage_client,
+        is_s3_enabled,
     )
     from src.services.utils.video_processing import (
+        _FASTSTART_EXTENSIONS,
         ensure_faststart,
         is_faststart,
-        _FASTSTART_EXTENSIONS,
     )
 
     if not is_s3_enabled():
@@ -236,7 +278,7 @@ def backfill_faststart(
                         head_bytes = body.read()
                     finally:
                         body.close()  # always release the connection back to the pool
-                except Exception as e:
+                except (BotoCoreError, ClientError, OSError) as e:
                     print(f"  ⚠️  {key}: could not read head ({e})")
                     failed += 1
                     continue
@@ -263,7 +305,7 @@ def backfill_faststart(
                             else:
                                 print(f"    ⚠️  remux skipped/failed for {key}")
                                 failed += 1
-                        except Exception as e:
+                        except (BotoCoreError, ClientError, OSError) as e:
                             print(f"    ❌ error on {key}: {e}")
                             failed += 1
 
@@ -273,7 +315,7 @@ def backfill_faststart(
                     break
             if stop:
                 break
-    except Exception as e:
+    except (BotoCoreError, ClientError, OSError) as e:
         # A pagination/list error must not lose the summary of work already done.
         print(f"⚠️  scan aborted early: {e}")
 
