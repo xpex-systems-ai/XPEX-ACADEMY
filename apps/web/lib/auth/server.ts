@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers'
+import { getBackendUrl } from '@services/config/config'
 
-const BACKEND_URL = (process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL || 'http://localhost:1338').replace(/\/+$/, '')
+function getAuthBackendUrl(): string {
+  return getBackendUrl().replace(/\/+$/, '')
+}
 
 // Cookie names (must match the API routes)
 const ACCESS_TOKEN_COOKIE = 'LH_access'
@@ -29,6 +32,7 @@ export interface Session {
  */
 export async function getServerSession(): Promise<Session | null> {
   try {
+    const backendUrl = getAuthBackendUrl()
     const cookieStore = await cookies()
 
     // Try to get access token directly
@@ -36,7 +40,7 @@ export async function getServerSession(): Promise<Session | null> {
 
     if (accessToken?.value) {
       // Verify the token is valid by fetching session from backend
-      const sessionResponse = await fetch(`${BACKEND_URL}/api/v1/users/session`, {
+      const sessionResponse = await fetch(`${backendUrl}/api/v1/users/session`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken.value}`,
@@ -67,7 +71,7 @@ export async function getServerSession(): Promise<Session | null> {
     }
 
     // Exchange refresh token for new access token via backend
-    const refreshResponse = await fetch(`${BACKEND_URL}/api/v1/auth/refresh`, {
+    const refreshResponse = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
       method: 'GET',
       headers: {
         Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}`,
@@ -87,7 +91,7 @@ export async function getServerSession(): Promise<Session | null> {
     }
 
     // Fetch user session with the new access token
-    const sessionResponse = await fetch(`${BACKEND_URL}/api/v1/users/session`, {
+    const sessionResponse = await fetch(`${backendUrl}/api/v1/users/session`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${refreshData.access_token}`,
@@ -129,6 +133,7 @@ export async function getServerSession(): Promise<Session | null> {
  */
 export async function getServerAccessToken(): Promise<string | null> {
   try {
+    const backendUrl = getAuthBackendUrl()
     const cookieStore = await cookies()
 
     // Try access token first
@@ -143,7 +148,7 @@ export async function getServerAccessToken(): Promise<string | null> {
       return null
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/auth/refresh`, {
+    const response = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
       method: 'GET',
       headers: {
         Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}`,

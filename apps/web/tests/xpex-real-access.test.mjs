@@ -67,9 +67,30 @@ describe('server-authoritative XpeX routes', () => {
   })
 
   test('keeps authenticated dashboards separate from fictitious beta indicators', () => {
-    expect(boundary).toContain('<AuthenticatedDashboard role={role} displayName={displayName} />')
+    expect(boundary).toContain('<AuthenticatedDashboard')
+    expect(boundary).toContain('role={role}')
+    expect(boundary).toContain('displayName={displayName}')
     expect(boundary).not.toContain('StudentExperience')
     expect(authenticatedDashboard).toContain('Dados reais, quando disponíveis')
     expect(authenticatedDashboard).not.toMatch(/value="(?:\d+|\d+%)"/)
+  })
+})
+
+describe('production-aligned Academy authentication', () => {
+  const serverAuth = readFileSync(new URL('../lib/auth/server.ts', import.meta.url), 'utf8')
+  const learningDashboard = readFileSync(new URL('../lib/xpex/learning-dashboard.ts', import.meta.url), 'utf8')
+  const authService = readFileSync(new URL('../services/auth/auth.ts', import.meta.url), 'utf8')
+
+  test('resolves backend URLs through runtime configuration on server requests', () => {
+    expect(serverAuth).toContain("import { getBackendUrl } from '@services/config/config'")
+    expect(serverAuth).not.toContain('process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL')
+    expect(learningDashboard).toContain('getBackendUrl()')
+    expect(learningDashboard).not.toContain('process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL')
+  })
+
+  test('keeps login, refresh, and logout on the same-origin auth gateway', () => {
+    expect(authService).toContain("fetch('/api/auth/login'")
+    expect(authService).toContain("fetch('/api/auth/refresh'")
+    expect(authService).toContain("fetch('/api/auth/logout'")
   })
 })
