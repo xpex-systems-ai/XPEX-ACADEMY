@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 
+  const firstName = typeof session?.user?.first_name === 'string' ? session.user.first_name : undefined
+  const lastName = typeof session?.user?.last_name === 'string' ? session.user.last_name : undefined
+
   let orgSlug: string | undefined
   let onboarding: Record<string, unknown> | null = null
   try {
@@ -33,8 +36,8 @@ export async function POST(request: NextRequest) {
 
   void recordOrgAdminInLoops(email, {
     orgSlug,
-    firstName: session?.user?.first_name || undefined,
-    lastName: session?.user?.last_name || undefined,
+    firstName,
+    lastName,
   }).catch(() => {})
 
   // Onboarding choices → Loops contact properties (use_types, chosen_plans,
