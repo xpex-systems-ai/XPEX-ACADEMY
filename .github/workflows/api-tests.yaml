@@ -43,6 +43,10 @@ jobs:
           TESTING: "true"
 
       - name: Upload API coverage to Codecov
+        # Coverage reporting is observability, not the correctness gate. Keep
+        # Codecov strict internally so failures remain visible in the step,
+        # but do not turn a third-party outage into a failed API test run.
+        continue-on-error: true
         uses: codecov/codecov-action@v7
         with:
           files: apps/api/coverage.xml
@@ -50,6 +54,7 @@ jobs:
           name: api-coverage
           use_oidc: true
           fail_ci_if_error: true
+          verbose: true
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
