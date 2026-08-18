@@ -51,6 +51,7 @@ describe('safe login return path', () => {
 describe('server-authoritative XpeX routes', () => {
   const boundary = readFileSync(new URL('../components/Xpex/AuthenticatedXpexExperience.tsx', import.meta.url), 'utf8')
   const rolePage = readFileSync(new URL('../app/xpex/[role]/page.tsx', import.meta.url), 'utf8')
+  const authenticatedDashboard = readFileSync(new URL('../components/Xpex/experiences/AuthenticatedDashboard.tsx', import.meta.url), 'utf8')
 
   test('resolves the LearnHouse server session before selecting an experience', () => {
     expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
@@ -63,5 +64,12 @@ describe('server-authoritative XpeX routes', () => {
     expect(boundary).toContain('if (!session?.user) redirect(')
     expect(boundary).toContain('if (!role || !roles.includes(role)) return <AccessDenied />')
     expect(rolePage).toContain('requestedRole={role as XpexExperienceRole}')
+  })
+
+  test('keeps authenticated dashboards separate from fictitious beta indicators', () => {
+    expect(boundary).toContain('<AuthenticatedDashboard role={role} displayName={displayName} />')
+    expect(boundary).not.toContain('StudentExperience')
+    expect(authenticatedDashboard).toContain('Dados reais, quando disponíveis')
+    expect(authenticatedDashboard).not.toMatch(/value="(?:\d+|\d+%)"/)
   })
 })
