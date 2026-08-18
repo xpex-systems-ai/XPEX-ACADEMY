@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta, datetime, timezone
 from typing import Literal, Optional
 from fastapi import Depends, APIRouter, HTTPException, Response, status, Request, Form
@@ -58,7 +57,6 @@ def get_token_expiry_ms() -> Optional[int]:
 
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 def get_cookie_domain_for_request(request: Request) -> str | None:
@@ -406,7 +404,6 @@ async def login(
                 ip_address=get_client_ip(request),
             )
 
-        logger.warning("auth_login_failure reason=invalid_credentials")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
@@ -423,7 +420,6 @@ async def login(
     # Step 3: Enforce lockout from prior failed attempts.
     is_pre_locked, pre_lock_remaining = check_account_locked(user)
     if is_pre_locked and pre_lock_remaining:
-        logger.warning("auth_login_failure reason=account_locked")
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail={
@@ -435,7 +431,6 @@ async def login(
 
     # Step 4: Check email verification (required for SaaS login only)
     if not user.email_verified and get_deployment_mode() == 'saas':
-        logger.warning("auth_login_failure reason=email_not_verified")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -469,7 +464,6 @@ async def login(
             "expiry": get_token_expiry_ms(),
         },
     }
-    logger.info("auth_login_success")
     return result
 
 
