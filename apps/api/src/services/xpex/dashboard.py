@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.activities import Activity
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.chapters import Chapter
@@ -72,7 +71,7 @@ async def get_student_dashboard(
                 select(Course).where(
                     Course.id.in_(course_ids),
                     Course.org_id == membership.id,
-                    Course.published == True,  # noqa: E712
+                    Course.published == True,
                 )
             )
         ).scalars().all()
@@ -113,7 +112,7 @@ async def get_student_dashboard(
                 ChapterActivity.org_id == membership.id,
                 Activity.org_id == membership.id,
                 Chapter.org_id == membership.id,
-                Activity.published == True,  # noqa: E712
+                Activity.published == True,
             )
             .order_by(
                 ChapterActivity.course_id,
