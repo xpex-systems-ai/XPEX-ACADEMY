@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   const session = await getServerSession()
-  const email = session?.user?.email
+  const email = typeof session?.user?.email === 'string' ? session.user.email : undefined
   if (!email) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
