@@ -16,10 +16,10 @@ const identities = {
   polo: ['Kelle Digital Lab', 'Área do polo'],
 } as const
 
-function Brand() {
+function Brand({ mode }: { mode: 'demo' | 'authenticated' }) {
   return (
     <Link
-      href="/xpex"
+      href={mode === 'authenticated' ? '/xpex' : '/'}
       className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
     >
       <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 font-black text-white shadow-[0_0_28px_rgba(255,106,0,.28)]">
@@ -72,7 +72,7 @@ export function XpexAppShell({
         className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-[#050d18]/95 p-5 backdrop-blur-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex items-center justify-between">
-          <Brand />
+          <Brand mode={mode} />
           <button
             aria-label="Fechar menu"
             onClick={() => setOpen(false)}
@@ -175,20 +175,34 @@ export function XpexAppShell({
                   ))}
                 </nav>
               )}
-              <Link
-                href="#perfil"
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] p-1.5 pr-3"
-              >
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 text-xs font-black text-white">
-                  {name.slice(0, 2).toUpperCase()}
-                </span>
-                <span className="hidden md:block">
-                  <strong className="block text-xs text-white">{name}</strong>
-                  <small className="text-[10px] text-slate-500">
-                    {subtitle}
-                  </small>
-                </span>
-              </Link>
+              {mode === 'authenticated' ? (
+                <Link
+                  href="#perfil"
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] p-1.5 pr-3"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 text-xs font-black text-white">
+                    {name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="hidden md:block">
+                    <strong className="block text-xs text-white">{name}</strong>
+                    <small className="text-[10px] text-slate-500">
+                      {subtitle}
+                    </small>
+                  </span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] p-1.5 pr-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 text-xs font-black text-white">
+                    {name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="hidden md:block">
+                    <strong className="block text-xs text-white">{name}</strong>
+                    <small className="text-[10px] text-slate-500">
+                      {subtitle}
+                    </small>
+                  </span>
+                </div>
+              )}
               {mode === 'authenticated' && (
                 <button
                   type="button"
