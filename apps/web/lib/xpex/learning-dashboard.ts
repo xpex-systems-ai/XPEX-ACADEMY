@@ -1,3 +1,5 @@
+import { getBackendUrl } from '@services/config/config'
+
 export type XpexLearningCourse = {
   course_id: string
   title: string
@@ -22,12 +24,12 @@ export type XpexLearningDashboardData = {
   continue_learning: XpexLearningCourse | null
 }
 
-const backendUrl = (process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL || 'http://localhost:1338').replace(/\/+$/, '')
-
 export async function getXpexLearningDashboard(
   accessToken: string,
   organizationSlug: string
 ): Promise<XpexLearningDashboardData> {
+  const resolvedBackendUrl = getBackendUrl().replace(/\/+$/, '')
+  const backendUrl = resolvedBackendUrl === 'http://localhost' ? 'http://localhost:1338' : resolvedBackendUrl
   const response = await fetch(
     `${backendUrl}/api/v1/xpex/learning-dashboard?organization_slug=${encodeURIComponent(organizationSlug)}`,
     { headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store' }

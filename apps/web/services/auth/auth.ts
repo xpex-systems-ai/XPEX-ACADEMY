@@ -6,10 +6,8 @@ import { getErrorMessage } from '@services/utils/ts/errorMessage'
 // security hardening (cookie clearing, open-redirect guards, session-marker
 // handling, OAuth redirect validation) now lives in the same-origin proxy
 // (app/api/auth/[...path]) + AuthContext + services/auth/{cookies,redirects}.
-// REMAINING CLEANUP: several wrappers below still hit the backend DIRECTLY
-// (loginAndGetToken, refresh, logout, getUserSession) instead of going through
-// the /api/auth/* same-origin proxy, so they do not set/clear .io-origin
-// cookies. Prefer the proxy path for any new auth call; consolidate these over.
+// Session-changing requests use the same-origin gateway so production runtime
+// configuration and cookie scope are handled in one server-authoritative place.
 
 export async function loginAndGetToken(
   username: any,
@@ -35,7 +33,7 @@ export async function loginAndGetToken(
   }
 
   // fetch using await and async
-  const response = await fetch(`${getAPIUrl()}auth/login`, requestOptions)
+  const response = await fetch('/api/auth/login', requestOptions)
   return response
 }
 
@@ -119,7 +117,7 @@ export async function logout(): Promise<any> {
   }
 
   // fetch using await and async
-  const response = await fetch(`${getAPIUrl()}auth/logout`, requestOptions)
+  const response = await fetch('/api/auth/logout', requestOptions)
   return response
 }
 
@@ -174,7 +172,7 @@ export async function getNewAccessTokenUsingRefreshToken(): Promise<any> {
     credentials: 'include',
   }
 
-  return fetch(`${getAPIUrl()}auth/refresh`, requestOptions)
+  return fetch('/api/auth/refresh', requestOptions)
     .then((result) => result.json())
     .catch((error) => console.log('error', error))
 }

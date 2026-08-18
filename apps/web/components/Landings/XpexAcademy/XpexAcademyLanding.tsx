@@ -36,7 +36,7 @@ export function XpexAcademyLanding() {
             <a href="#como-funciona" className={`hover:text-[#16D9FF] ${focusRing}`}>Como funciona</a>
             <a href="#transparencia" className={`hover:text-[#16D9FF] ${focusRing}`}>Transparência</a>
           </div>
-          <div className="flex items-center gap-2"><Link href="/beta/aluno" className={`rounded-full bg-[#FF6A00] px-4 py-2 text-sm font-black text-white shadow-[0_0_28px_rgba(255,106,0,0.22)] hover:bg-[#FF8A2A] ${focusRing}`}>Explorar experiência</Link><Link href="/login" className={`rounded-full border border-[rgba(148,163,184,0.22)] px-4 py-2 text-sm font-bold text-white hover:border-[#16D9FF] hover:bg-[#16D9FF]/10 ${focusRing}`}>Entrar</Link></div>
+          <div className="flex items-center gap-2"><Link href="/beta" className={`rounded-full bg-[#FF6A00] px-4 py-2 text-sm font-black text-white shadow-[0_0_28px_rgba(255,106,0,0.22)] hover:bg-[#FF8A2A] ${focusRing}`}>Ver demonstração</Link><Link href="/login?next=%2Fxpex" className={`rounded-full border border-[rgba(148,163,184,0.22)] px-4 py-2 text-sm font-bold text-white hover:border-[#16D9FF] hover:bg-[#16D9FF]/10 ${focusRing}`}>Entrar na Academy</Link></div>
         </nav>
       </header>
 
