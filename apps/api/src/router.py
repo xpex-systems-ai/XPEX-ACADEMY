@@ -68,7 +68,6 @@ from src.security.features_utils.plan_check import (
 )
 from src.services.dev.dev import isDevModeEnabledOrRaise
 
-
 v1_router = APIRouter(prefix="/api/v1")
 
 # Helper dependency to reject API token access (still admits AnonymousUser —
