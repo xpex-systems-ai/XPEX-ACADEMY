@@ -29,6 +29,12 @@ def progress_percent(completed: int, total: int) -> int | None:
     return round(min(completed, total) / total * 100)
 
 
+def _lock_name(lock_type: object | None) -> str:
+    """Normalize str-backed lock enums without relying on Enum.__str__."""
+    value = getattr(lock_type, "value", lock_type) or "public"
+    return str(value).lower()
+
+
 async def get_student_dashboard(
     user: PublicUser, organization_slug: str, db_session: AsyncSession
 ) -> dict | None:
@@ -106,6 +112,7 @@ async def get_student_dashboard(
                 ChapterActivity.course_id.in_(active_ids),
                 ChapterActivity.org_id == membership.id,
                 Activity.org_id == membership.id,
+                Chapter.org_id == membership.id,
                 Activity.published == True,  # noqa: E712
             )
             .order_by(
@@ -120,7 +127,7 @@ async def get_student_dashboard(
         resource_uuid
         for row in ordered_scope
         for lock_type, resource_uuid in ((row[3], row[2]), (row[5], row[4]))
-        if str(lock_type or "public").lower() == "restricted" and resource_uuid
+        if _lock_name(lock_type) == "restricted" and resource_uuid
     }
     admin = await is_org_admin(user.id, membership.id, db_session)
     accessible_restricted = await batch_accessible_restricted_uuids(
