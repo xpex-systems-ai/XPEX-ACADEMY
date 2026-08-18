@@ -1,4 +1,6 @@
 import { BookOpen, CircleUserRound, Compass, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
+import type { XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
 import type { XpexRole } from '../xpex-types'
 import {
   XpexBadge,
@@ -43,9 +45,13 @@ const experience = {
 export function AuthenticatedDashboard({
   role,
   displayName,
+  learningData,
+  learningDataFailed = false,
 }: {
   role: XpexRole
   displayName: string
+  learningData?: XpexLearningDashboardData | null
+  learningDataFailed?: boolean
 }) {
   const content = experience[role]
   return (
@@ -73,17 +79,43 @@ export function AuthenticatedDashboard({
             </span>
           }
         />
+        {role === 'aluno' && learningData?.courses.length ? (
+          <div className="mt-6 space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Metric label="Cursos ativos" value={learningData.summary.active_courses} />
+              <Metric label="Aulas concluídas" value={`${learningData.summary.completed_lessons}/${learningData.summary.total_lessons}`} />
+              {learningData.summary.overall_progress_percent !== null && (
+                <Metric label="Progresso geral" value={`${learningData.summary.overall_progress_percent}%`} />
+              )}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {learningData.courses.map((course) => (
+                <article key={course.course_id} className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">Curso da sua matrícula</p>
+                  <h2 className="mt-2 text-lg font-black text-white">{course.title}</h2>
+                  {course.progress_percent !== null ? (
+                    <p className="mt-2 text-sm text-slate-400">{course.completed_lessons} de {course.total_lessons} aulas concluídas · {course.progress_percent}%</p>
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-400">Este curso ainda não possui aulas publicadas para calcular o progresso.</p>
+                  )}
+                  <Link href={course.target_href} className="mt-5 inline-flex rounded-lg bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950">Continuar aprendendo</Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : (
         <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-white/15 bg-black/20 p-8 text-center">
           <div className="max-w-lg">
             <Compass className="mx-auto text-cyan-300" size={38} />
             <h2 className="mt-4 text-xl font-black text-white">
-              {content.emptyTitle}
+              {learningDataFailed ? 'Não foi possível carregar sua jornada' : role === 'aluno' ? 'Nenhum curso disponível ainda' : content.emptyTitle}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-400">
-              {content.emptyCopy}
+              {learningDataFailed ? 'Tente novamente em instantes. Seus dados de aprendizagem permanecem seguros.' : content.emptyCopy}
             </p>
           </div>
         </div>
+        )}
       </XpexPanel>
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -111,4 +143,8 @@ export function AuthenticatedDashboard({
       </div>
     </div>
   )
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return <div className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-2xl font-black text-white">{value}</p></div>
 }

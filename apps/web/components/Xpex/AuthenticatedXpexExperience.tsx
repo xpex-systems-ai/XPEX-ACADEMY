@@ -7,6 +7,7 @@ import {
 } from '@/lib/xpex/access'
 import { AuthenticatedDashboard } from './experiences/AuthenticatedDashboard'
 import { XpexAppShell } from './XpexAppShell'
+import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 
 const PILOT_ORG_SLUG = 'kelle-digital-lab'
 
@@ -47,6 +48,19 @@ export async function AuthenticatedXpexExperience({
 
   const displayName =
     session.user.first_name || session.user.username || 'Pessoa participante'
+  let learningData = null
+  let learningDataFailed = false
+  if (role === 'aluno' && session.tokens?.access_token) {
+    try {
+      learningData = await getXpexLearningDashboard(
+        session.tokens.access_token,
+        PILOT_ORG_SLUG
+      )
+    } catch (error) {
+      learningDataFailed = true
+      console.error('[XPEX_DASHBOARD] Unable to load learner dashboard', error)
+    }
+  }
   return (
     <XpexAppShell
       role={role}
@@ -54,7 +68,12 @@ export async function AuthenticatedXpexExperience({
       allowedRoles={roles}
       displayName={displayName}
     >
-      <AuthenticatedDashboard role={role} displayName={displayName} />
+      <AuthenticatedDashboard
+        role={role}
+        displayName={displayName}
+        learningData={learningData}
+        learningDataFailed={learningDataFailed}
+      />
     </XpexAppShell>
   )
 }

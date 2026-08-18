@@ -7,7 +7,7 @@ from src.routers import health
 from src.routers import instance
 from src.routers import plans
 from src.routers import usergroups
-from src.routers import dev, trail, users, auth, orgs, roles, search
+from src.routers import dev, trail, users, auth, orgs, roles, search, xpex
 from src.routers import monitoring
 from src.routers import stream
 from src.routers import api_tokens
@@ -61,6 +61,12 @@ async def get_non_api_token_user(user = Depends(get_current_user)):
 require_authenticated_user = get_authenticated_non_api_token_user
 
 # API Routes
+v1_router.include_router(
+    xpex.router,
+    prefix="/xpex",
+    tags=["xpex"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 v1_router.include_router(
     users.router,
     prefix="/users",
