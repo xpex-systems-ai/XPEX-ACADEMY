@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
-
 from src.core.deployment_mode import get_deployment_mode
 from src.core.ee_hooks import register_ee_routers
+from src.routers import admin as admin_router_module
+from src.routers import analytics as analytics_router_module
 from src.routers import (
     api_tokens,
     auth,
@@ -22,8 +23,6 @@ from src.routers import (
     webhooks,
     xpex,
 )
-from src.routers import admin as admin_router_module
-from src.routers import analytics as analytics_router_module
 from src.routers.ai import (
     ai,
     assignment_gen,
