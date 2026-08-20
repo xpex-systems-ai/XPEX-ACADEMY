@@ -88,6 +88,17 @@ const isDeployedRuntime = (): boolean =>
   process.env.VERCEL === '1'
   || Boolean(process.env.VERCEL_ENV)
   || process.env.LEARNHOUSE_DEPLOYED === 'true'
+  || (process.env.NODE_ENV === 'production' && process.env.LEARNHOUSE_LOCAL_DEVELOPMENT !== 'true')
+
+const normalizeHostname = (hostname: string): string =>
+  hostname.toLowerCase().replace(/^\[|\]$/g, '')
+
+const isLoopbackHostname = (hostname: string): boolean => {
+  const normalized = normalizeHostname(hostname)
+  return normalized === 'localhost'
+    || normalized === '::1'
+    || /^127(?:\.\d{1,3}){3}$/.test(normalized)
+}
 
 export type BackendConfigurationStatus = {
   configured: boolean
@@ -110,7 +121,7 @@ export const inspectBackendConfiguration = (
   }
 
   if (deployed && url.protocol !== 'https:') return { configured: false, deployed, reason: 'https_required' }
-  if (deployed && ['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
+  if (deployed && isLoopbackHostname(url.hostname)) {
     return { configured: false, deployed, reason: 'localhost_forbidden' }
   }
   if (url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
@@ -172,7 +183,6 @@ export const getLEARNHOUSE_PLATFORM_URL_VAL = getLEARNHOUSE_PLATFORM_URL
 // These are computed once at module load, but getConfig uses runtime values
 // For middleware/proxy (where runtime is critical), use the getter functions instead
 export const LEARNHOUSE_HTTP_PROTOCOL = getLEARNHOUSE_HTTP_PROTOCOL()
-export const LEARNHOUSE_BACKEND_URL = getLEARNHOUSE_BACKEND_URL()
 export const LEARNHOUSE_DOMAIN = getLEARNHOUSE_DOMAIN()
 export const LEARNHOUSE_TOP_DOMAIN = getLEARNHOUSE_TOP_DOMAIN()
 
@@ -451,6 +461,5 @@ export const getDefaultOrg = () => {
   // 3. Default
   return 'default'
 }
-
 
 

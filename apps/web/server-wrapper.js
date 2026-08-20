@@ -27,7 +27,10 @@ Object.keys(env).forEach((key) => {
 
 // A deployed standalone server must never boot with an implicit/local upstream.
 const backendUrl = runtimeConfig.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL;
-const deployed = env.VERCEL === '1' || Boolean(env.VERCEL_ENV) || env.LEARNHOUSE_DEPLOYED === 'true';
+const deployed = env.VERCEL === '1'
+  || Boolean(env.VERCEL_ENV)
+  || env.LEARNHOUSE_DEPLOYED === 'true'
+  || (env.NODE_ENV === 'production' && env.LEARNHOUSE_LOCAL_DEVELOPMENT !== 'true');
 if (deployed) {
   let parsed;
   try {
@@ -35,7 +38,9 @@ if (deployed) {
   } catch {
     throw new Error('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL must be an absolute HTTPS origin');
   }
-  if (parsed.protocol !== 'https:' || ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) {
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const loopback = hostname === 'localhost' || hostname === '::1' || /^127(?:\.\d{1,3}){3}$/.test(hostname);
+  if (parsed.protocol !== 'https:' || loopback) {
     throw new Error('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL must be a public HTTPS origin in deployed mode');
   }
   if (parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) {
