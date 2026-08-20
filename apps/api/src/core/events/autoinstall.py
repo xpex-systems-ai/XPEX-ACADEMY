@@ -30,21 +30,33 @@ def _to_async_url(url: str) -> str:
 
 
 async def reconcile_initial_install(db_session: AsyncSession) -> None:
-    """Idempotently ensure the initial organization and administrator exist.
+    """Reconcile bootstrap state without changing established installations.
 
-    This deliberately reconciles each resource independently. In particular, an
-    organization left behind by an interrupted first boot must not suppress
-    creation of the initial administrator on the next boot.
+    Bootstrap is opt-in once any data exists. This lets a partially installed
+    deployment finish when its initial admin email is still configured, while a
+    mature deployment whose one-time bootstrap variables were removed only gets
+    the idempotent global-role refresh.
     """
     await install_default_elements(db_session)
 
+    organizations = (await db_session.execute(select(Organization))).scalars().all()
+    users = (await db_session.execute(select(User))).scalars().all()
+    email = os.environ.get("LEARNHOUSE_INITIAL_ADMIN_EMAIL")
+    password = os.environ.get("LEARNHOUSE_INITIAL_ADMIN_PASSWORD")
     org_name = os.environ.get("LEARNHOUSE_INITIAL_ORG_NAME", "Default Organization")
     org_slug = os.environ.get("LEARNHOUSE_INITIAL_ORG_SLUG", "default").lower()
-    org = (
-        await db_session.execute(
-            select(Organization).where(Organization.slug == org_slug)
-        )
-    ).scalars().first()
+
+    empty_install = not organizations and not users
+    org = next((item for item in organizations if item.slug == org_slug), None)
+
+    if empty_install:
+        if not email or not password:
+            logger.info("Empty installation has no complete bootstrap configuration; skipping seed data")
+            return
+    elif org is None or not email:
+        logger.info("Established installation detected; initial seed reconciliation skipped")
+        return
+
     if org is None:
         org = await install_create_organization(
             OrganizationCreate(
@@ -61,16 +73,15 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
         )
         logger.info("Initial organization created (slug=%s)", org_slug)
 
-    email = os.environ.get("LEARNHOUSE_INITIAL_ADMIN_EMAIL", "admin@school.dev")
     user = (
         await db_session.execute(select(User).where(User.email == email))
     ).scalars().first()
     if user is None:
-        password = os.environ.get("LEARNHOUSE_INITIAL_ADMIN_PASSWORD")
         if not password:
-            raise RuntimeError(
-                "LEARNHOUSE_INITIAL_ADMIN_PASSWORD is required to create the initial administrator"
+            logger.warning(
+                "Initial administrator is absent but bootstrap password is not configured; skipping creation"
             )
+            return
         created = await install_create_organization_user(
             UserCreate(username="admin", email=email, password=password),
             org_slug,
