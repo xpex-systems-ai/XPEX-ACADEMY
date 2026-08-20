@@ -25,6 +25,24 @@ Object.keys(env).forEach((key) => {
   }
 });
 
+// A deployed standalone server must never boot with an implicit/local upstream.
+const backendUrl = runtimeConfig.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL;
+const deployed = env.VERCEL === '1' || Boolean(env.VERCEL_ENV) || env.LEARNHOUSE_DEPLOYED === 'true';
+if (deployed) {
+  let parsed;
+  try {
+    parsed = new URL(backendUrl);
+  } catch {
+    throw new Error('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL must be an absolute HTTPS origin');
+  }
+  if (parsed.protocol !== 'https:' || ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) {
+    throw new Error('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL must be a public HTTPS origin in deployed mode');
+  }
+  if (parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) {
+    throw new Error('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL must contain only the backend origin (no /api/v1 path)');
+  }
+}
+
 // Write runtime config JSON file
 const configPath = path.join(__dirname, 'runtime-config.json');
 fs.writeFileSync(configPath, JSON.stringify(runtimeConfig, null, 2), 'utf8');
@@ -60,4 +78,3 @@ if (!process.env.PORT) {
 // Now require and run the actual Next.js server
 // The server.js is in the same directory (standalone output)
 require('./server.js');
-

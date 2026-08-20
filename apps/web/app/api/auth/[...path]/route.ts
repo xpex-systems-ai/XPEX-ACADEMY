@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getConfig } from '@services/config/config'
+import { getBackendUrl } from '@services/config/config'
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -11,7 +11,7 @@ import {
 } from '@services/auth/cookies'
 import { isLocalhost } from '@services/utils/ts/hostUtils'
 
-const BACKEND_URL = (getConfig('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL') || 'http://localhost:1338').replace(/\/+$/, '')
+const configuredBackendUrl = () => getBackendUrl().replace(/\/+$/, '')
 
 // Paths that return tokens in response body (relative to /api/v1/auth/)
 // `verify-email` auto-signs-in the user on successful email verification, so
@@ -103,7 +103,7 @@ async function proxyRequest(
   const search = request.nextUrl.search
 
   // Map to backend URL: /api/auth/login -> /api/v1/auth/login
-  const backendUrl = `${BACKEND_URL}/api/v1/auth/${pathSegments}${search}`
+  const backendUrl = `${configuredBackendUrl()}/api/v1/auth/${pathSegments}${search}`
 
   // Build headers
   const headers: HeadersInit = {}
@@ -163,7 +163,7 @@ async function proxyRequest(
       // Backend logout is DELETE /auth/logout — using POST returned 405 and
       // silently skipped server-side session revocation, so revoked tokens
       // stayed valid until natural expiry. Match the contract and surface drift.
-      const logoutRes = await fetch(`${BACKEND_URL}/api/v1/auth/logout`, {
+      const logoutRes = await fetch(`${configuredBackendUrl()}/api/v1/auth/logout`, {
         method: 'DELETE',
         headers: logoutHeaders,
         signal: AbortSignal.timeout(3000),
