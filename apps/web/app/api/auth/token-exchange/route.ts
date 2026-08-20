@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getConfig } from '@services/config/config'
+import { getBackendUrl, getConfig } from '@services/config/config'
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -8,7 +8,7 @@ import {
   getCookieOptions,
 } from '@services/auth/cookies'
 
-const BACKEND_URL = (getConfig('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL') || 'http://localhost:1338').replace(/\/+$/, '')
+const configuredBackendUrl = () => getBackendUrl().replace(/\/+$/, '')
 // Dormant cross-domain handoff safety valve. Post learnhouse.app deprecation the
 // .io apex and org subdomains share .{top_domain} cookies, so this route is no
 // longer used by the app (handleGoToOrg navigates directly). No hardcoded .app
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     if (refresh_token) {
       try {
         const refreshRes = await fetchWithRetry(
-          `${BACKEND_URL}/api/v1/auth/refresh`,
+          `${configuredBackendUrl()}/api/v1/auth/refresh`,
           {
             method: 'GET',
             headers: backendHeaders(request, {
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
     let sessionRes: Response
     try {
       sessionRes = await fetchWithRetry(
-        `${BACKEND_URL}/api/v1/users/session`,
+        `${configuredBackendUrl()}/api/v1/users/session`,
         {
           headers: backendHeaders(request, {
             Authorization: `Bearer ${access_token}`,
