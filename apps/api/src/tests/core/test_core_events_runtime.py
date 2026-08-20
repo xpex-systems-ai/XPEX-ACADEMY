@@ -7,12 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
-import src.core.ee_hooks as ee_hooks
-import src.core.events.autoinstall as autoinstall
-import src.core.events.content as content_events
-import src.core.events.events as core_events
-import src.core.events.logs as logs_events
+from src.core import ee_hooks
+from src.core.events import autoinstall, content, events, logs
 
 
 class _FakeResult:
@@ -46,7 +42,6 @@ class _FakeSession:
 async def test_auto_install_branches(monkeypatch):
     create_all_calls = []
     installs = []
-    refreshes = []
 
     fake_config = SimpleNamespace(
         database_config=SimpleNamespace(sql_connection_string="sqlite:///fake.db")
@@ -66,8 +61,8 @@ async def test_auto_install_branches(monkeypatch):
         async def dispose(self):
             pass
 
-    async def fake_install_default_elements(db):
-        refreshes.append(db)
+    async def fake_reconcile(db):
+        installs.append(db)
 
     monkeypatch.setattr(autoinstall, "get_learnhouse_config", lambda: fake_config)
     monkeypatch.setattr(autoinstall, "create_engine", lambda *args, **kwargs: SimpleNamespace(dispose=lambda: None))
@@ -78,33 +73,16 @@ async def test_auto_install_branches(monkeypatch):
         "create_all",
         lambda engine: create_all_calls.append(engine),
     )
-    monkeypatch.setattr(autoinstall, "install_default_elements", fake_install_default_elements)
-
-    monkeypatch.setattr(
-        autoinstall,
-        "Session",
-        lambda engine: _FakeSession(None),
-    )
-    async def fake_install_async(short=True):
-        installs.append(short)
-
-    monkeypatch.setattr(autoinstall, "_install_async", fake_install_async)
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 
     assert create_all_calls and len(create_all_calls) == 1
-    assert installs == [True]
-    assert refreshes == []  # bootstrap path returns before refresh
+    assert installs == [fake_session]
 
-    monkeypatch.setattr(
-        autoinstall,
-        "Session",
-        lambda engine: _FakeSession(SimpleNamespace(slug="anything")),
-    )
     await autoinstall.auto_install()
 
-    assert installs == [True]
-    assert len(refreshes) == 1  # existing-install path always refreshes
+    assert installs == [fake_session, fake_session]
 
 
 @pytest.mark.parametrize(
@@ -153,7 +131,7 @@ async def test_auto_install_normalises_async_connection_string(
         async def dispose(self):
             pass
 
-    async def fake_install_default_elements(db):
+    async def fake_reconcile(db):
         refreshes.append(db)
 
     def fake_create_async_engine(conn, *args, **kwargs):
@@ -169,13 +147,7 @@ async def test_auto_install_normalises_async_connection_string(
         autoinstall, "async_sessionmaker", lambda *a, **k: _FakeAsyncSessionmaker()
     )
     monkeypatch.setattr(autoinstall.SQLModel.metadata, "create_all", lambda engine: None)
-    monkeypatch.setattr(
-        autoinstall, "install_default_elements", fake_install_default_elements
-    )
-    # An existing org forces the refresh path (which builds the async engine).
-    monkeypatch.setattr(
-        autoinstall, "Session", lambda engine: _FakeSession(SimpleNamespace(slug="x"))
-    )
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 
@@ -189,26 +161,26 @@ async def test_content_and_logs_helpers(monkeypatch, tmp_path):
 
     created_dirs = []
     monkeypatch.setattr(
-        content_events.os.path,
+        content.os.path,
         "exists",
         lambda path: path == "content",
     )
-    monkeypatch.setattr(content_events.os, "makedirs", lambda path: created_dirs.append(path))
-    await content_events.check_content_directory()
+    monkeypatch.setattr(content.os, "makedirs", lambda path: created_dirs.append(path))
+    await content.check_content_directory()
     assert created_dirs == []
 
-    monkeypatch.setattr(content_events.os.path, "exists", lambda path: False)
-    await content_events.check_content_directory()
+    monkeypatch.setattr(content.os.path, "exists", lambda path: False)
+    await content.check_content_directory()
     assert created_dirs == ["content"]
 
     mkdir_calls = []
-    monkeypatch.setattr(logs_events.os.path, "exists", lambda path: path == "logs")
-    monkeypatch.setattr(logs_events.os, "mkdir", lambda path: mkdir_calls.append(path))
-    await logs_events.create_logs_dir()
+    monkeypatch.setattr(logs.os.path, "exists", lambda path: path == "logs")
+    monkeypatch.setattr(logs.os, "mkdir", lambda path: mkdir_calls.append(path))
+    await logs.create_logs_dir()
     assert mkdir_calls == []
 
-    monkeypatch.setattr(logs_events.os.path, "exists", lambda path: False)
-    await logs_events.create_logs_dir()
+    monkeypatch.setattr(logs.os.path, "exists", lambda path: False)
+    await logs.create_logs_dir()
     assert mkdir_calls == ["logs"]
 
     basic_config_calls = []
@@ -217,17 +189,17 @@ async def test_content_and_logs_helpers(monkeypatch, tmp_path):
     async def fake_create_logs_dir():
         return None
 
-    monkeypatch.setattr(logs_events, "create_logs_dir", fake_create_logs_dir)
-    monkeypatch.setattr(logs_events.logging, "FileHandler", lambda path: f"file:{path}")
-    monkeypatch.setattr(logs_events.logging, "StreamHandler", lambda: "stream")
+    monkeypatch.setattr(logs, "create_logs_dir", fake_create_logs_dir)
+    monkeypatch.setattr(logs.logging, "FileHandler", lambda path: f"file:{path}")
+    monkeypatch.setattr(logs.logging, "StreamHandler", lambda: "stream")
     monkeypatch.setattr(
-        logs_events.logging,
+        logs.logging,
         "basicConfig",
         lambda **kwargs: basic_config_calls.append(kwargs),
     )
-    monkeypatch.setattr(logs_events.logging, "info", lambda message: info_calls.append(message))
+    monkeypatch.setattr(logs.logging, "info", lambda message: info_calls.append(message))
 
-    await logs_events.init_logging()
+    await logs.init_logging()
 
     assert basic_config_calls and basic_config_calls[0]["handlers"] == ["file:logs/learnhouse.log", "stream"]
     assert info_calls == ["Logging initiated"]
@@ -262,14 +234,14 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
         coro.close()
         return fake_task
 
-    monkeypatch.setattr(core_events, "get_learnhouse_config", lambda: fake_config)
-    monkeypatch.setattr(core_events, "connect_to_db", connect_to_db)
-    monkeypatch.setattr(core_events, "create_logs_dir", create_logs_dir)
-    monkeypatch.setattr(core_events, "check_content_directory", check_content_directory)
-    monkeypatch.setattr(core_events, "auto_install", auto_install)
-    monkeypatch.setattr(core_events, "_reconcile_packs", reconcile_packs)
-    monkeypatch.setattr(core_events, "run_ee_startup", run_ee_startup)
-    monkeypatch.setattr(core_events.asyncio, "create_task", fake_create_task)
+    monkeypatch.setattr(events, "get_learnhouse_config", lambda: fake_config)
+    monkeypatch.setattr(events, "connect_to_db", connect_to_db)
+    monkeypatch.setattr(events, "create_logs_dir", create_logs_dir)
+    monkeypatch.setattr(events, "check_content_directory", check_content_directory)
+    monkeypatch.setattr(events, "auto_install", auto_install)
+    monkeypatch.setattr(events, "_reconcile_packs", reconcile_packs)
+    monkeypatch.setattr(events, "run_ee_startup", run_ee_startup)
+    monkeypatch.setattr(events.asyncio, "create_task", fake_create_task)
     monkeypatch.setattr(
         "src.services.courses.migration.migration_service.cleanup_old_temp_migrations",
         cleanup_temp_migrations,
@@ -281,7 +253,7 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
     monkeypatch.setattr(_cap_jobs, "get_redis_client", lambda: None)
     monkeypatch.setattr(_hls_jobs, "get_redis_client", lambda: None)
 
-    start_app = core_events.startup_app(app)
+    start_app = events.startup_app(app)
     await start_app()
 
     assert app.learnhouse_config is fake_config
@@ -292,18 +264,18 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
     reconcile_packs.assert_called_once()
     cleanup_temp_migrations.assert_called_once()
     run_ee_startup.assert_called_once_with(app)
-    assert core_events._cleanup_task is fake_task
+    assert events._cleanup_task is fake_task
 
     close_webhook_client = AsyncMock()
     close_database = AsyncMock()
-    monkeypatch.setattr(core_events, "_cleanup_task", fake_task)
+    monkeypatch.setattr(events, "_cleanup_task", fake_task)
     monkeypatch.setattr(
         "src.services.webhooks.dispatch.close_webhook_client",
         close_webhook_client,
     )
-    monkeypatch.setattr(core_events, "close_database", close_database)
+    monkeypatch.setattr(events, "close_database", close_database)
 
-    close_app = core_events.shutdown_app(app)
+    close_app = events.shutdown_app(app)
     await close_app()
 
     fake_task.cancel.assert_called_once()
@@ -333,7 +305,7 @@ async def test_reconcile_packs_branches(monkeypatch, caplog):
         "src.services.packs.packs.reconcile_pack_credits",
         fake_reconcile,
     )
-    await core_events._reconcile_packs()
+    await events._reconcile_packs()
     assert reconciled == [fake_session]
 
     async def boom_reconcile(db_session):
@@ -344,7 +316,7 @@ async def test_reconcile_packs_branches(monkeypatch, caplog):
         boom_reconcile,
     )
     with caplog.at_level(logging.WARNING):
-        await core_events._reconcile_packs()
+        await events._reconcile_packs()
     assert "Pack reconciliation skipped (non-fatal)" in caplog.text
 
 
@@ -363,14 +335,14 @@ async def test_periodic_migration_cleanup(monkeypatch, caplog):
         cleanup_calls.append(True)
         raise RuntimeError("cleanup failed")
 
-    monkeypatch.setattr(core_events.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(events.asyncio, "sleep", fake_sleep)
     monkeypatch.setattr(
         "src.services.courses.migration.migration_service.cleanup_old_temp_migrations",
         fake_cleanup,
     )
 
     with caplog.at_level(logging.WARNING):
-        task = asyncio.create_task(core_events._periodic_migration_cleanup())
+        task = asyncio.create_task(events._periodic_migration_cleanup())
         with pytest.raises(asyncio.CancelledError):
             await task
 
