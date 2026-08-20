@@ -1,13 +1,12 @@
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from config.config import get_learnhouse_config
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.organizations import Organization, OrganizationCreate
 from src.db.user_organizations import UserOrganization
 from src.db.users import User, UserCreate
@@ -96,7 +95,7 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
     changed = False
     if not user.is_superadmin:
         user.is_superadmin = True
-        user.update_date = str(datetime.now(timezone.utc))
+        user.update_date = str(datetime.now(UTC))
         db_session.add(user)
         changed = True
 
@@ -109,7 +108,7 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
         )
     ).scalars().first()
     if membership is None:
-        now = str(datetime.now(timezone.utc))
+        now = str(datetime.now(UTC))
         db_session.add(
             UserOrganization(
                 user_id=user.id or 0,
@@ -122,7 +121,7 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
         changed = True
     elif membership.role_id != ADMIN_ROLE_ID:
         membership.role_id = ADMIN_ROLE_ID
-        membership.update_date = str(datetime.now(timezone.utc))
+        membership.update_date = str(datetime.now(UTC))
         db_session.add(membership)
         changed = True
 
