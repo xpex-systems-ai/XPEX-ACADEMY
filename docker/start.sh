@@ -10,17 +10,12 @@ export PYTHONIOENCODING=utf-8
 # /api/v1 to Next.js and its public backend URL proxies back to itself.
 PUBLIC_PORT="${PORT:-80}"
 WEB_PORT="${WEB_PORT:-8000}"
-case "$PUBLIC_PORT:$WEB_PORT" in
-    *[!0-9:]*|:*) echo "PORT and WEB_PORT must be numeric" >&2; exit 1 ;;
-esac
-if [ "$PUBLIC_PORT" = "$WEB_PORT" ]; then
-    echo "PORT and WEB_PORT must be different in the combined container" >&2
-    exit 1
-fi
-sed -i \
-    -e "s/listen 80;/listen ${PUBLIC_PORT};/" \
-    -e "s/listen \[::\]:80;/listen [::]:${PUBLIC_PORT};/" \
-    /etc/nginx/conf.d/default.conf
+/app/render-nginx-config.sh \
+    /etc/nginx/conf.d/default.conf \
+    /tmp/nginx-default.conf \
+    "$PUBLIC_PORT" \
+    "$WEB_PORT"
+mv /tmp/nginx-default.conf /etc/nginx/conf.d/default.conf
 
 # Wait for database and redis if connection strings point to external services
 # (In docker-compose, depends_on handles this, but useful for standalone)
