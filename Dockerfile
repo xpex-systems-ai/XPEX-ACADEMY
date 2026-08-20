@@ -107,11 +107,12 @@ RUN bun install --production
 # Copy configs and scripts
 WORKDIR /app
 COPY ./docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./docker/render-nginx-config.sh /app/render-nginx-config.sh
 COPY ./apps/api/docker-entrypoint.sh /app/api/docker-entrypoint.sh
 COPY ./docker/start.sh /app/start.sh
-RUN chmod +x /app/api/docker-entrypoint.sh /app/start.sh
+RUN chmod +x /app/api/docker-entrypoint.sh /app/render-nginx-config.sh /app/start.sh
 
-ENV PORT=8000 LEARNHOUSE_PORT=9000 COLLAB_PORT=4000 HOSTNAME=0.0.0.0 LEARNHOUSE_OSS=true NEXT_PUBLIC_LEARNHOUSE_OSS=true
+ENV PORT=80 WEB_PORT=8000 LEARNHOUSE_PORT=9000 COLLAB_PORT=4000 HOSTNAME=0.0.0.0 LEARNHOUSE_API_URL=http://localhost:9000 LEARNHOUSE_OSS=true NEXT_PUBLIC_LEARNHOUSE_OSS=true
 
 EXPOSE 80 9000 4000
 
