@@ -46,7 +46,6 @@ class _FakeSession:
 async def test_auto_install_branches(monkeypatch):
     create_all_calls = []
     installs = []
-    refreshes = []
 
     fake_config = SimpleNamespace(
         database_config=SimpleNamespace(sql_connection_string="sqlite:///fake.db")
@@ -66,8 +65,8 @@ async def test_auto_install_branches(monkeypatch):
         async def dispose(self):
             pass
 
-    async def fake_install_default_elements(db):
-        refreshes.append(db)
+    async def fake_reconcile(db):
+        installs.append(db)
 
     monkeypatch.setattr(autoinstall, "get_learnhouse_config", lambda: fake_config)
     monkeypatch.setattr(autoinstall, "create_engine", lambda *args, **kwargs: SimpleNamespace(dispose=lambda: None))
@@ -78,33 +77,16 @@ async def test_auto_install_branches(monkeypatch):
         "create_all",
         lambda engine: create_all_calls.append(engine),
     )
-    monkeypatch.setattr(autoinstall, "install_default_elements", fake_install_default_elements)
-
-    monkeypatch.setattr(
-        autoinstall,
-        "Session",
-        lambda engine: _FakeSession(None),
-    )
-    async def fake_install_async(short=True):
-        installs.append(short)
-
-    monkeypatch.setattr(autoinstall, "_install_async", fake_install_async)
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 
     assert create_all_calls and len(create_all_calls) == 1
-    assert installs == [True]
-    assert refreshes == []  # bootstrap path returns before refresh
+    assert installs == [fake_session]
 
-    monkeypatch.setattr(
-        autoinstall,
-        "Session",
-        lambda engine: _FakeSession(SimpleNamespace(slug="anything")),
-    )
     await autoinstall.auto_install()
 
-    assert installs == [True]
-    assert len(refreshes) == 1  # existing-install path always refreshes
+    assert installs == [fake_session, fake_session]
 
 
 @pytest.mark.parametrize(
@@ -153,7 +135,7 @@ async def test_auto_install_normalises_async_connection_string(
         async def dispose(self):
             pass
 
-    async def fake_install_default_elements(db):
+    async def fake_reconcile(db):
         refreshes.append(db)
 
     def fake_create_async_engine(conn, *args, **kwargs):
@@ -169,13 +151,7 @@ async def test_auto_install_normalises_async_connection_string(
         autoinstall, "async_sessionmaker", lambda *a, **k: _FakeAsyncSessionmaker()
     )
     monkeypatch.setattr(autoinstall.SQLModel.metadata, "create_all", lambda engine: None)
-    monkeypatch.setattr(
-        autoinstall, "install_default_elements", fake_install_default_elements
-    )
-    # An existing org forces the refresh path (which builds the async engine).
-    monkeypatch.setattr(
-        autoinstall, "Session", lambda engine: _FakeSession(SimpleNamespace(slug="x"))
-    )
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 

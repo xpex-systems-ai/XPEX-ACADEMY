@@ -43,37 +43,47 @@ class _FakeSession:
 
 
 async def test_auto_install_triggers_install_when_no_orgs_exist(monkeypatch):
+    import contextlib
     created_engines = []
     created_tables = []
     installs = []
-    refreshes = []
 
     config = SimpleNamespace(database_config=SimpleNamespace(sql_connection_string="sqlite:///test.db"))
+    fake_session = SimpleNamespace()
 
-    async def fake_install_async(short=False):
-        installs.append(short)
+    @contextlib.asynccontextmanager
+    async def fake_async_session_factory():
+        yield fake_session
+
+    class _FakeAsyncSessionmaker:
+        def __call__(self):
+            return fake_async_session_factory()
+
+    class _FakeAsyncEngine:
+        async def dispose(self):
+            pass
+
+    async def fake_reconcile(session):
+        installs.append(session)
 
     monkeypatch.setattr(autoinstall, "get_learnhouse_config", lambda: config)
     monkeypatch.setattr(autoinstall, "create_engine", lambda *args, **kwargs: created_engines.append((args, kwargs)) or SimpleNamespace(dispose=lambda: None))
     monkeypatch.setattr(autoinstall.SQLModel.metadata, "create_all", lambda engine: created_tables.append(engine))
-    monkeypatch.setattr(autoinstall, "Session", lambda engine: _FakeSession(engine, row=None))
-    monkeypatch.setattr(autoinstall, "_install_async", fake_install_async)
-    monkeypatch.setattr(autoinstall, "install_default_elements", lambda db: refreshes.append(db))
+    monkeypatch.setattr(autoinstall, "create_async_engine", lambda *args, **kwargs: _FakeAsyncEngine())
+    monkeypatch.setattr(autoinstall, "async_sessionmaker", lambda *args, **kwargs: _FakeAsyncSessionmaker())
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 
     assert created_engines
     assert created_tables
-    assert installs == [True]
-    # Fresh bootstrap path returns before the refresh helper runs.
-    assert refreshes == []
+    assert len(installs) == 1
 
 
 async def test_auto_install_refreshes_default_roles_when_any_org_exists(monkeypatch):
     import contextlib
     created_tables = []
     installs = []
-    refreshes = []
 
     config = SimpleNamespace(database_config=SimpleNamespace(sql_connection_string="sqlite:///test.db"))
 
@@ -91,28 +101,20 @@ async def test_auto_install_refreshes_default_roles_when_any_org_exists(monkeypa
         async def dispose(self):
             pass
 
-    async def fake_install_async(short=False):
-        installs.append(short)
+    async def fake_reconcile(db):
+        installs.append(db)
 
     monkeypatch.setattr(autoinstall, "get_learnhouse_config", lambda: config)
     monkeypatch.setattr(autoinstall, "create_engine", lambda *args, **kwargs: SimpleNamespace(dispose=lambda: None))
     monkeypatch.setattr(autoinstall, "create_async_engine", lambda *args, **kwargs: _FakeAsyncEngine())
     monkeypatch.setattr(autoinstall, "async_sessionmaker", lambda *args, **kwargs: _FakeAsyncSessionmaker())
     monkeypatch.setattr(autoinstall.SQLModel.metadata, "create_all", lambda engine: created_tables.append(engine))
-    monkeypatch.setattr(autoinstall, "Session", lambda engine: _FakeSession(engine, row=object()))
-    monkeypatch.setattr(autoinstall, "_install_async", fake_install_async)
-
-    async def fake_install_default_elements(db):
-        refreshes.append(db)
-
-    monkeypatch.setattr(autoinstall, "install_default_elements", fake_install_default_elements)
+    monkeypatch.setattr(autoinstall, "reconcile_initial_install", fake_reconcile)
 
     await autoinstall.auto_install()
 
     assert created_tables
-    assert installs == []
-    # Existing install: role refresh always runs so new permission keys land.
-    assert len(refreshes) == 1
+    assert installs == [fake_session]
 
 
 @pytest.mark.asyncio
