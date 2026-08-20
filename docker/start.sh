@@ -4,6 +4,24 @@
 export PYTHONUNBUFFERED=1
 export PYTHONIOENCODING=utf-8
 
+# Railway injects PORT and sends public traffic directly to that port. Keep the
+# three application processes on fixed internal ports and make nginx the only
+# process listening on the provider-facing port; otherwise Railway can route
+# /api/v1 to Next.js and its public backend URL proxies back to itself.
+PUBLIC_PORT="${PORT:-80}"
+WEB_PORT="${WEB_PORT:-8000}"
+case "$PUBLIC_PORT:$WEB_PORT" in
+    *[!0-9:]*|:*) echo "PORT and WEB_PORT must be numeric" >&2; exit 1 ;;
+esac
+if [ "$PUBLIC_PORT" = "$WEB_PORT" ]; then
+    echo "PORT and WEB_PORT must be different in the combined container" >&2
+    exit 1
+fi
+sed -i \
+    -e "s/listen 80;/listen ${PUBLIC_PORT};/" \
+    -e "s/listen \[::\]:80;/listen [::]:${PUBLIC_PORT};/" \
+    /etc/nginx/conf.d/default.conf
+
 # Wait for database and redis if connection strings point to external services
 # (In docker-compose, depends_on handles this, but useful for standalone)
 if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
@@ -16,7 +34,7 @@ fi
 
 # Start the services
 # Use server-wrapper.js for runtime environment variable injection
-pm2 start server-wrapper.js --cwd /app/web --name learnhouse-web > /dev/null 2>&1
+PORT="$WEB_PORT" pm2 start server-wrapper.js --cwd /app/web --name learnhouse-web > /dev/null 2>&1
 pm2 start uv --cwd /app/api --name learnhouse-api -- run app.py
 pm2 start node --cwd /app/collab --name learnhouse-collab -- dist/index.js
 
