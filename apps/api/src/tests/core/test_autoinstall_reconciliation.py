@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import select
 from src.core.events.autoinstall import reconcile_initial_install
@@ -76,8 +76,8 @@ async def test_established_install_without_bootstrap_only_refreshes_roles(db, mo
         email="owner@example.com",
         password="already-hashed",
         user_uuid="user_owner",
-        creation_date=str(datetime.now(timezone.utc)),
-        update_date=str(datetime.now(timezone.utc)),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(user)
     await db.commit()
@@ -112,8 +112,8 @@ async def test_reconcile_repairs_existing_admin_and_membership(db, monkeypatch):
         password="already-hashed",
         user_uuid="user_existing",
         is_superadmin=False,
-        creation_date=str(datetime.now(timezone.utc)),
-        update_date=str(datetime.now(timezone.utc)),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(user)
     await db.commit()
@@ -150,8 +150,8 @@ async def test_missing_password_does_not_block_established_install(db, monkeypat
         email="member@example.com",
         password="already-hashed",
         user_uuid="user_member",
-        creation_date=str(datetime.now(timezone.utc)),
-        update_date=str(datetime.now(timezone.utc)),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(user)
     await db.commit()
