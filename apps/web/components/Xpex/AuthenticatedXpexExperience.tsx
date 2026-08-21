@@ -6,23 +6,14 @@ import {
   type XpexExperienceRole,
 } from '@/lib/xpex/access'
 import { AuthenticatedDashboard } from './experiences/AuthenticatedDashboard'
-import { XpexAppShell } from './XpexAppShell'
+import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
+import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 
 const PILOT_ORG_SLUG = 'kelle-digital-lab'
 
 function AccessDenied() {
-  return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
-      <section className="max-w-lg rounded-2xl border border-white/10 bg-white/5 p-8">
-        <h1 className="text-xl font-bold">Acesso não autorizado</h1>
-        <p className="mt-3 text-slate-300">
-          Sua conta não possui uma função válida no Polo Kelle Digital Lab. Peça
-          a um administrador para revisar sua associação.
-        </p>
-      </section>
-    </main>
-  )
+  return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title="Acesso não autorizado" description="Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação." /></div></main>
 }
 
 /**
@@ -61,19 +52,16 @@ export async function AuthenticatedXpexExperience({
       console.error('[XPEX_DASHBOARD] Unable to load learner dashboard', error)
     }
   }
+  const organizationName = memberships?.find(({ org }) => org?.slug === PILOT_ORG_SLUG)?.org?.name
   return (
-    <XpexAppShell
-      role={role}
-      mode="authenticated"
-      allowedRoles={roles}
-      displayName={displayName}
-    >
+    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName}>
       <AuthenticatedDashboard
         role={role}
         displayName={displayName}
         learningData={learningData}
         learningDataFailed={learningDataFailed}
+        organizationName={organizationName}
       />
-    </XpexAppShell>
+    </XpexAuthenticatedShell>
   )
 }

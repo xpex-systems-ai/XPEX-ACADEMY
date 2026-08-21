@@ -2,7 +2,7 @@ export type XpexExperienceRole = 'aluno' | 'professora' | 'polo'
 
 export interface LearnHouseMembership {
   role?: { name?: string; role_uuid?: string }
-  org?: { slug?: string }
+  org?: { slug?: string; name?: string }
 }
 
 const CANONICAL_ROLE_UUIDS: Record<string, XpexExperienceRole> = {
