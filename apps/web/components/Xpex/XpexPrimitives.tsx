@@ -28,7 +28,8 @@ export function XpexFeatureCard({ icon: Icon, eyebrow, title, description, tone 
 }
 
 export function XpexProgressBar({ value, label }: { value: number; label: string }) {
-  return <div><div className="mb-2 flex justify-between text-xs font-semibold text-slate-300"><span>{label}</span><span>{value}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-gradient-to-r from-[#087cff] via-[#16d9ff] to-[#ff6a00]" style={{ width: `${value}%` }} /></div></div>
+  const safeValue = Math.min(100, Math.max(0, value))
+  return <div><div className="mb-2 flex justify-between text-xs font-semibold text-slate-300"><span>{label}</span><span>{safeValue}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={label} aria-valuenow={safeValue} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-gradient-to-r from-[#0B1D3A] via-[#00D4FF] to-[#FF7A00]" style={{ width: `${safeValue}%` }} /></div></div>
 }
 
 export function XpexMetricCard({ icon: Icon, label, value, detail, tone = 'blue' }: { icon: LucideIcon; label: string; value: string; detail: string; tone?: 'orange' | 'blue' }) {
@@ -47,6 +48,6 @@ export function XpexActionCard({ icon: Icon, title, description }: { icon: Lucid
   return <article className="xpex-card w-full p-5 text-left"><div className="flex items-start justify-between gap-3"><Icon aria-hidden="true" className="text-orange-400" size={22} /><span className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-cyan-200">Preview</span></div><strong className="mt-4 block text-white">{title}</strong><span className="mt-2 block text-sm leading-6 text-slate-400">{description}</span><span className="mt-4 block text-xs font-bold text-slate-500">Ação demonstrativa — sem persistência</span></article>
 }
 
-export function XpexEmptyState() { return <div className="xpex-card grid min-h-80 place-items-center border-dashed p-8 text-center"><div><Inbox className="mx-auto text-cyan-300" size={36} /><h2 className="mt-4 text-xl font-black text-white">Nada para mostrar</h2><p className="mt-2 text-sm text-slate-400">Este estado também faz parte da apresentação. Nenhum dado real foi consultado.</p></div></div> }
-export function XpexLoadingState() { return <div className="xpex-card grid min-h-80 place-items-center p-8 text-center"><div><LoaderCircle className="mx-auto animate-spin text-cyan-300" size={36} /><p className="mt-4 text-sm text-slate-300">Preparando ambiente demonstrativo…</p></div></div> }
+export function XpexEmptyState() { return <div className="xpex-card grid min-h-80 place-items-center border-dashed p-8 text-center"><div><Inbox className="mx-auto text-cyan-300" size={36} /><h2 className="mt-4 text-xl font-black text-white">Nada para mostrar</h2><p className="mt-2 text-sm text-slate-400">Ainda não há conteúdo disponível neste espaço.</p></div></div> }
+export function XpexLoadingState() { return <div className="xpex-card grid min-h-80 place-items-center p-8 text-center" role="status"><div><LoaderCircle aria-hidden="true" className="mx-auto animate-spin text-cyan-300" size={36} /><p className="mt-4 text-sm text-slate-300">Carregando conteúdo…</p></div></div> }
 export function XpexErrorState() { return <div className="xpex-card grid min-h-80 place-items-center p-8 text-center"><div><AlertTriangle className="mx-auto text-orange-400" size={36} /><h2 className="mt-4 text-xl font-black text-white">Preview indisponível</h2><p className="mt-2 text-sm text-slate-400">Nenhuma informação foi enviada ou alterada.</p></div></div> }
