@@ -10,13 +10,13 @@ export function tenantScopedPath(slug: string, pathname: string): string {
 
 /** Accept only same-origin absolute paths for the post-auth bridge. */
 export function safeAuthReturnPath(target: string | null): string {
-  if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return '/xpex'
+  if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return '/home'
   try {
     const decoded = decodeURIComponent(target)
     const containsControlCharacter = Array.from(decoded).some((character) => character.charCodeAt(0) <= 0x1f)
-    if (decoded.startsWith('//') || decoded.includes('\\') || containsControlCharacter) return '/xpex'
+    if (decoded.startsWith('//') || decoded.includes('\\') || containsControlCharacter) return '/home'
     return target
   } catch {
-    return '/xpex'
+    return '/home'
   }
 }

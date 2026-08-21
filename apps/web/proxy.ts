@@ -331,9 +331,10 @@ export default async function proxy(req: NextRequest) {
   const authPaths = ['/login', '/signup', '/reset', '/forgot', '/verify-email']
   if (authPaths.includes(pathname)) {
     // A logged-in user has no business on /login or /signup — bounce them to the
-    // hub (the page itself re-verifies, so this is a best-effort UX shortcut).
+    // requested same-origin destination, or the hub when none was supplied. The
+    // destination page re-verifies authorization, so this remains a UX shortcut.
     if ((pathname === '/login' || pathname === '/signup') && req.cookies.get('LH_session')?.value) {
-      return NextResponse.redirect(new URL('/home', req.url))
+      return NextResponse.redirect(new URL(safeAuthReturnPath(req.nextUrl.searchParams.get('next')), req.url))
     }
     const resolved = await resolveTenant(req, instance)
     const requestHeaders = tenantRequestHeaders(req, resolved, instance)

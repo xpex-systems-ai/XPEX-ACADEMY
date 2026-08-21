@@ -17,6 +17,7 @@ import { resendVerificationEmail } from '@services/auth/auth'
 import AuthLayout from '@components/Auth/AuthLayout'
 import TurnstileWidget, { useTurnstileRequired, verifyTurnstileToken, type TurnstileWidgetHandle } from '@components/Auth/TurnstileWidget'
 import { useLHAnalytics, AnalyticsEvent } from '@services/analytics'
+import { safeAuthReturnPath } from '@/lib/proxyPaths'
 
 interface LoginClientProps {
   org: any
@@ -41,7 +42,9 @@ const LoginClient = (props: LoginClientProps) => {
   // Guarded by !isSubmitting so a FRESH login (which flips the session to
   // authenticated) doesn't race the onSubmit's own post-login navigation.
   useEffect(() => {
-    if (isAuthenticated && !isSubmitting) router.replace('/home')
+    if (isAuthenticated && !isSubmitting) {
+      router.replace(safeAuthReturnPath(new URLSearchParams(window.location.search).get('next')))
+    }
   }, [isAuthenticated, isSubmitting, router])
 
   // Error state with type information
@@ -58,8 +61,7 @@ const LoginClient = (props: LoginClientProps) => {
   // Forward it through the cross-domain /redirect_from_auth handoff.
   const buildCallbackUrl = () => {
     const params = new URLSearchParams(window.location.search)
-    const raw = params.get('next') ?? params.get('redirect')
-    const dest = raw && /^\/(?!\/)/.test(raw) ? raw : '/home'
+    const dest = safeAuthReturnPath(params.get('next') ?? params.get('redirect'))
     return `${window.location.origin}/redirect_from_auth?next=${encodeURIComponent(dest)}`
   }
 
