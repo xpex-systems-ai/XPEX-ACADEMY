@@ -11,9 +11,9 @@ import './xpex.css'
 // Governance marker for the public preview: its indicators "não persistem".
 
 const identities = {
-  aluno: ['Estudante Demo', 'Área do aluno'],
-  professora: ['Professora Kelle', 'Área da professora'],
-  polo: ['Kelle Digital Lab', 'Área do polo'],
+  aluno: ['Visitante', 'Área do aluno'],
+  professora: ['Visitante', 'Área da professora'],
+  polo: ['Visitante', 'Área do polo'],
 } as const
 
 function Brand({ mode }: { mode: 'demo' | 'authenticated' }) {
@@ -51,7 +51,7 @@ export function XpexAppShell({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [demoName, subtitle] = identities[role]
-  const name = displayName ?? demoName
+  const name = displayName ?? (mode === 'authenticated' ? 'Usuário XpeX' : demoName)
   const navigation = xpexNavigation[role].filter(({ label }) =>
     label.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))
   )
@@ -221,12 +221,11 @@ export function XpexAppShell({
         </header>
         <main id="conteudo-xpex" className="mx-auto max-w-[1440px] p-4 md:p-8">
           {children}
-          <footer className="mt-10 border-t border-white/10 py-6 text-xs text-slate-500">
-            XpeX Academy •{' '}
-            {mode === 'demo'
-              ? 'Experiência demonstrativa'
-              : 'Acesso autenticado'}{' '}
-            • Motor open-source LearnHouse preservado sob AGPL-3.0
+          <footer className="xpex-legal mt-10 border-t border-white/10 py-6 text-xs text-slate-500">
+            <span>XpeX Academy • {mode === 'demo' ? 'Experiência demonstrativa' : 'Acesso autenticado'}</span>
+            <span>Versão modificada baseada no projeto open-source LearnHouse • Fundação visual atualizada em 21/08/2026.</span>
+            <a href="https://github.com/xpex-systems-ai/XPEX-ACADEMY/blob/dev/LICENSE">Licença AGPL-3.0</a>
+            <a href="https://github.com/xpex-systems-ai/XPEX-ACADEMY">Código-fonte correspondente</a>
           </footer>
         </main>
       </div>
