@@ -44,7 +44,7 @@ class ActivityLockType(str, Enum):
 class ActivityBase(SQLModel):
     name: str
     activity_type: ActivityTypeEnum
-    activity_sub_type: ActivitySubTypeEnum
+    activity_sub_type: Optional[ActivitySubTypeEnum] = None
     content: dict = Field(default_factory=dict, sa_column=Column(JSON))
     details: Optional[dict] = Field(default=None, sa_column=Column(JSON))
     published: bool = False
