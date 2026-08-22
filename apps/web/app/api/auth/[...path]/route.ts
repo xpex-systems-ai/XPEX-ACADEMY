@@ -151,31 +151,44 @@ async function proxyRequest(
     }
   }
 
-  // Handle logout locally — clear cookies and return 200
-  // Try backend invalidation but don't fail if it errors
+  // Handle logout locally. An already-invalid backend session is the desired
+  // end state, but infrastructure/server failures remain visible to callers.
   if (pathSegments === 'logout' || pathSegments.endsWith('/logout')) {
-    // Best-effort backend token invalidation
+    let response: NextResponse
     try {
-      const logoutHeaders: HeadersInit = {}
-      if (refreshToken?.value) {
-        logoutHeaders['Cookie'] = `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}`
-      }
-      // Backend logout is DELETE /auth/logout — using POST returned 405 and
-      // silently skipped server-side session revocation, so revoked tokens
-      // stayed valid until natural expiry. Match the contract and surface drift.
-      const logoutRes = await fetch(`${configuredBackendUrl()}/api/v1/auth/logout`, {
-        method: 'DELETE',
-        headers: logoutHeaders,
-        signal: AbortSignal.timeout(3000),
-      }).catch(() => null)
-      if (logoutRes && !logoutRes.ok) {
-        console.warn(`[auth] backend logout returned ${logoutRes.status} — server session may not be revoked`)
+      // With no refresh token there is no server session to invalidate. This is
+      // also the normal path for a repeated logout.
+      if (!refreshToken?.value) {
+        response = NextResponse.json({ ok: true })
+      } else {
+        const logoutRes = await fetch(`${configuredBackendUrl()}/api/v1/auth/logout`, {
+          method: 'DELETE',
+          headers: { Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}` },
+          signal: AbortSignal.timeout(3000),
+        })
+
+        if (logoutRes.ok || logoutRes.status === 401) {
+          // 401 means the token is expired/revoked/already invalidated: logout
+          // has therefore already reached its safe final state.
+          response = NextResponse.json({ ok: true })
+        } else {
+          console.warn(`[auth] backend logout failed with status ${logoutRes.status}`)
+          response = NextResponse.json(
+            { ok: false, error: 'Backend logout failed' },
+            { status: logoutRes.status },
+          )
+        }
       }
     } catch {
-      // Backend logout failed — that's fine, cookies are cleared below
+      // Do not expose exception details, but do surface a real backend/network
+      // failure. Local cookies are still cleared below.
+      console.warn('[auth] backend logout unavailable')
+      response = NextResponse.json(
+        { ok: false, error: 'Backend logout unavailable' },
+        { status: 503 },
+      )
     }
 
-    const response = NextResponse.json({ ok: true })
     appendClearAuthCookies(response, request)
     return response
   }
