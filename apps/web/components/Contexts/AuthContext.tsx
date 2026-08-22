@@ -712,11 +712,16 @@ export function SessionProvider({
     let logoutSuccess = false
     try {
       // Use Next.js API route to ensure cookies are cleared correctly
+      // Pass the access token in Authorization header so backend can revoke the session
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
+        headers: {
+          // Include Authorization header if we have an access token
+          ...(accessTokenRef.current ? { 'Authorization': `Bearer ${accessTokenRef.current}` } : {}),
+        },
         credentials: 'include',
       })
-      logoutSuccess = response.ok
+      logoutSuccess = response.ok || response.status === 200
     } catch (error) {
       console.error('Logout error:', error)
     }
