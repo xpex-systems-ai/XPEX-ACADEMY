@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { buildAnalyticsEventPayload } from '../services/analytics/analyticsPayload.ts'
 import { safeAuthReturnPath } from '../lib/proxyPaths.ts'
+import { isConfigTrue } from '../services/config/config.ts'
 
 describe('PR-04 idempotent logout', () => {
   const gateway = readFileSync(new URL('../app/api/auth/[...path]/route.ts', import.meta.url), 'utf8')
@@ -34,6 +35,16 @@ describe('PR-04 backend analytics payload', () => {
     expect(buildAnalyticsEventPayload('onboarding_started', 42, 'session-1', {})).toBeNull()
     expect(buildAnalyticsEventPayload('page_view', 0, 'session-1', {})).toBeNull()
     expect(buildAnalyticsEventPayload('page_view', 42, '', {})).toBeNull()
+  })
+})
+
+describe('PR-04 canonical HTTPS configuration', () => {
+  test('accepts legacy CLI and conventional boolean casing', () => {
+    expect(isConfigTrue('True')).toBe(true)
+    expect(isConfigTrue('true')).toBe(true)
+    expect(isConfigTrue(' TRUE ')).toBe(true)
+    expect(isConfigTrue('False')).toBe(false)
+    expect(isConfigTrue('')).toBe(false)
   })
 })
 
