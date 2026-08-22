@@ -1,12 +1,11 @@
-from datetime import datetime
-from typing import List, Optional
+import logging
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import HTTPException, Request, status
 from sqlmodel import delete as sql_delete
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.activities import Activity
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.courses import Course
@@ -24,12 +23,14 @@ from src.services.courses.certifications import (
 )
 from src.services.webhooks.dispatch import dispatch_webhooks
 
+logger = logging.getLogger(__name__)
+
 
 async def _build_trail_read(
     trail: Trail,
-    trail_runs_raw: List[TrailRun],
+    trail_runs_raw: list[TrailRun],
     db_session: AsyncSession,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
     with_course_info: bool = True,
 ) -> TrailRead:
     """Build a TrailRead with all nested data using batch queries instead of N+1 loops."""
@@ -129,8 +130,8 @@ async def create_user_trail(
 
     trail = Trail.model_validate(trail_object)
 
-    trail.creation_date = str(datetime.now())
-    trail.update_date = str(datetime.now())
+    trail.creation_date = str(datetime.now(UTC))
+    trail.update_date = str(datetime.now(UTC))
     trail.org_id = trail_object.org_id
     trail.trail_uuid = str(f"trail_{uuid4()}")
 
@@ -270,8 +271,8 @@ async def add_activity_to_trail(
             course_id=course.id if course.id is not None else 0,
             org_id=course.org_id,
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trailrun)
         await db_session.commit()
@@ -294,8 +295,8 @@ async def add_activity_to_trail(
             teacher_verified=False,
             grade="",
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trailstep)
         await db_session.commit()
@@ -347,7 +348,7 @@ async def add_activity_to_trail(
             )
         except Exception:
             # Certificate creation must not block the webhook dispatch.
-            pass
+            logger.exception("Certificate creation failed for course %s", course.id)
 
     if course_was_completed:
         await track(
@@ -488,8 +489,8 @@ async def add_course_to_trail(
             course_id=course.id if course.id is not None else 0,
             org_id=course.org_id,
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trail_run)
         await db_session.commit()

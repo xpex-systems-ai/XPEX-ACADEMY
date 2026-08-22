@@ -1,12 +1,11 @@
 """Tests for src/services/trail/trail.py."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
-
 from src.db.courses.activities import Activity, ActivitySubTypeEnum, ActivityTypeEnum
 from src.db.courses.courses import Course
 from src.db.trail_runs import TrailRun
@@ -36,8 +35,8 @@ async def _make_course(db, org, *, id, course_uuid, name):
         open_to_contributors=False,
         org_id=org.id,
         course_uuid=course_uuid,
-        creation_date=str(datetime.now()),
-        update_date=str(datetime.now()),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(course)
     await db.commit()
@@ -50,8 +49,8 @@ async def _make_trail(db, org, user, *, trail_uuid="trail_test"):
         org_id=org.id,
         user_id=user.id,
         trail_uuid=trail_uuid,
-        creation_date=str(datetime.now()),
-        update_date=str(datetime.now()),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(trail)
     await db.commit()
@@ -65,8 +64,8 @@ async def _make_trail_run(db, trail, course, user):
         course_id=course.id,
         org_id=trail.org_id,
         user_id=user.id,
-        creation_date=str(datetime.now()),
-        update_date=str(datetime.now()),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(trail_run)
     await db.commit()
@@ -85,8 +84,8 @@ async def _make_trail_step(db, trail, trail_run, activity, course, user):
         complete=True,
         teacher_verified=False,
         grade="",
-        creation_date=str(datetime.now()),
-        update_date=str(datetime.now()),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(trail_step)
     await db.commit()
@@ -105,8 +104,8 @@ async def _make_bogus_activity(db, org, *, activity_uuid, course_id):
         org_id=org.id,
         course_id=course_id,
         activity_uuid=activity_uuid,
-        creation_date=str(datetime.now()),
-        update_date=str(datetime.now()),
+        creation_date=str(datetime.now(UTC)),
+        update_date=str(datetime.now(UTC)),
     )
     db.add(activity)
     await db.commit()
