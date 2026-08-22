@@ -34,6 +34,12 @@ def _lock_name(lock_type: object | None) -> str:
     return str(value).lower()
 
 
+def _activity_sub_type_value(activity_sub_type: object | None) -> str | None:
+    """Serialize legacy/imported activities whose subtype can be null."""
+    value = getattr(activity_sub_type, "value", activity_sub_type)
+    return str(value) if value is not None else None
+
+
 async def get_student_dashboard(
     user: PublicUser, organization_slug: str, db_session: AsyncSession
 ) -> dict | None:
@@ -179,7 +185,7 @@ async def get_student_dashboard(
             "activity_uuid": activity_uuid,
             "name": activity_name,
             "activity_type": activity_type.value,
-            "activity_sub_type": activity_sub_type.value if activity_sub_type is not None else None,
+            "activity_sub_type": _activity_sub_type_value(activity_sub_type),
             "chapter_uuid": chapter_uuid,
             "chapter_name": chapter_name,
         })
