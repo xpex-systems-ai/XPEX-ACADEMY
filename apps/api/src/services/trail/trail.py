@@ -1,25 +1,28 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
-from sqlmodel import select, func, delete as sql_delete
-from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.courses.chapter_activities import ChapterActivity
+
 from fastapi import HTTPException, Request, status
+from sqlmodel import delete as sql_delete
+from sqlmodel import func, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.db.courses.activities import Activity
+from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.courses import Course
 from src.db.trail_runs import TrailRun, TrailRunRead
 from src.db.trail_steps import TrailStep
 from src.db.trails import Trail, TrailCreate, TrailRead
 from src.db.users import AnonymousUser, PublicUser
+from src.security.org_auth import require_org_membership
+from src.security.rbac import AccessAction, check_resource_access
+from src.services.analytics import events as analytics_events
+from src.services.analytics.analytics import track
 from src.services.courses.certifications import (
     check_course_completion_and_create_certificate,
     is_course_fully_completed,
 )
-from src.services.analytics.analytics import track
-from src.services.analytics import events as analytics_events
 from src.services.webhooks.dispatch import dispatch_webhooks
-from src.security.rbac import check_resource_access, AccessAction
-from src.security.org_auth import require_org_membership
 
 
 async def _build_trail_read(
