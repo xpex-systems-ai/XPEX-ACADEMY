@@ -80,8 +80,14 @@ const getCookieValue = (name: string): string | null => {
 }
 
 // Dynamic config getters - these are functions to ensure runtime values are used
+// Older CLI releases emitted Python-style True/False while other deployments
+// use lowercase values. Normalize both formats so canonical URLs never
+// downgrade an HTTPS installation to HTTP.
+export const isConfigTrue = (value: string): boolean =>
+  value.trim().toLowerCase() === 'true'
+
 const getLEARNHOUSE_HTTP_PROTOCOL = () =>
-  (getConfig('NEXT_PUBLIC_LEARNHOUSE_HTTPS') === 'true') ? 'https://' : 'http://'
+  isConfigTrue(getConfig('NEXT_PUBLIC_LEARNHOUSE_HTTPS')) ? 'https://' : 'http://'
 const LOCAL_BACKEND_URL = 'http://localhost/'
 
 const isDeployedRuntime = (): boolean =>
