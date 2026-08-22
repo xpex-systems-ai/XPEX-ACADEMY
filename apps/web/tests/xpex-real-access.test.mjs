@@ -18,10 +18,20 @@ describe('XpeX server-authoritative role mapping', () => {
     expect(resolveXpexAccess([membership('role_unknown')], 'kelle-digital-lab')).toEqual([])
   })
 
-  test('resolves the first authorized organization without trusting a requested slug', () => {
+  test('resolves an authorized organization without trusting a requested slug', () => {
     expect(resolveXpexOrganization([membership('role_global_user', 'academy-one')])).toEqual({ slug: 'academy-one' })
     expect(resolveXpexOrganization([membership('role_unknown', 'academy-two'), membership('role_global_user', 'academy-three')])).toEqual({ slug: 'academy-three' })
     expect(resolveXpexOrganization([])).toBeNull()
+  })
+
+  test('selects an organization that actually authorizes the requested experience', () => {
+    const memberships = [
+      membership('role_global_instructor', 'academy-teachers'),
+      membership('role_global_user', 'academy-students'),
+    ]
+    expect(resolveXpexOrganization(memberships, 'aluno')).toEqual({ slug: 'academy-students' })
+    expect(resolveXpexOrganization(memberships, 'professora')).toEqual({ slug: 'academy-teachers' })
+    expect(resolveXpexOrganization(memberships, 'polo')).toBeNull()
   })
 
   test('allows multiple experiences only when memberships really provide them', () => {
@@ -69,8 +79,8 @@ describe('server-authoritative XpeX routes', () => {
   test('resolves the LearnHouse server session before selecting an experience', () => {
     expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
     expect(boundary).toContain('const session = await getServerSession()')
-    expect(boundary).toContain('resolveXpexOrganization(memberships)')
-    expect(boundary).toContain("title={noOrganization ? 'Sua conta está pronta'")
+    expect(boundary).toContain('resolveXpexOrganization(memberships, requestedRole)')
+    expect(boundary).toContain('noOrganization={!hasOrganizationMembership}')
     expect(boundary).not.toContain("'use client'")
   })
 

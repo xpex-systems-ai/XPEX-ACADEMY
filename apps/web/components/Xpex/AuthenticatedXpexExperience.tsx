@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
 import {
-  resolveXpexAccess, resolveXpexOrganization,
+  resolveXpexAccess,
+  resolveXpexOrganization,
   type LearnHouseMembership,
   type XpexExperienceRole,
 } from '@/lib/xpex/access'
@@ -29,9 +30,10 @@ export async function AuthenticatedXpexExperience({
   if (!session?.user) redirect(`/login?next=${encodeURIComponent(returnPath)}`)
 
   const memberships: LearnHouseMembership[] | undefined = session.roles
-  const organization = resolveXpexOrganization(memberships)
+  const hasOrganizationMembership = memberships?.some(({ org }) => Boolean(org?.slug)) ?? false
+  const organization = resolveXpexOrganization(memberships, requestedRole)
   const organizationSlug = organization?.slug
-  if (!organizationSlug) return <AccessDenied noOrganization />
+  if (!organizationSlug) return <AccessDenied noOrganization={!hasOrganizationMembership} />
   const roles = resolveXpexAccess(memberships, organizationSlug)
   const role = requestedRole ?? roles[0]
   if (!role || !roles.includes(role)) return <AccessDenied />
