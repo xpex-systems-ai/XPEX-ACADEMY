@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { getBackendUrl } from '@services/config/config'
+import type { LearnHouseMembership } from '@/lib/xpex/access'
 
 function getAuthBackendUrl(): string {
   const backendUrl = getBackendUrl().replace(/\/+$/, '')
@@ -15,9 +16,10 @@ export interface Session {
   user: {
     username?: string
     first_name?: string
+    last_name?: string
     [key: string]: unknown
   } | undefined
-  roles?: unknown[] | undefined
+  roles?: LearnHouseMembership[] | undefined
   tokens?: {
     access_token?: string | undefined
     refresh_token?: string | undefined

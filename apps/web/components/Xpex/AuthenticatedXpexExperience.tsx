@@ -30,15 +30,13 @@ export async function AuthenticatedXpexExperience({
   const session = await getServerSession()
   if (!session?.user) redirect(`/login?next=${encodeURIComponent(returnPath)}`)
 
-  const memberships = session.roles as unknown as
-    | LearnHouseMembership[]
-    | undefined
+  const memberships: LearnHouseMembership[] | undefined = session.roles
   const roles = resolveXpexAccess(memberships, PILOT_ORG_SLUG)
   const role = requestedRole ?? roles[0]
   if (!role || !roles.includes(role)) return <AccessDenied />
 
-  const displayName =
-    session.user.first_name || session.user.username || 'Pessoa participante'
+  const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
+  const displayName = fullName || session.user.username || 'Pessoa participante'
   let learningData = null
   let learningDataFailed = false
   if (role === 'aluno' && session.tokens?.access_token) {

@@ -330,11 +330,10 @@ export default async function proxy(req: NextRequest) {
   // -------------------------------------------------------------------------
   const authPaths = ['/login', '/signup', '/reset', '/forgot', '/verify-email']
   if (authPaths.includes(pathname)) {
-    // A logged-in user has no business on /login or /signup — bounce them to the
-    // hub (the page itself re-verifies, so this is a best-effort UX shortcut).
-    if ((pathname === '/login' || pathname === '/signup') && req.cookies.get('LH_session')?.value) {
-      return NextResponse.redirect(new URL('/home', req.url))
-    }
+    // Always render auth pages at the proxy boundary. LH_session is only a marker
+    // and can outlive expired or revoked bearer tokens; redirecting on the marker
+    // alone traps users in /xpex <-> /login loops. The client session context
+    // redirects only after the real session has been validated.
     const resolved = await resolveTenant(req, instance)
     const requestHeaders = tenantRequestHeaders(req, resolved, instance)
     const response = NextResponse.rewrite(
