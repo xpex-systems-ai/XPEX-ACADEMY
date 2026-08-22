@@ -112,11 +112,21 @@ describe('PR-03 conditional authenticated entry', () => {
   const dashboard = readFileSync(new URL('../components/Xpex/experiences/AuthenticatedDashboard.tsx', import.meta.url), 'utf8')
   const betaStudent = readFileSync(new URL('../app/beta/aluno/page.tsx', import.meta.url), 'utf8')
 
-  test('preserves next=/xpex and defaults external users to the existing LearnHouse home', () => {
+  test('preserves next=/xpex, falls back to home, and lets stale sessions reach login', () => {
     expect(safeAuthReturnPath('/xpex')).toBe('/xpex')
     expect(safeAuthReturnPath(null)).toBe('/home')
     expect(login).toContain("safeAuthReturnPath(params.get('next') ?? params.get('redirect'))")
-    expect(proxy).toContain("safeAuthReturnPath(req.nextUrl.searchParams.get('next'))")
+
+    const authPagesStart = proxy.indexOf("const authPaths =")
+    const authCallbacksStart = proxy.indexOf("// 4. Auth callbacks")
+    const authPagesBlock = proxy.slice(authPagesStart, authCallbacksStart)
+    expect(authPagesStart).toBeGreaterThan(-1)
+    expect(authCallbacksStart).toBeGreaterThan(authPagesStart)
+    expect(authPagesBlock).not.toContain("req.cookies.get('LH_session')")
+    expect(authPagesBlock).not.toContain('NextResponse.redirect')
+    expect(authPagesBlock).toContain('new URL(`/auth${pathname}${search}`')
+    expect(login).toContain("const isAuthenticated = session?.status === 'authenticated'")
+    expect(login).toContain('if (isAuthenticated && !isSubmitting)')
   })
 
   test('redirects only an authenticated pilot member from home to XpeX without a loop', () => {
