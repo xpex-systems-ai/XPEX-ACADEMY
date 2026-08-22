@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
-
 from src.db.trail_runs import StatusEnum, TrailRun
 from src.services.xpex.dashboard import get_student_dashboard, progress_percent
 
@@ -26,7 +25,7 @@ async def test_student_dashboard_serializes_nullable_activity_subtype(
 ):
     """Published legacy activities without a subtype remain safely accessible."""
     activity.activity_sub_type = None
-    now = datetime.now().isoformat()
+    now = datetime.now(UTC).isoformat()
     db.add(activity)
     db.add(
         TrailRun(
