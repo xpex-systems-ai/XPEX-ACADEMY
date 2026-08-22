@@ -1,4 +1,5 @@
 import { getAPIUrl } from '@services/config/config'
+import { buildAnalyticsEventPayload } from './analyticsPayload'
 
 // lgtm[js/hardcoded-credentials] -- not a secret, just a sessionStorage key name
 const SESSION_KEY = 'lh_analytics_session_id'
@@ -20,6 +21,14 @@ export async function trackEvent(
   accessToken: string
 ): Promise<void> {
   try {
+    const payload = buildAnalyticsEventPayload(
+      eventName,
+      orgId,
+      getSessionId(),
+      properties,
+    )
+    if (!payload || !accessToken) return
+
     const url = `${getAPIUrl()}analytics/events`
     await fetch(url, {
       method: 'POST',
@@ -27,12 +36,7 @@ export async function trackEvent(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        event_name: eventName,
-        org_id: orgId,
-        session_id: getSessionId(),
-        properties,
-      }),
+      body: JSON.stringify(payload),
       keepalive: true,
     })
   } catch {

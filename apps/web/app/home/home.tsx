@@ -4,7 +4,7 @@ import { canManageOrgFromSession } from '@components/Hooks/useAdminStatus'
 import { useLHAnalytics } from '@services/analytics/useLHAnalytics'
 import { AnalyticsEvent } from '@services/analytics/events'
 import UserAvatar from '@components/Objects/UserAvatar'
-import { getAPIUrl, getUriWithOrg, getLEARNHOUSE_PLATFORM_URL_VAL } from '@services/config/config'
+import { getAPIUrl, getUriWithOrg, getLEARNHOUSE_PLATFORM_URL_VAL, getMainDomainUri } from '@services/config/config'
 import { apiFetch } from '@services/utils/ts/requests'
 import { signOut } from '@components/Contexts/AuthContext'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
@@ -47,6 +47,7 @@ function HomeClient() {
   const isAuthenticated = session?.status === 'authenticated'
   const isLoading = session?.status === 'loading'
   const platformUrl = getLEARNHOUSE_PLATFORM_URL_VAL()
+  const newOrganizationUrl = getMainDomainUri('/new')
 
   const { data: orgs, isLoading: orgsLoading } = useQuery({
     queryKey: ['orgs', 'user'],
@@ -66,9 +67,9 @@ function HomeClient() {
   // post-signup onboarding hop.
   useEffect(() => {
     if (isAuthenticated && Array.isArray(orgs) && orgs.length === 0) {
-      router.replace('/new')
+      router.replace(newOrganizationUrl)
     }
-  }, [isAuthenticated, orgs, router])
+  }, [isAuthenticated, orgs, router, newOrganizationUrl])
 
   return (
     <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
@@ -220,7 +221,7 @@ function HomeClient() {
               {/* Create organization — prominent entry into the hub */}
               {isAuthenticated && orgs && (
                 <Link
-                  href="/new"
+                  href={newOrganizationUrl}
                   className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gray-900 text-white rounded-2xl font-semibold text-sm nice-shadow hover:bg-gray-800 transition-colors"
                 >
                   <Plus size={16} />
