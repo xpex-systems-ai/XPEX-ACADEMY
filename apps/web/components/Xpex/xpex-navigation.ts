@@ -1,4 +1,4 @@
-import { Award, BookOpen, CalendarDays, ChartNoAxesCombined, CircleHelp, FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Route, Settings, Sparkles, Users, Wrench } from 'lucide-react'
+import { BookOpen, CalendarDays, ChartNoAxesCombined, CircleHelp, FileText, GraduationCap, LayoutDashboard, Library, MessageCircle, Route, Settings, Users, Wrench } from 'lucide-react'
 import type { XpexNavItem, XpexRole } from './xpex-types'
 
 const common = { icon: LayoutDashboard, href: '#visao-geral' }
