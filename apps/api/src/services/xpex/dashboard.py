@@ -179,7 +179,7 @@ async def get_student_dashboard(
             "activity_uuid": activity_uuid,
             "name": activity_name,
             "activity_type": activity_type.value,
-            "activity_sub_type": activity_sub_type.value,
+            "activity_sub_type": activity_sub_type.value if activity_sub_type is not None else None,
             "chapter_uuid": chapter_uuid,
             "chapter_name": chapter_name,
         })
