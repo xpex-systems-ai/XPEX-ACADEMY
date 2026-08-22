@@ -94,16 +94,11 @@ function HomeClient() {
           <div className="w-full max-w-md flex flex-col items-center">
             {/* Brand */}
             <div className="flex flex-col items-center mb-10">
-              { }
-              <img
-                src="/lrn.svg"
-                alt="LearnHouse"
-                width={44}
-                height={44}
-                className="opacity-90"
-              />
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#FF6A00] to-[#FF8A2A] text-lg font-black text-white shadow-[0_0_32px_rgba(255,106,0,.28)]">
+                XP
+              </div>
               <h1 className="mt-6 font-black tracking-tight text-2xl text-gray-900 text-center">
-                {t('common.your_organizations')}
+                XpeX Academy
               </h1>
               <p className="mt-1.5 text-sm text-black/40 text-center">
                 {t('common.choose_an_organization_to_continue', {
@@ -239,12 +234,12 @@ function HomeClient() {
                 className="mt-10 flex items-center gap-1.5 text-[11px] text-black/30 hover:text-black/60 transition-colors"
               >
                 <span>{t('common.powered_by', { defaultValue: 'Powered by' })}</span>
-                <span className="font-semibold tracking-tight text-black/50 group-hover:text-black/70">LearnHouse</span>
+                <span className="font-semibold tracking-tight text-black/50 group-hover:text-black/70">XpeX</span>
               </a>
             ) : (
               <div className="mt-10 flex items-center gap-1.5 text-[11px] text-black/30">
                 <span>{t('common.powered_by', { defaultValue: 'Powered by' })}</span>
-                <span className="font-semibold tracking-tight text-black/50">LearnHouse</span>
+                <span className="font-semibold tracking-tight text-black/50">XpeX</span>
               </div>
             )}
             <CopyrightFooter year={new Date().getFullYear()} className="mt-4 pt-0" />
