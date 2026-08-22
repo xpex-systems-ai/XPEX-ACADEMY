@@ -1,31 +1,36 @@
-from datetime import datetime
-from typing import List, Optional
+import logging
+from datetime import UTC, datetime
 from uuid import uuid4
-from sqlmodel import select, func, delete as sql_delete
-from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.courses.chapter_activities import ChapterActivity
+
 from fastapi import HTTPException, Request, status
+from sqlmodel import delete as sql_delete
+from sqlmodel import func, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.courses.activities import Activity
+from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.courses import Course
 from src.db.trail_runs import TrailRun, TrailRunRead
 from src.db.trail_steps import TrailStep
 from src.db.trails import Trail, TrailCreate, TrailRead
 from src.db.users import AnonymousUser, PublicUser
+from src.security.org_auth import require_org_membership
+from src.security.rbac import AccessAction, check_resource_access
+from src.services.analytics import events as analytics_events
+from src.services.analytics.analytics import track
 from src.services.courses.certifications import (
     check_course_completion_and_create_certificate,
     is_course_fully_completed,
 )
-from src.services.analytics.analytics import track
-from src.services.analytics import events as analytics_events
 from src.services.webhooks.dispatch import dispatch_webhooks
-from src.security.rbac import check_resource_access, AccessAction
+
+logger = logging.getLogger(__name__)
 
 
 async def _build_trail_read(
     trail: Trail,
-    trail_runs_raw: List[TrailRun],
+    trail_runs_raw: list[TrailRun],
     db_session: AsyncSession,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
     with_course_info: bool = True,
 ) -> TrailRead:
     """Build a TrailRead with all nested data using batch queries instead of N+1 loops."""
@@ -110,6 +115,8 @@ async def create_user_trail(
             detail="Anonymous users cannot access this endpoint",
         )
 
+    await require_org_membership(user.id, trail_object.org_id, db_session)
+
     statement = select(Trail).where(
         Trail.org_id == trail_object.org_id, Trail.user_id == user.id
     )
@@ -123,8 +130,8 @@ async def create_user_trail(
 
     trail = Trail.model_validate(trail_object)
 
-    trail.creation_date = str(datetime.now())
-    trail.update_date = str(datetime.now())
+    trail.creation_date = str(datetime.now(UTC))
+    trail.update_date = str(datetime.now(UTC))
     trail.org_id = trail_object.org_id
     trail.trail_uuid = str(f"trail_{uuid4()}")
 
@@ -196,6 +203,8 @@ async def get_user_trail_with_orgid(
             detail="Anonymous users cannot access this endpoint",
         )
 
+    await require_org_membership(user.id, org_id, db_session)
+
     trail = await check_trail_presence(
         org_id=org_id,
         user_id=user.id,
@@ -262,8 +271,8 @@ async def add_activity_to_trail(
             course_id=course.id if course.id is not None else 0,
             org_id=course.org_id,
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trailrun)
         await db_session.commit()
@@ -286,8 +295,8 @@ async def add_activity_to_trail(
             teacher_verified=False,
             grade="",
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trailstep)
         await db_session.commit()
@@ -339,7 +348,7 @@ async def add_activity_to_trail(
             )
         except Exception:
             # Certificate creation must not block the webhook dispatch.
-            pass
+            logger.exception("Certificate creation failed for course %s", course.id)
 
     if course_was_completed:
         await track(
@@ -390,6 +399,10 @@ async def remove_activity_from_trail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
+
+    await check_resource_access(
+        request, db_session, user, course.course_uuid, AccessAction.READ
+    )
 
     statement = select(Trail).where(
         Trail.org_id == course.org_id, Trail.user_id == user.id
@@ -476,8 +489,8 @@ async def add_course_to_trail(
             course_id=course.id if course.id is not None else 0,
             org_id=course.org_id,
             user_id=user.id,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(datetime.now(UTC)),
+            update_date=str(datetime.now(UTC)),
         )
         db_session.add(trail_run)
         await db_session.commit()
@@ -524,6 +537,10 @@ async def remove_course_from_trail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
+
+    await check_resource_access(
+        request, db_session, user, course.course_uuid, AccessAction.READ
+    )
 
     statement = select(Trail).where(
         Trail.org_id == course.org_id, Trail.user_id == user.id
