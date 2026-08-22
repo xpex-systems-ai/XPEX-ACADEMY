@@ -34,6 +34,12 @@ def _lock_name(lock_type: object | None) -> str:
     return str(value).lower()
 
 
+def _activity_sub_type_value(activity_sub_type: object | None) -> str | None:
+    """Serialize legacy/imported activities whose subtype can be null."""
+    value = getattr(activity_sub_type, "value", activity_sub_type)
+    return str(value) if value is not None else None
+
+
 async def get_student_dashboard(
     user: PublicUser, organization_slug: str, db_session: AsyncSession
 ) -> dict | None:
@@ -96,8 +102,12 @@ async def get_student_dashboard(
                 ChapterActivity.course_id,
                 ChapterActivity.activity_id,
                 Activity.activity_uuid,
+                Activity.name,
+                Activity.activity_type,
+                Activity.activity_sub_type,
                 Activity.lock_type,
                 Chapter.chapter_uuid,
+                Chapter.name,
                 Chapter.lock_type,
             )
             .join(Activity, Activity.id == ChapterActivity.activity_id)
@@ -125,7 +135,7 @@ async def get_student_dashboard(
     restricted_uuids = {
         resource_uuid
         for row in ordered_scope
-        for lock_type, resource_uuid in ((row[3], row[2]), (row[5], row[4]))
+        for lock_type, resource_uuid in ((row[6], row[2]), (row[9], row[7]))
         if _lock_name(lock_type) == "restricted" and resource_uuid
     }
     admin = await is_org_admin(user.id, membership.id, db_session)
@@ -133,14 +143,18 @@ async def get_student_dashboard(
         user.id, restricted_uuids, db_session
     )
 
-    accessible_by_course: dict[int, list[tuple[int, str]]] = defaultdict(list)
+    accessible_by_course: dict[int, list[dict]] = defaultdict(list)
     accessible_ids_by_course: dict[int, set[int]] = defaultdict(set)
     for (
         course_id,
         activity_id,
         activity_uuid,
+        activity_name,
+        activity_type,
+        activity_sub_type,
         activity_lock_type,
         chapter_uuid,
+        chapter_name,
         chapter_lock_type,
     ) in ordered_scope:
         chapter_locked = await is_locked_for_user(
@@ -166,7 +180,15 @@ async def get_student_dashboard(
         if activity_id in accessible_ids_by_course[course_id]:
             continue
         accessible_ids_by_course[course_id].add(activity_id)
-        accessible_by_course[course_id].append((activity_id, activity_uuid))
+        accessible_by_course[course_id].append({
+            "activity_id": activity_id,
+            "activity_uuid": activity_uuid,
+            "name": activity_name,
+            "activity_type": activity_type.value,
+            "activity_sub_type": _activity_sub_type_value(activity_sub_type),
+            "chapter_uuid": chapter_uuid,
+            "chapter_name": chapter_name,
+        })
 
     # TrailStep is the persisted learning activity record. Read rows once so course
     # recency, completion counts, and resume targets are all based on the same
@@ -202,18 +224,19 @@ async def get_student_dashboard(
     first_incomplete: dict[int, str] = {}
     for course_id, activities in accessible_by_course.items():
         completed_ids = completed_by_course.get(course_id, set())
-        for activity_id, activity_uuid in activities:
+        for activity in activities:
+            activity_id = activity["activity_id"]
             if activity_id not in completed_ids:
-                first_incomplete[course_id] = activity_uuid.removeprefix("activity_")
+                first_incomplete[course_id] = activity["activity_uuid"].removeprefix("activity_")
                 break
 
     cards = []
     for run in runs:
         course = course_map[run.course_id]
         course_uuid = course.course_uuid.removeprefix("course_")
-        target = f"/orgs/{organization_slug}/course/{course_uuid}"
+        target = f"/xpex/courses/{course_uuid}"
         if run.course_id in first_incomplete:
-            target += f"/activity/{first_incomplete[run.course_id]}"
+            target += f"/learn/{first_incomplete[run.course_id]}"
         total = len(accessible_ids_by_course.get(run.course_id, set()))
         done = len(completed_by_course.get(run.course_id, set()))
         last_step = latest_step_at.get(run.course_id)
@@ -221,6 +244,8 @@ async def get_student_dashboard(
             {
                 "course_id": course.course_uuid,
                 "title": course.name,
+                "description": course.description,
+                "org_uuid": membership.org_uuid,
                 "image_url": course.thumbnail_image or None,
                 "enrollment_state": run.status.value,
                 "completed_lessons": done,
@@ -228,6 +253,10 @@ async def get_student_dashboard(
                 "progress_percent": progress_percent(done, total),
                 "target_href": target,
                 "last_activity_at": last_step,
+                "activities": [
+                    {**activity, "complete": activity["activity_id"] in completed_by_course.get(run.course_id, set())}
+                    for activity in accessible_by_course.get(run.course_id, [])
+                ],
                 "_fallback_enrollment_at": run.update_date or run.creation_date or "",
             }
         )
