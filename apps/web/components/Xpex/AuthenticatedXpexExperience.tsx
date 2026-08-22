@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
 import {
   resolveXpexAccess,
+  resolveXpexOrganization,
   type LearnHouseMembership,
   type XpexExperienceRole,
 } from '@/lib/xpex/access'
@@ -10,10 +11,8 @@ import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
 import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 
-const PILOT_ORG_SLUG = 'kelle-digital-lab'
-
-function AccessDenied() {
-  return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title="Acesso não autorizado" description="Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação." /></div></main>
+function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
+  return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
 }
 
 /**
@@ -31,7 +30,11 @@ export async function AuthenticatedXpexExperience({
   if (!session?.user) redirect(`/login?next=${encodeURIComponent(returnPath)}`)
 
   const memberships: LearnHouseMembership[] | undefined = session.roles
-  const roles = resolveXpexAccess(memberships, PILOT_ORG_SLUG)
+  const hasOrganizationMembership = memberships?.some(({ org }) => Boolean(org?.slug)) ?? false
+  const organization = resolveXpexOrganization(memberships, requestedRole)
+  const organizationSlug = organization?.slug
+  if (!organizationSlug) return <AccessDenied noOrganization={!hasOrganizationMembership} />
+  const roles = resolveXpexAccess(memberships, organizationSlug)
   const role = requestedRole ?? roles[0]
   if (!role || !roles.includes(role)) return <AccessDenied />
 
@@ -43,14 +46,14 @@ export async function AuthenticatedXpexExperience({
     try {
       learningData = await getXpexLearningDashboard(
         session.tokens.access_token,
-        PILOT_ORG_SLUG
+        organizationSlug
       )
     } catch (error) {
       learningDataFailed = true
       console.error('[XPEX_DASHBOARD] Unable to load learner dashboard', error)
     }
   }
-  const organizationName = memberships?.find(({ org }) => org?.slug === PILOT_ORG_SLUG)?.org?.name
+  const organizationName = organization?.name
   return (
     <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName}>
       <AuthenticatedDashboard
@@ -59,6 +62,7 @@ export async function AuthenticatedXpexExperience({
         learningData={learningData}
         learningDataFailed={learningDataFailed}
         organizationName={organizationName}
+        organizationSlug={organizationSlug}
       />
     </XpexAuthenticatedShell>
   )

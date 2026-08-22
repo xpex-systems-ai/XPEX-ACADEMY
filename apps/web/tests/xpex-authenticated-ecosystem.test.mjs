@@ -10,13 +10,14 @@ describe('PR-02 authenticated ecosystem', () => {
   test('provides the shared authenticated shell and accessible landmarks', () => {
     for (const component of ['XpexAuthenticatedShell', 'XpexSidebar', 'XpexTopbar', 'XpexRoleNavigation', 'XpexLegalAttribution']) expect(shell).toContain(`function ${component}`)
     expect(shell).toContain('Pular para o conteúdo')
-    expect(shell).toContain('aria-current="page"')
+    expect(shell).toContain('aria-current={index === 0 ? \'page\' : undefined}')
     expect(shell).toContain('aria-label="Menu principal XpeX"')
   })
-  test('has isolated role navigation with inert coming-soon items', () => {
-    for (const label of ['Meus Cursos', 'Laboratório de IA', 'Minhas Turmas', 'Mensagens', 'Certificados', 'Recursos']) expect(navigation).toContain(`label: '${label}'`)
-    expect(shell).toContain('aria-disabled="true"')
-    expect(shell).toContain('<span key={label}')
+  test('keeps student navigation limited to functional destinations', () => {
+    for (const label of ['Início', 'Meus Cursos', 'Atividades']) expect(navigation).toContain(`label: '${label}'`)
+    for (const label of ['Laboratório de IA', 'Comunidade', 'Certificados']) expect(navigation).not.toContain(`label: '${label}'`)
+    expect(shell).toContain("const isFunctional = index === 0 || role === 'aluno'")
+    expect(shell).toContain('href={index === 0 ? `/xpex/${role}` : href}')
   })
   test('uses real learner data and honest empty states without fixed metrics', () => {
     expect(dashboard).toContain('data.summary.active_courses')

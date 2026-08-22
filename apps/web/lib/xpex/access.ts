@@ -27,6 +27,17 @@ export function resolveXpexAccess(
   return [...new Set(roles)]
 }
 
+export function resolveXpexOrganization(
+  memberships: LearnHouseMembership[] | undefined,
+  requestedRole?: XpexExperienceRole,
+): LearnHouseMembership['org'] | null {
+  const membership = memberships?.find((candidate) => {
+    const role = xpexRoleForMembership(candidate)
+    return Boolean(candidate.org?.slug && role && (!requestedRole || role === requestedRole))
+  })
+  return membership?.org ?? null
+}
+
 export function safeLoginNext(pathname: string): string {
   return pathname.startsWith('/') && !pathname.startsWith('//') && !pathname.includes('\\')
     ? pathname
