@@ -23,7 +23,7 @@ export function XpexRoleNavigation({ role, onNavigate }: { role: XpexRole; onNav
     {xpexAuthenticatedNavigation[role].map(({ label, icon: Icon, href }, index) => {
       const isFunctional = index === 0 || role === 'aluno'
       if (isFunctional) {
-        return <Link key={label} href={index === 0 ? `/xpex/${role}` : href} aria-current={index === 0 ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${index === 0 ? 'xpex-nav-active' : ''}`}>
+        return <Link key={label} href={index === 0 ? `/xpex/${role}` : href} aria-current={index === 0 ? 'page' : undefined} onClick={onNavigate} className="xpex-nav-item">
           <Icon aria-hidden="true" size={18}/><span>{label}</span>
         </Link>
       }

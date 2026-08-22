@@ -10,7 +10,7 @@ export const xpexNavigation: Record<XpexRole, XpexNavItem[]> = {
 
 
 export const xpexAuthenticatedNavigation: Record<XpexRole, XpexNavItem[]> = {
-  aluno: [{ label: 'Início', ...common }, { label: 'Meus Cursos', icon: BookOpen, href: '#cursos' }, { label: 'Atividades', icon: FileText, href: '#atividades' }],
+  aluno: [{ label: 'Início', ...common }, { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' }, { label: 'Atividades', icon: FileText, href: '/xpex/activities' }],
   professora: [{ label: 'Visão Geral', ...common }, { label: 'Minhas Turmas', icon: GraduationCap, href: '#turma' }, { label: 'Alunos', icon: Users, href: '#participantes' }, { label: 'Conteúdos', icon: Library, href: '#conteudos' }, { label: 'Atividades', icon: FileText, href: '#atividades' }, { label: 'Mentorias', icon: CalendarDays, href: '#eventos' }, { label: 'Mensagens', icon: MessageCircle, href: '#mensagens' }, { label: 'Relatórios', icon: ChartNoAxesCombined, href: '#metricas' }, { label: 'Configurações', icon: Settings, href: '#perfil' }],
   polo: [{ label: 'Visão Geral', ...common }, { label: 'Alunos', icon: Users, href: '#metricas' }, { label: 'Turmas', icon: GraduationCap, href: '#turmas' }, { label: 'Cursos', icon: BookOpen, href: '#cursos' }, { label: 'Trilhas', icon: Route, href: '#trilhas' }, { label: 'Mentorias', icon: MessageCircle, href: '#mentorias' }, { label: 'Eventos', icon: CalendarDays, href: '#eventos' }, { label: 'Conteúdos', icon: Library, href: '#atividades' }, { label: 'Relatórios', icon: ChartNoAxesCombined, href: '#relatorios' }, { label: 'Recursos', icon: Wrench, href: '#recursos' }, { label: 'Configurações', icon: Settings, href: '#perfil' }],
 }

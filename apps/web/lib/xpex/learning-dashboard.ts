@@ -3,6 +3,8 @@ import { getBackendUrl } from '@services/config/config'
 export type XpexLearningCourse = {
   course_id: string
   title: string
+  description: string | null
+  org_uuid: string
   image_url: string | null
   enrollment_state: string
   completed_lessons: number
@@ -10,6 +12,21 @@ export type XpexLearningCourse = {
   progress_percent: number | null
   target_href: string
   last_activity_at: string | null
+  activities: XpexLearningActivity[]
+}
+
+export type XpexLearningActivity = {
+  activity_id: number
+  activity_uuid: string
+  name: string
+  activity_type: string
+  activity_sub_type: string
+  content: Record<string, unknown>
+  details: Record<string, unknown> | null
+  extra_metadata: Record<string, unknown> | null
+  chapter_uuid: string
+  chapter_name: string
+  complete: boolean
 }
 
 export type XpexLearningDashboardData = {
