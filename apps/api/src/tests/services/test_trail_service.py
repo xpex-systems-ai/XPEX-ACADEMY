@@ -209,6 +209,26 @@ class TestTrailService:
         assert anonymous_exc.value.status_code == 401
 
     @pytest.mark.asyncio
+    async def test_trail_org_scope_requires_membership(
+        self, db, other_org, admin_user, mock_request
+    ):
+        with pytest.raises(HTTPException) as read_exc:
+            await get_user_trail_with_orgid(
+                mock_request, admin_user, other_org.id, db
+            )
+
+        with pytest.raises(HTTPException) as create_exc:
+            await create_user_trail(
+                mock_request,
+                admin_user,
+                TrailCreate(org_id=other_org.id, user_id=admin_user.id),
+                db,
+            )
+
+        assert read_exc.value.status_code == 403
+        assert create_exc.value.status_code == 403
+
+    @pytest.mark.asyncio
     async def test_add_activity_to_trail_creates_records_and_tracks_once(
         self, db, org, admin_user, mock_request, activity
     ):

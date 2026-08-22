@@ -19,6 +19,7 @@ from src.services.analytics.analytics import track
 from src.services.analytics import events as analytics_events
 from src.services.webhooks.dispatch import dispatch_webhooks
 from src.security.rbac import check_resource_access, AccessAction
+from src.security.org_auth import require_org_membership
 
 
 async def _build_trail_read(
@@ -110,6 +111,8 @@ async def create_user_trail(
             detail="Anonymous users cannot access this endpoint",
         )
 
+    await require_org_membership(user.id, trail_object.org_id, db_session)
+
     statement = select(Trail).where(
         Trail.org_id == trail_object.org_id, Trail.user_id == user.id
     )
@@ -195,6 +198,8 @@ async def get_user_trail_with_orgid(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Anonymous users cannot access this endpoint",
         )
+
+    await require_org_membership(user.id, org_id, db_session)
 
     trail = await check_trail_presence(
         org_id=org_id,
@@ -391,6 +396,10 @@ async def remove_activity_from_trail(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
 
+    await check_resource_access(
+        request, db_session, user, course.course_uuid, AccessAction.READ
+    )
+
     statement = select(Trail).where(
         Trail.org_id == course.org_id, Trail.user_id == user.id
     )
@@ -524,6 +533,10 @@ async def remove_course_from_trail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
+
+    await check_resource_access(
+        request, db_session, user, course.course_uuid, AccessAction.READ
+    )
 
     statement = select(Trail).where(
         Trail.org_id == course.org_id, Trail.user_id == user.id

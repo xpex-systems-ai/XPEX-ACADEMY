@@ -252,7 +252,7 @@ const CourseClient = (props: any) => {
       return cleanRunCourseUuid === cleanCourseUuid
     })
     if (!run || !Array.isArray(run.steps)) return false
-    return !!run.steps.find((step: any) => step.activity_id == activity.id)
+    return !!run.steps.find((step: any) => step.activity_id == activity.id && step.complete === true)
   }
 
   const isActivityCurrent = (activity: any) => {
