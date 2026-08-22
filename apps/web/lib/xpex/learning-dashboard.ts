@@ -21,9 +21,6 @@ export type XpexLearningActivity = {
   name: string
   activity_type: string
   activity_sub_type: string
-  content: Record<string, unknown>
-  details: Record<string, unknown> | null
-  extra_metadata: Record<string, unknown> | null
   chapter_uuid: string
   chapter_name: string
   complete: boolean

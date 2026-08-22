@@ -99,9 +99,6 @@ async def get_student_dashboard(
                 Activity.name,
                 Activity.activity_type,
                 Activity.activity_sub_type,
-                Activity.content,
-                Activity.details,
-                Activity.extra_metadata,
                 Activity.lock_type,
                 Chapter.chapter_uuid,
                 Chapter.name,
@@ -132,7 +129,7 @@ async def get_student_dashboard(
     restricted_uuids = {
         resource_uuid
         for row in ordered_scope
-        for lock_type, resource_uuid in ((row[9], row[2]), (row[12], row[10]))
+        for lock_type, resource_uuid in ((row[6], row[2]), (row[9], row[7]))
         if _lock_name(lock_type) == "restricted" and resource_uuid
     }
     admin = await is_org_admin(user.id, membership.id, db_session)
@@ -149,9 +146,6 @@ async def get_student_dashboard(
         activity_name,
         activity_type,
         activity_sub_type,
-        activity_content,
-        activity_details,
-        activity_extra_metadata,
         activity_lock_type,
         chapter_uuid,
         chapter_name,
@@ -186,9 +180,6 @@ async def get_student_dashboard(
             "name": activity_name,
             "activity_type": activity_type.value,
             "activity_sub_type": activity_sub_type.value,
-            "content": activity_content,
-            "details": activity_details,
-            "extra_metadata": activity_extra_metadata,
             "chapter_uuid": chapter_uuid,
             "chapter_name": chapter_name,
         })

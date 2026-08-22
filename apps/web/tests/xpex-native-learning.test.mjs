@@ -20,4 +20,20 @@ describe('native XpeX student learning', () => {
     expect(read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')).toContain("Objects/Activities/Video/Video")
     expect(read('app/xpex/courses/[courseId]/learn/[activityId]/actions.ts')).toContain('markActivityAsComplete')
   })
+
+  test('keeps catalogs metadata-only and blocks generic assignment completion', () => {
+    const dashboard = read('../api/src/services/xpex/dashboard.py')
+    expect(dashboard).not.toContain('Activity.content,')
+    expect(dashboard).not.toContain('Activity.details,')
+    const action = read('app/xpex/courses/[courseId]/learn/[activityId]/actions.ts')
+    expect(action).toContain("activity.activity_type === 'TYPE_ASSIGNMENT'")
+    expect(read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')).toContain('canComplete &&')
+  })
+
+  test('loads protected content only through the canonical activity read', () => {
+    const page = read('app/xpex/courses/[courseId]/learn/[activityId]/page.tsx')
+    expect(page).toContain('getActivityWithAuthHeader')
+    expect(page).toContain('activity.is_locked === true')
+    expect(page).toContain('details: null, extra_metadata: null')
+  })
 })

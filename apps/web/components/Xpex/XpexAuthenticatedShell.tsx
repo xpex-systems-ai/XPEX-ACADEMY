@@ -3,6 +3,7 @@
 import { signOut } from '@components/Contexts/AuthContext'
 import { Bell, LogOut, Menu, MessageCircle, Search, ShieldCheck, X } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 import { xpexAuthenticatedNavigation } from './xpex-navigation'
 import type { XpexRole } from './xpex-types'
@@ -19,11 +20,14 @@ export function XpexLegalAttribution() {
 }
 
 export function XpexRoleNavigation({ role, onNavigate }: { role: XpexRole; onNavigate?: () => void }) {
+  const pathname = usePathname()
   return <nav className="xpex-role-nav" aria-label={`Navegação da área ${roleLabels[role]}`}>
     {xpexAuthenticatedNavigation[role].map(({ label, icon: Icon, href }, index) => {
       const isFunctional = index === 0 || role === 'aluno'
       if (isFunctional) {
-        return <Link key={label} href={index === 0 ? `/xpex/${role}` : href} aria-current={index === 0 ? 'page' : undefined} onClick={onNavigate} className="xpex-nav-item">
+        const destination = index === 0 ? `/xpex/${role}` : href
+        const isCurrent = index === 0 ? pathname === '/xpex' || pathname === destination : pathname === destination || pathname.startsWith(`${destination}/`)
+        return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}>
           <Icon aria-hidden="true" size={18}/><span>{label}</span>
         </Link>
       }
