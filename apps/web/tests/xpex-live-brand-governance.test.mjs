@@ -39,6 +39,20 @@ describe('XPEX-BETA-006B live brand completion and environment governance', () =
     expect(notFound).not.toContain('We are very sorry')
   })
 
+  test('keeps the org chooser and auth metadata within XpeX branding', () => {
+    const home = read('app/home/home.tsx')
+    const signup = read('app/auth/signup/page.tsx')
+    const forgot = read('app/auth/forgot/page.tsx')
+    const reset = read('app/auth/reset/page.tsx')
+    const verify = read('app/auth/verify-email/page.tsx')
+
+    for (const source of [home, signup, forgot, reset, verify]) {
+      expect(source).not.toContain('LearnHouse')
+    }
+    expect(home).toContain('XpeX Academy')
+    expect(signup).toContain('Cadastro —')
+  })
+
   test('makes non-persistent actions explicit instead of pretending to work', () => {
     expect(primitives).toContain('export function XpexDemoButton')
     expect(primitives).toContain('disabled aria-disabled="true"')

@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const orgslug = await getAuthOrgSlug()
 
   if (!orgslug) {
-    return { title: 'Reset Password — LearnHouse' }
+    return { title: 'Redefinir senha | XpeX Academy' }
   }
 
   let org: any = null
@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: 'Reset Password' + ` — ${org?.name || 'LearnHouse'}`,
+    title: `Redefinir senha — ${org?.name || 'XpeX Academy'}`,
     robots: { index: false, follow: false },
   }
 }
