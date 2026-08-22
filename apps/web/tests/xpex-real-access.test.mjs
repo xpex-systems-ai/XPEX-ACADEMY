@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { resolveXpexAccess, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
+import { resolveXpexAccess, resolveXpexOrganization, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
 import { safeAuthReturnPath } from '../lib/proxyPaths.ts'
 
 const membership = (role_uuid, slug = 'kelle-digital-lab', name) => ({ role: { name, role_uuid }, org: { slug } })
@@ -16,6 +16,12 @@ describe('XpeX server-authoritative role mapping', () => {
   test('scopes roles to the pilot organization and never elevates unknown roles', () => {
     expect(resolveXpexAccess([membership('role_global_user'), membership('role_global_admin', 'other-org')], 'kelle-digital-lab')).toEqual(['aluno'])
     expect(resolveXpexAccess([membership('role_unknown')], 'kelle-digital-lab')).toEqual([])
+  })
+
+  test('resolves the first authorized organization without trusting a requested slug', () => {
+    expect(resolveXpexOrganization([membership('role_global_user', 'academy-one')])).toEqual({ slug: 'academy-one' })
+    expect(resolveXpexOrganization([membership('role_unknown', 'academy-two'), membership('role_global_user', 'academy-three')])).toEqual({ slug: 'academy-three' })
+    expect(resolveXpexOrganization([])).toBeNull()
   })
 
   test('allows multiple experiences only when memberships really provide them', () => {
@@ -63,7 +69,8 @@ describe('server-authoritative XpeX routes', () => {
   test('resolves the LearnHouse server session before selecting an experience', () => {
     expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
     expect(boundary).toContain('const session = await getServerSession()')
-    expect(boundary).toContain("resolveXpexAccess(memberships, PILOT_ORG_SLUG)")
+    expect(boundary).toContain('resolveXpexOrganization(memberships)')
+    expect(boundary).toContain("title={noOrganization ? 'Sua conta está pronta'")
     expect(boundary).not.toContain("'use client'")
   })
 
@@ -130,7 +137,7 @@ describe('PR-03 conditional authenticated entry', () => {
   })
 
   test('redirects only an authenticated pilot member from home to XpeX without a loop', () => {
-    expect(homePage).toContain('resolveXpexAccess(session.roles, PILOT_ORG_SLUG).length > 0')
+    expect(homePage).toContain('resolveXpexOrganization(session?.roles)?.slug')
     expect(homePage).toContain("redirect('/xpex')")
     expect(homePage).toContain('<HomeClient/>')
     expect(boundary).not.toContain("redirect('/home')")

@@ -13,10 +13,9 @@ describe('PR-02 authenticated ecosystem', () => {
     expect(shell).toContain('aria-current="page"')
     expect(shell).toContain('aria-label="Menu principal XpeX"')
   })
-  test('has isolated role navigation with inert coming-soon items', () => {
-    for (const label of ['Meus Cursos', 'Laboratório de IA', 'Minhas Turmas', 'Mensagens', 'Certificados', 'Recursos']) expect(navigation).toContain(`label: '${label}'`)
-    expect(shell).toContain('aria-disabled="true"')
-    expect(shell).toContain('<span key={label}')
+  test('keeps student navigation limited to functional destinations', () => {
+    for (const label of ['Início', 'Meus Cursos', 'Atividades']) expect(navigation).toContain(`label: '${label}'`)
+    for (const label of ['Laboratório de IA', 'Comunidade', 'Certificados']) expect(navigation).not.toContain(`label: '${label}'`)
   })
   test('uses real learner data and honest empty states without fixed metrics', () => {
     expect(dashboard).toContain('data.summary.active_courses')
