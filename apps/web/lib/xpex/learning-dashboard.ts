@@ -20,7 +20,7 @@ export type XpexLearningActivity = {
   activity_uuid: string
   name: string
   activity_type: string
-  activity_sub_type: string
+  activity_sub_type: string | null
   chapter_uuid: string
   chapter_name: string
   complete: boolean
