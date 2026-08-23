@@ -18,7 +18,7 @@ const PRIVACY_URL = getPlatformUrl('/privacy') || 'https://www.learnhouse.io/pri
 
 export function AuthFooter({ className = '', tone = 'light' }: { className?: string; tone?: 'light' | 'dark' }) {
   const { t } = useTranslation()
-  const text = tone === 'dark' ? 'text-white/35' : 'text-black/30'
+  const text = tone === 'dark' ? 'text-white/55' : 'text-black/30'
   const link = tone === 'dark' ? 'text-white/55 hover:text-white/80' : 'text-black/50 hover:text-black/70'
   return (
     <div className={`pb-8 pt-6 text-center px-6 ${className}`}>
@@ -44,7 +44,7 @@ export function AuthFooter({ className = '', tone = 'light' }: { className?: str
         .
       </p>
       {tone === 'dark' && (
-        <p className="mt-2 text-[11px] text-white/25">
+        <p className="mt-2 text-[11px] text-white/55">
           Versão modificada do projeto open-source LearnHouse, distribuído sob licença AGPL.
         </p>
       )}

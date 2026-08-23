@@ -30,7 +30,7 @@ export default function AuthLayout({ org, welcomeText, title, subtitle, children
       />
 
       <div className="absolute right-4 top-4 z-50">
-        <LanguageSwitcher />
+        <LanguageSwitcher primaryColor="#0B1220" />
       </div>
 
       <div className="relative z-10 lg:hidden">
