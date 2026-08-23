@@ -279,9 +279,9 @@ const LoginClient = (props: LoginClientProps) => {
   return (
     <AuthLayout
       org={props.org}
-      welcomeText={t('auth.xpex_access_title', { defaultValue: 'Acesse seu ambiente de aprendizagem' })}
+      welcomeText={t('auth.login_to')}
       title="XpeX Academy"
-      subtitle={t('auth.xpex_access_subtitle', { defaultValue: 'Entre com segurança para continuar sua jornada.' })}
+      subtitle={t('auth.enter_credentials')}
     >
         {/* Error Top Bar */}
         {showErrorModal && (
@@ -351,8 +351,8 @@ const LoginClient = (props: LoginClientProps) => {
           <div className="w-full max-w-[420px] py-10">
             {/* Header */}
             <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
-            <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.xpex_access_title', { defaultValue: 'Acesse seu ambiente de aprendizagem' })}</h1>
-            <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.xpex_access_subtitle', { defaultValue: 'Entre com segurança para continuar sua jornada.' })}</p>
+            <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.login_to')}</h1>
+            <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.enter_credentials')}</p>
 
             <div className="mt-8">
               <FormLayout onSubmit={formik.handleSubmit}>

@@ -45,7 +45,7 @@ export function AuthFooter({ className = '', tone = 'light' }: { className?: str
       </p>
       {tone === 'dark' && (
         <p className="mt-2 text-[11px] text-white/55">
-          Versão modificada do projeto open-source LearnHouse, distribuído sob licença AGPL.
+          {t('auth.xpex_agpl_notice', { defaultValue: 'Modified version of the open-source LearnHouse project, distributed under the AGPL license.' })}
         </p>
       )}
     </div>

@@ -16,7 +16,7 @@ export default function AuthMobileHeader({ org }: { org: any }) {
         {org?.logo_image && (
           <img
             src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-            alt="Identidade da organização"
+            alt={org?.name && org.name.trim().toLowerCase() !== 'default organization' ? org.name : 'XpeX Academy'}
             className="ml-auto h-10 max-w-32 rounded-lg bg-white/95 object-contain p-1.5"
           />
         )}

@@ -22,6 +22,9 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
     ? getOrgAuthBackgroundMediaDirectory(org?.org_uuid, branding.background_image)
     : branding.background_image
   const organizationName = visibleOrganizationName(org?.name)
+  const configuredWelcome = typeof branding.welcome_message === 'string' && branding.welcome_message.trim()
+    ? branding.welcome_message.trim()
+    : null
 
   return (
     <aside className="relative h-full overflow-hidden bg-[#0B1220] text-white" aria-label="XpeX Academy">
@@ -48,7 +51,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
               className="mb-8 h-16 max-w-48 rounded-xl bg-white/95 object-contain p-2"
             />
           )}
-          <p className="text-xs font-black uppercase tracking-[.24em] text-[#00D4FF]">{welcomeText || 'XpeX Academy'}</p>
+          <p className="text-xs font-black uppercase tracking-[.24em] text-[#00D4FF]">{configuredWelcome || welcomeText || 'XpeX Academy'}</p>
           <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight xl:text-5xl">
             {title || 'XpeX Academy'}
           </h1>

@@ -239,8 +239,6 @@
   },
   "auth": {
     "login": "Login",
-    "xpex_access_title": "Access your learning space",
-    "xpex_access_subtitle": "Sign in securely to continue your journey.",
     "sign_in": "Sign in",
     "email": "Email",
     "password": "Password",
@@ -356,6 +354,7 @@
     "invite_code": "Invite Code",
     "validate_invite": "Validate Invite",
     "terms_text": "By continuing, you agree to LearnHouse's",
+    "xpex_agpl_notice": "Modified version of the open-source LearnHouse project, distributed under the AGPL license.",
     "terms_of_service": "Terms of Service",
     "and": "and",
     "privacy_policy": "Privacy Policy",

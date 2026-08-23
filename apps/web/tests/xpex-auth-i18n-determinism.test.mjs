@@ -65,7 +65,8 @@ describe('XpeX login branding and auth preservation', () => {
     expect(primarySurfaces).not.toContain('utm_source=LearnHouse')
     expect(panel).toContain("name.trim().toLowerCase() !== 'default organization'")
     expect(panel).toContain('AuthBrandingPanel({ org, welcomeText, title, subtitle }')
-    expect(panel).toContain("{welcomeText || 'XpeX Academy'}")
+    expect(panel).toContain("{configuredWelcome || welcomeText || 'XpeX Academy'}")
+    expect(panel).toContain('branding.welcome_message')
     expect(panel).toContain("{title || 'XpeX Academy'}")
     expect(panel).toContain('{subtitle}')
     expect(panel).not.toContain('Portal educacional')
@@ -73,6 +74,21 @@ describe('XpeX login branding and auth preservation', () => {
     expect(panel).not.toContain('Ambiente seguro de aprendizagem')
     expect(layout).toContain("{subtitle || title || 'XpeX Academy'}")
     expect(layout).not.toContain('Acesso institucional seguro')
+    expect(login).toContain("t('auth.login_to')")
+    expect(login).toContain("t('auth.enter_credentials')")
+    expect(login).not.toContain('xpex_access_title')
+    expect(login).not.toContain('xpex_access_subtitle')
+    expect(mobile).not.toContain('Identidade da organização')
+    expect(mobile).toContain("org.name : 'XpeX Academy'")
+    const legalFooter = read('components/Footers/LegalFooters.tsx')
+    expect(legalFooter).toContain("t('auth.xpex_agpl_notice'")
+    expect(legalFooter).not.toContain('Versão modificada do projeto open-source LearnHouse')
+    for (const locale of ["en","pt","fr","de","es","ar","ja","ru","zh","hi","ko","it","tr","vi","id","pl","uk","nl","th","bn","fa","sk"]) {
+      const messages = JSON.parse(read(`locales/${locale}.json`))
+      expect(messages.auth.xpex_agpl_notice).toBeTruthy()
+      expect(messages.auth.xpex_access_title).toBeUndefined()
+      expect(messages.auth.xpex_access_subtitle).toBeUndefined()
+    }
   })
 
   test('keeps every shared AuthLayout consumer legible on the dark pane', () => {

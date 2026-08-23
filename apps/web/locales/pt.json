@@ -234,8 +234,6 @@
   },
   "auth": {
     "login": "Entrar",
-    "xpex_access_title": "Acesse seu ambiente de aprendizagem",
-    "xpex_access_subtitle": "Entre com segurança para continuar sua jornada.",
     "email": "E-mail",
     "password": "Senha",
     "forgot_password": "Esqueceu a senha?",
@@ -350,6 +348,7 @@
     "error_generic": "Algo deu errado. Por favor, tente novamente.",
     "sign_in": "Entrar",
     "terms_text": "Ao continuar, concorda com os",
+    "xpex_agpl_notice": "Versão modificada do projeto open-source LearnHouse, distribuída sob a licença AGPL.",
     "terms_of_service": "Termos de Serviço",
     "and": "e a",
     "privacy_policy": "Política de Privacidade",
