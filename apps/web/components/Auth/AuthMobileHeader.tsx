@@ -76,6 +76,17 @@ export default function AuthMobileHeader({ org }: { org: any }) {
         )}
       </div>
 
+      {organizationName && (
+        <p
+          className={cn(
+            'relative z-10 mt-2 truncate pr-20 text-xs font-semibold',
+            isDarkText ? 'text-slate-800' : 'text-white/75',
+          )}
+        >
+          {organizationName}
+        </p>
+      )}
+
       {showUnsplashCredit && (
         <p
           className={cn(

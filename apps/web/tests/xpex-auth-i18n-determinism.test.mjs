@@ -91,6 +91,8 @@ describe('XpeX login branding and auth preservation', () => {
     expect(login).not.toContain('xpex_access_subtitle')
     expect(mobile).not.toContain('Identidade da organização')
     expect(mobile).toContain("org.name")
+    expect(mobile).toContain('{organizationName}')
+    expect(mobile).toContain("'relative z-10 mt-2 truncate pr-20 text-xs font-semibold'")
     expect(mobile).toContain('branding.background_type')
     expect(mobile).toContain('branding.background_image')
     expect(mobile).toContain('getOrgAuthBackgroundMediaDirectory')
