@@ -6,14 +6,13 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException
-from starlette.requests import Request
-
 from src.services.email.utils import (
     _is_allowed_base_url,
     get_base_url_from_request,
     get_org_signup_base_url,
     send_email,
 )
+from starlette.requests import Request
 
 
 def _config(**overrides):
@@ -40,6 +39,7 @@ def _config(**overrides):
         smtp_use_tls=overrides.pop("smtp_use_tls", True),
     )
     return SimpleNamespace(
+        site_name=overrides.pop("site_name", "XpeX Academy"),
         hosting_config=hosting,
         general_config=general,
         mailing_config=mailing,
@@ -130,6 +130,20 @@ class TestEmailUtilsService:
         ):
             assert _is_allowed_base_url("http://localhost:3000")
 
+    def test_canonical_xpex_frontend_is_trusted_without_trusting_other_vercel_apps(self):
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(
+                tenancy="single",
+                frontend_domain="xpex-academy-ai.vercel.app",
+                domain="api-production.up.railway.app",
+                ssl=True,
+            ),
+        ):
+            assert _is_allowed_base_url("https://xpex-academy-ai.vercel.app")
+            assert not _is_allowed_base_url("https://attacker-preview.vercel.app")
+            assert not _is_allowed_base_url("http://xpex-academy-ai.vercel.app")
+
     def test_is_allowed_base_url_accepts_host_with_port_config_in_single_tenancy(self):
         # The shipped default config uses schemeless "host:port" values
         # (e.g. "localhost:3000"). The configured host must still match the
@@ -140,6 +154,7 @@ class TestEmailUtilsService:
                 tenancy="single",
                 frontend_domain="localhost:3000",
                 domain="learn.myschool.org:8443",
+                ssl=False,
             ),
         ):
             assert _is_allowed_base_url("http://localhost:3000")
@@ -278,6 +293,29 @@ class TestEmailUtilsService:
             "https://blocked.test",
         )
 
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"origin": "https://malicious.example"},
+            {"referer": "https://malicious.example/reset"},
+        ],
+    )
+    def test_untrusted_headers_cannot_replace_canonical_xpex_frontend(self, headers):
+        request = _request(headers)
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(
+                tenancy="single",
+                frontend_domain="xpex-academy-ai.vercel.app",
+                domain="api-production.up.railway.app",
+                ssl=True,
+            ),
+        ):
+            assert (
+                get_base_url_from_request(request)
+                == "https://xpex-academy-ai.vercel.app"
+            )
+
     def test_send_email_routes_to_resend_and_smtp(self):
         with patch(
             "src.services.email.utils.get_learnhouse_config",
@@ -295,7 +333,7 @@ class TestEmailUtilsService:
         assert result == {"id": "msg-1"}
         assert send_email.__module__ == "src.services.email.utils"
         assert mock_resend_send.call_args.args[0] == {
-            "from": "LearnHouse <system@test.com>",
+            "from": "XpeX Academy <system@test.com>",
             "to": ["to@test.com"],
             "subject": "Hello",
             "html": "<p>Body</p>",
@@ -358,15 +396,39 @@ class TestEmailUtilsService:
         ), patch(
             "src.services.email.utils.resend.Emails.send",
             side_effect=Exception("API error"),
-        ):
-            with pytest.raises(HTTPException) as exc_info:
-                send_email("to@test.com", "Subject", "<p>Body</p>")
+        ), pytest.raises(HTTPException) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
         assert exc_info.value.status_code == 503
+
+    @pytest.mark.parametrize(
+        "config_override,diagnostic",
+        [
+            ({"system_email_address": ""}, "sender address is missing"),
+            ({"resend_api_key": ""}, "Resend credential is missing"),
+        ],
+    )
+    def test_resend_missing_configuration_fails_safely(
+        self, config_override, diagnostic
+    ):
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(email_provider="resend", **config_override),
+        ), patch(
+            "src.services.email.utils.resend.Emails.send"
+        ) as mock_resend_send, patch(
+            "src.services.email.utils.logger.error"
+        ) as mock_error, pytest.raises(HTTPException) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "Email service temporarily unavailable"
+        mock_resend_send.assert_not_called()
+        assert diagnostic in mock_error.call_args.args[0]
 
     def test_send_email_smtp_exception_raises_503(self):
         smtp_client = Mock()
         smtp_client.sendmail.side_effect = smtplib.SMTPException("SMTP error")
-        smtp_client.quit.side_effect = Exception("quit failed")
+        smtp_client.quit.side_effect = smtplib.SMTPServerDisconnected("quit failed")
         with patch(
             "src.services.email.utils.get_learnhouse_config",
             return_value=_config(
@@ -378,10 +440,12 @@ class TestEmailUtilsService:
         ), patch(
             "src.services.email.utils.smtplib.SMTP",
             return_value=smtp_client,
-        ):
-            with pytest.raises(HTTPException) as exc_info:
-                send_email("to@test.com", "Subject", "<p>Body</p>")
+        ), patch(
+            "src.services.email.utils.logger.warning"
+        ) as mock_warning, pytest.raises(HTTPException) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
         assert exc_info.value.status_code == 503
+        mock_warning.assert_called_once_with("SMTP connection cleanup failed")
 
     def test_send_email_smtp_os_error_raises_503(self):
         with patch(
@@ -395,9 +459,8 @@ class TestEmailUtilsService:
         ), patch(
             "src.services.email.utils.smtplib.SMTP",
             side_effect=OSError("conn refused"),
-        ):
-            with pytest.raises(HTTPException) as exc_info:
-                send_email("to@test.com", "Subject", "<p>Body</p>")
+        ), pytest.raises(HTTPException) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
         assert exc_info.value.status_code == 503
 
 
@@ -458,6 +521,7 @@ class TestGetPrimaryVerifiedCustomDomain:
         """Should return the primary domain's name when a primary verified row
         is found (covers the execute + scalars().first() lines)."""
         from types import SimpleNamespace
+
         from src.services.email.utils import _get_primary_verified_custom_domain
 
         primary_domain = SimpleNamespace(domain="primary.example.com")
@@ -479,6 +543,7 @@ class TestGetPrimaryVerifiedCustomDomain:
         """When no primary row exists, should query for any verified domain and
         return it (covers the any_verified execute + return lines)."""
         from types import SimpleNamespace
+
         from src.services.email.utils import _get_primary_verified_custom_domain
 
         any_domain = SimpleNamespace(domain="any-verified.example.com")
