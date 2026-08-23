@@ -300,7 +300,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                 className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
               />
             </Form.Control>
-            <PasswordStrengthIndicator password={formik.values.password} />
+            <PasswordStrengthIndicator tone="dark" password={formik.values.password} />
           </FormField>
 
           <FormField name="username">

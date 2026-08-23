@@ -12,13 +12,16 @@ interface PasswordRequirement {
 interface PasswordStrengthIndicatorProps {
     password: string
     showRequirements?: boolean
+    tone?: 'light' | 'dark'
 }
 
 export function PasswordStrengthIndicator({
     password,
     showRequirements = true,
+    tone = 'light',
 }: PasswordStrengthIndicatorProps) {
     const { t } = useTranslation()
+    const isDark = tone === 'dark'
 
     const requirements: PasswordRequirement[] = useMemo(() => [
         {
@@ -80,17 +83,17 @@ export function PasswordStrengthIndicator({
             {/* Strength bar */}
             <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">{t('auth.password_strength')}</span>
+                    <span className={isDark ? 'text-white/70' : 'text-gray-500'}>{t('auth.password_strength')}</span>
                     <span className={`font-medium ${
-                        strengthPercentage <= 40 ? 'text-red-600' :
-                        strengthPercentage <= 60 ? 'text-orange-600' :
-                        strengthPercentage <= 80 ? 'text-yellow-600' :
-                        'text-green-600'
+                        strengthPercentage <= 40 ? (isDark ? 'text-red-400' : 'text-red-600') :
+                        strengthPercentage <= 60 ? (isDark ? 'text-orange-300' : 'text-orange-600') :
+                        strengthPercentage <= 80 ? (isDark ? 'text-yellow-300' : 'text-yellow-600') :
+                        (isDark ? 'text-green-400' : 'text-green-600')
                     }`}>
                         {getStrengthLabel()}
                     </span>
                 </div>
-                <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-white/15' : 'bg-gray-200'}`}>
                     <div
                         className={`h-full transition-all duration-300 ${getStrengthColor()}`}
                         style={{ width: `${strengthPercentage}%` }}
@@ -107,7 +110,9 @@ export function PasswordStrengthIndicator({
                             <li
                                 key={req.id}
                                 className={`flex items-center gap-1.5 ${
-                                    isValid ? 'text-green-600' : 'text-gray-500'
+                                    isValid
+                                        ? (isDark ? 'text-green-400' : 'text-green-600')
+                                        : (isDark ? 'text-white/65' : 'text-gray-500')
                                 }`}
                             >
                                 {isValid ? (
