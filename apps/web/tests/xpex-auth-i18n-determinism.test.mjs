@@ -109,6 +109,10 @@ describe('XpeX login branding and auth preservation', () => {
       expect(messages.auth.xpex_agpl_notice).toBeTruthy()
       expect(messages.auth.xpex_access_title).toBeUndefined()
       expect(messages.auth.xpex_access_subtitle).toBeUndefined()
+      expect(messages.auth.image_title_login).toContain('XpeX Academy')
+      expect(messages.auth.image_title_signup).toContain('XpeX Academy')
+      expect(messages.auth.image_title_login).not.toContain('LearnHouse')
+      expect(messages.auth.image_title_signup).not.toContain('LearnHouse')
     }
   })
 
