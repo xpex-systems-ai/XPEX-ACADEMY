@@ -1,13 +1,8 @@
 'use client'
 
 import React from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import learnhouseIcon from 'public/learnhouse_bigicon_1.png'
 import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
-import { getUriWithOrg } from '@services/config/config'
 import { cn } from '@/lib/utils'
-import { usePlan } from '@components/Hooks/usePlan'
 
 interface AuthBrandingPanelProps {
   org: any
@@ -16,200 +11,146 @@ interface AuthBrandingPanelProps {
   subtitle?: string
 }
 
-export default function AuthBrandingPanel({ org, welcomeText }: AuthBrandingPanelProps) {
-  const authBranding = org?.config?.config?.customization?.auth_branding || org?.config?.config?.general?.auth_branding || {}
-  const {
-    welcome_message = '',
-    background_type = 'gradient',
-    background_image = '',
-    text_color = 'light',
-    unsplash_photographer_name = '',
-    unsplash_photographer_url = '',
-    unsplash_photo_url = '',
-  } = authBranding
-  const UNSPLASH_UTM = '?utm_source=LearnHouse&utm_medium=referral'
-  const withUtm = (url: string) => (url ? `${url}${UNSPLASH_UTM}` : '')
+const visibleOrganizationName = (name?: string) =>
+  name && name.trim().toLowerCase() !== 'default organization' ? name : null
 
-  const plan = usePlan()
-  const isEnterprise = plan === 'enterprise'
-  const noOrg = !org
+const UNSPLASH_UTM = 'utm_source=XpeX_Academy&utm_medium=referral'
+const withUnsplashAttribution = (url?: string) => {
+  if (!url) return ''
+  return `${url}${url.includes('?') ? '&' : '?'}${UNSPLASH_UTM}`
+}
 
-  const getBackgroundStyle = (): React.CSSProperties => {
-    if (noOrg) {
-      return {
-        background: 'radial-gradient(circle at 18% 12%, rgba(255,106,0,.30), transparent 34%), radial-gradient(circle at 82% 16%, rgba(8,124,255,.30), transparent 32%), linear-gradient(145deg, #02050B 0%, #050D18 56%, #02050B 100%)',
-      }
-    }
-    if (background_type === 'gradient' || !background_image) {
-      return {
-        background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
-      }
-    }
-    if (background_type === 'custom' && background_image) {
-      return {
-        backgroundImage: `url(${getOrgAuthBackgroundMediaDirectory(org?.org_uuid, background_image)})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-    if (background_type === 'unsplash' && background_image) {
-      return {
-        backgroundImage: `url(${background_image})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-    return {
-      background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
-    }
-  }
-
-  const displayMessage = welcome_message || welcomeText || ''
-  const hasCustomBackground = !noOrg && background_type !== 'gradient' && background_image
+export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }: AuthBrandingPanelProps) {
+  const branding = org?.config?.config?.customization?.auth_branding
+    || org?.config?.config?.general?.auth_branding
+    || {}
+  const hasCustomBackground = Boolean(branding.background_image && branding.background_type !== 'gradient')
+  const backgroundImage = branding.background_type === 'custom'
+    ? getOrgAuthBackgroundMediaDirectory(org?.org_uuid, branding.background_image)
+    : branding.background_image
+  const organizationName = visibleOrganizationName(org?.name)
+  const configuredWelcome = typeof branding.welcome_message === 'string' && branding.welcome_message.trim()
+    ? branding.welcome_message.trim()
+    : null
+  const isDarkText = Boolean(org && branding.text_color === 'dark')
+  const unsplashPhotographerUrl = withUnsplashAttribution(
+    branding.unsplash_photographer_url || 'https://unsplash.com/',
+  )
+  const unsplashPhotoUrl = withUnsplashAttribution(
+    branding.unsplash_photo_url || branding.unsplash_photographer_url || 'https://unsplash.com/',
+  )
+  const showUnsplashCredit = branding.background_type === 'unsplash'
+    && Boolean(backgroundImage)
+    && Boolean(branding.unsplash_photographer_name)
 
   return (
-    <div className="relative h-full w-full">
-      <div className="absolute inset-16 overflow-hidden rounded-2xl">
-        <div className="absolute inset-0" style={getBackgroundStyle()} />
-
-        {!hasCustomBackground && (
-          <>
-            <div
-              className="absolute inset-0 opacity-[0.14]"
-              style={{
-                backgroundImage: `linear-gradient(rgba(120,165,255,0.6) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(120,165,255,0.6) 1px, transparent 1px),
-                  linear-gradient(rgba(120,165,255,0.3) 0.5px, transparent 0.5px),
-                  linear-gradient(90deg, rgba(120,165,255,0.3) 0.5px, transparent 0.5px)`,
-                backgroundSize: '120px 120px, 120px 120px, 24px 24px, 24px 24px',
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-[0.18]"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(120,165,255,0.9) 1.5px, transparent 1.5px)',
-                backgroundSize: '120px 120px',
-              }}
-            />
-          </>
+    <aside
+      className={cn(
+        'relative h-full overflow-hidden bg-[#0B1220]',
+        isDarkText ? 'text-slate-950' : 'text-white',
+      )}
+      aria-label="XpeX Academy"
+    >
+      {hasCustomBackground && (
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,122,0,.28),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(0,212,255,.22),transparent_30%)]" />
+      <div
+        className={cn(
+          'absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.16)_1px,transparent_1px)] [background-size:32px_32px]',
+          isDarkText ? 'opacity-[0.03]' : 'opacity-10',
         )}
+      />
+      <div
+        className={cn(
+          'absolute inset-0',
+          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+        )}
+      />
 
-        {hasCustomBackground && <div className="absolute inset-0 bg-black/30" />}
+      <div className="relative z-10 flex h-full flex-col p-10 xl:p-16">
+        <div className="inline-flex w-fit items-center gap-3 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_36px_rgba(255,122,0,.32)]">XP</span>
+          <span>
+            <strong className="block tracking-[.2em]">XpeX</strong>
+            <small
+              className={cn(
+                'text-[10px] font-bold uppercase tracking-[.24em]',
+                isDarkText ? 'text-slate-700' : 'text-white/55',
+              )}
+            >
+              Academy
+            </small>
+          </span>
+        </div>
 
-        <div className="relative z-10 flex h-full flex-col p-10">
-          {!isEnterprise && !noOrg && (
-            <div className="login-topbar">
-              <Link prefetch href="https://learnhouse.app" target="_blank">
-                <img
-                  src="/lrn.svg"
-                  alt="LearnHouse"
-                  width={30}
-                  height={30}
-                  className={cn(
-                    'transition-opacity hover:opacity-100',
-                    text_color === 'light' ? 'opacity-60 invert' : 'opacity-40',
-                  )}
-                />
-              </Link>
-            </div>
+        <div className="my-auto max-w-lg">
+          {org?.logo_image && (
+            <img
+              src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
+              alt={organizationName || 'XpeX Academy'}
+              className="mb-8 h-16 max-w-48 rounded-xl bg-white/95 object-contain p-2"
+            />
           )}
-
-          {noOrg ? (
-            <div className="flex h-full flex-col text-white">
-              <Link href="/" className="inline-flex w-fit items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16D9FF]">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#FF6A00] to-[#FF8A2A] text-lg font-black shadow-[0_0_32px_rgba(255,106,0,.30)]">XP</span>
-                <span>
-                  <strong className="block tracking-[.2em]">XpeX</strong>
-                  <small className="text-[10px] font-bold uppercase tracking-[.24em] text-white/55">Academy</small>
-                </span>
-              </Link>
-
-              <div className="my-auto max-w-md">
-                <p className="text-xs font-black uppercase tracking-[.24em] text-[#16D9FF]">Portal educacional Beta</p>
-                <h1 className="mt-5 text-[38px] font-black leading-tight tracking-tight">
-                  Aprenda, crie e evolua com inteligência artificial.
-                </h1>
-                <p className="mt-5 text-base font-medium leading-8 text-white/65">
-                  Uma experiência guiada que conecta aluno, professora e polo com projetos práticos, acompanhamento humano e tecnologia.
-                </p>
-              </div>
-
-              <p className="text-xs leading-5 text-white/40">
-                Ambiente Beta em integração. Dados demonstrativos e acesso institucional controlado.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-1 items-center justify-center">
-                <div className={cn(
-                  'flex flex-col items-center gap-6 text-center',
-                  text_color === 'light' ? 'text-white' : 'text-gray-900',
-                )}>
-                  <Link prefetch href={getUriWithOrg(org?.slug, '/')}>
-                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-white ring-1 ring-inset ring-white/10">
-                      {org?.logo_image ? (
-                        <img
-                          src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-                          alt={org.name}
-                          className="h-full w-full object-contain p-3"
-                        />
-                      ) : (
-                        <Image
-                          quality={100}
-                          width={96}
-                          height={96}
-                          src={learnhouseIcon}
-                          alt="LearnHouse"
-                          className="object-contain"
-                        />
-                      )}
-                    </div>
-                  </Link>
-
-                  <div className="space-y-1">
-                    <h1 className="text-3xl font-black tracking-tight">{org?.name || 'XpeX Academy'}</h1>
-                    {displayMessage && (
-                      <p className={cn(
-                        'max-w-sm text-lg leading-relaxed',
-                        text_color === 'light' ? 'text-white/70' : 'text-gray-600',
-                      )}>
-                        {displayMessage}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="h-10" />
-            </>
+          <p
+            className={cn(
+              'text-xs font-black uppercase tracking-[.24em]',
+              isDarkText ? 'text-[#075985]' : 'text-[#00D4FF]',
+            )}
+          >
+            {configuredWelcome || welcomeText || 'XpeX Academy'}
+          </p>
+          <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight xl:text-5xl">
+            {title || 'XpeX Academy'}
+          </h1>
+          {subtitle && (
+            <p
+              className={cn(
+                'mt-5 text-base font-medium leading-8',
+                isDarkText ? 'text-slate-700' : 'text-white/65',
+              )}
+            >
+              {subtitle}
+            </p>
           )}
+          {organizationName && (
+            <p className={cn('mt-7 text-sm font-semibold', isDarkText ? 'text-slate-800' : 'text-white/75')}>
+              {organizationName}
+            </p>
+          )}
+        </div>
 
-          {background_type === 'unsplash' && background_image && unsplash_photographer_name && (
-            <div className={cn(
-              'absolute bottom-3 left-4 right-4 z-10 text-[11px] leading-tight',
-              text_color === 'light' ? 'text-white/70' : 'text-gray-700',
-            )}>
-              Photo by{' '}
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <p className={cn('text-xs font-semibold leading-5', isDarkText ? 'text-slate-700' : 'text-white/55')}>
+            XpeX Academy
+          </p>
+          {showUnsplashCredit && (
+            <p className={cn('text-[11px] font-medium', isDarkText ? 'text-slate-700' : 'text-white/70')}>
+              ©{' '}
               <a
-                href={withUtm(unsplash_photographer_url) || withUtm(unsplash_photo_url)}
+                href={unsplashPhotographerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline opacity-90 hover:opacity-100"
+                className="underline underline-offset-2 hover:opacity-80"
               >
-                {unsplash_photographer_name}
+                {branding.unsplash_photographer_name}
               </a>
-              {' '}on{' '}
+              {' · '}
               <a
-                href={`https://unsplash.com/${UNSPLASH_UTM}`}
+                href={unsplashPhotoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline opacity-90 hover:opacity-100"
+                className="underline underline-offset-2 hover:opacity-80"
               >
                 Unsplash
               </a>
-            </div>
+            </p>
           )}
         </div>
       </div>
-    </div>
+    </aside>
   )
 }

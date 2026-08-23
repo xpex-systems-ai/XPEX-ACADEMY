@@ -1,106 +1,119 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
 import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
-import { getUriWithOrg } from '@services/config/config'
+import { cn } from '@/lib/utils'
 
-interface AuthMobileHeaderProps {
-  org: any
+const UNSPLASH_UTM = 'utm_source=XpeX_Academy&utm_medium=referral'
+const withUnsplashAttribution = (url?: string) => {
+  if (!url) return ''
+  return `${url}${url.includes('?') ? '&' : '?'}${UNSPLASH_UTM}`
 }
 
-export default function AuthMobileHeader({ org }: AuthMobileHeaderProps) {
-  const authBranding = org?.config?.config?.customization?.auth_branding || org?.config?.config?.general?.auth_branding || {}
-  const {
-    background_type = 'gradient',
-    background_image = '',
-    unsplash_photographer_name = '',
-    unsplash_photographer_url = '',
-    unsplash_photo_url = '',
-  } = authBranding
-  const UNSPLASH_UTM = '?utm_source=LearnHouse&utm_medium=referral'
-  const withUtm = (url: string) => (url ? `${url}${UNSPLASH_UTM}` : '')
-  const noOrg = !org
-
-  const getBackgroundStyle = (): React.CSSProperties => {
-    if (noOrg) {
-      return {
-        background: 'radial-gradient(circle at 20% 20%, rgba(255,106,0,.28), transparent 38%), radial-gradient(circle at 80% 20%, rgba(8,124,255,.26), transparent 36%), linear-gradient(145deg, #02050B 0%, #050D18 100%)',
-      }
-    }
-    if (background_type === 'gradient' || !background_image) {
-      return {
-        background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
-      }
-    }
-    if (background_type === 'custom' && background_image) {
-      return {
-        backgroundImage: `url(${getOrgAuthBackgroundMediaDirectory(org?.org_uuid, background_image)})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-    if (background_type === 'unsplash' && background_image) {
-      return {
-        backgroundImage: `url(${background_image})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-    return {
-      background: 'linear-gradient(041.61deg, #202020 7.15%, #000000 90.96%)',
-    }
-  }
-
-  const hasCustomBackground = !noOrg && background_type !== 'gradient' && background_image
+export default function AuthMobileHeader({ org }: { org: any }) {
+  const branding = org?.config?.config?.customization?.auth_branding
+    || org?.config?.config?.general?.auth_branding
+    || {}
+  const hasCustomBackground = Boolean(branding.background_image && branding.background_type !== 'gradient')
+  const backgroundImage = branding.background_type === 'custom'
+    ? getOrgAuthBackgroundMediaDirectory(org?.org_uuid, branding.background_image)
+    : branding.background_image
+  const isDarkText = Boolean(org && branding.text_color === 'dark')
+  const organizationName = org?.name && org.name.trim().toLowerCase() !== 'default organization'
+    ? org.name
+    : null
+  const unsplashPhotographerUrl = withUnsplashAttribution(
+    branding.unsplash_photographer_url || 'https://unsplash.com/',
+  )
+  const unsplashPhotoUrl = withUnsplashAttribution(
+    branding.unsplash_photo_url || branding.unsplash_photographer_url || 'https://unsplash.com/',
+  )
+  const showUnsplashCredit = branding.background_type === 'unsplash'
+    && Boolean(backgroundImage)
+    && Boolean(branding.unsplash_photographer_name)
 
   return (
-    <div
-      className="relative flex items-center gap-4 overflow-hidden rounded-b-2xl px-5 py-4"
-      style={getBackgroundStyle()}
+    <header
+      aria-label="XpeX Academy"
+      className={cn(
+        'relative overflow-hidden border-b border-white/10 bg-[#0B1220] px-5 py-4',
+        isDarkText ? 'text-slate-950' : 'text-white',
+      )}
     >
-      {hasCustomBackground && <div className="absolute inset-0 bg-black/30" />}
+      {hasCustomBackground && (
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        />
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(255,122,0,.24),transparent_42%),radial-gradient(circle_at_90%_0%,rgba(0,212,255,.20),transparent_40%)]" />
+      <div
+        className={cn(
+          'absolute inset-0',
+          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+        )}
+      />
 
-      <Link prefetch href={org ? getUriWithOrg(org?.slug, '/') : '/'} className="relative z-10">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-white/10">
-          {org?.logo_image ? (
-            <img
-              src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-              alt={org.name}
-              className="h-full w-full object-contain p-1.5"
-            />
-          ) : (
-            <span className="grid h-full w-full place-items-center bg-gradient-to-br from-[#FF6A00] to-[#FF8A2A] text-sm font-black text-white">XP</span>
-          )}
-        </div>
-      </Link>
-
-      <span className="relative z-10 truncate text-lg font-semibold text-white">
-        {org?.name || 'XpeX Academy'}
-      </span>
-
-      {background_type === 'unsplash' && background_image && unsplash_photographer_name && (
-        <span className="relative z-10 ml-auto max-w-[45%] truncate text-right text-[10px] leading-tight text-white/70">
-          Photo by{' '}
-          <a
-            href={withUtm(unsplash_photographer_url) || withUtm(unsplash_photo_url)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
+      <div className="relative z-10 flex items-center gap-3 pr-20">
+        <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#FF7A00] text-sm font-black text-[#0B1220] shadow-[0_0_24px_rgba(255,122,0,.24)]">XP</span>
+        <span>
+          <strong className="block text-sm tracking-[.18em]">XpeX</strong>
+          <small
+            className={cn(
+              'text-[9px] font-bold uppercase tracking-[.22em]',
+              isDarkText ? 'text-slate-700' : 'text-white/55',
+            )}
           >
-            {unsplash_photographer_name}
-          </a>
-          {' '}on{' '}
+            Academy
+          </small>
+        </span>
+        {org?.logo_image && (
+          <img
+            src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
+            alt={organizationName || 'XpeX Academy'}
+            className="ml-auto h-10 max-w-32 rounded-lg bg-white/95 object-contain p-1.5"
+          />
+        )}
+      </div>
+
+      {organizationName && (
+        <p
+          className={cn(
+            'relative z-10 mt-2 truncate pr-20 text-xs font-semibold',
+            isDarkText ? 'text-slate-800' : 'text-white/75',
+          )}
+        >
+          {organizationName}
+        </p>
+      )}
+
+      {showUnsplashCredit && (
+        <p
+          className={cn(
+            'relative z-10 mt-2 text-right text-[10px] font-medium',
+            isDarkText ? 'text-slate-700' : 'text-white/70',
+          )}
+        >
+          ©{' '}
           <a
-            href={`https://unsplash.com/${UNSPLASH_UTM}`}
+            href={unsplashPhotographerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline"
+            className="underline underline-offset-2 hover:opacity-80"
+          >
+            {branding.unsplash_photographer_name}
+          </a>
+          {' · '}
+          <a
+            href={unsplashPhotoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:opacity-80"
           >
             Unsplash
           </a>
-        </span>
+        </p>
       )}
-    </div>
+    </header>
   )
 }

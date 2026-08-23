@@ -1,85 +1,126 @@
 'use client'
 
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import en from '../locales/en.json';
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+import en from '../locales/en.json'
+import pt from '../locales/pt.json'
+import {
+  INITIAL_LOCALE,
+  normalizeLocale,
+  resolvePreferredLocale,
+  type LocaleCandidates,
+} from './localeResolution'
+const USER_PICKED_KEY = 'i18nextLng_userPicked'
+const LOCALE_STORAGE_KEY = 'i18nextLng'
 
 const LOCALE_LOADERS: Record<string, () => Promise<{ default: any }>> = {
-  fr: () => import('../locales/fr.json'),
-  de: () => import('../locales/de.json'),
-  es: () => import('../locales/es.json'),
-  ar: () => import('../locales/ar.json'),
-  ja: () => import('../locales/ja.json'),
-  pt: () => import('../locales/pt.json'),
-  ru: () => import('../locales/ru.json'),
-  zh: () => import('../locales/zh.json'),
-  hi: () => import('../locales/hi.json'),
-  ko: () => import('../locales/ko.json'),
-  it: () => import('../locales/it.json'),
-  tr: () => import('../locales/tr.json'),
-  vi: () => import('../locales/vi.json'),
-  id: () => import('../locales/id.json'),
-  pl: () => import('../locales/pl.json'),
-  uk: () => import('../locales/uk.json'),
-  nl: () => import('../locales/nl.json'),
-  th: () => import('../locales/th.json'),
-  bn: () => import('../locales/bn.json'),
-  fa: () => import('../locales/fa.json'),
+  fr: () => import('../locales/fr.json'), de: () => import('../locales/de.json'),
+  es: () => import('../locales/es.json'), ar: () => import('../locales/ar.json'),
+  ja: () => import('../locales/ja.json'), pt: () => import('../locales/pt.json'),
+  ru: () => import('../locales/ru.json'), zh: () => import('../locales/zh.json'),
+  hi: () => import('../locales/hi.json'), ko: () => import('../locales/ko.json'),
+  it: () => import('../locales/it.json'), tr: () => import('../locales/tr.json'),
+  vi: () => import('../locales/vi.json'), id: () => import('../locales/id.json'),
+  pl: () => import('../locales/pl.json'), uk: () => import('../locales/uk.json'),
+  nl: () => import('../locales/nl.json'), th: () => import('../locales/th.json'),
+  bn: () => import('../locales/bn.json'), fa: () => import('../locales/fa.json'),
   sk: () => import('../locales/sk.json'),
-};
+}
 
-// Only bundle English; lazy-load all other locales on demand
-const resources = {
-  en: { common: en },
-};
+export { resolvePreferredLocale }
+export type { LocaleCandidates }
 
-async function loadLocale(lng: string) {
-  const code = lng.split('-')[0]
-  if (code === 'en' || !LOCALE_LOADERS[code]) return;
-  if (i18n.hasResourceBundle(code, 'common')) return;
+i18n.use(initReactI18next).init({
+  resources: { en: { common: en }, pt: { common: pt } },
+  lng: INITIAL_LOCALE,
+  fallbackLng: 'en',
+  ns: ['common'],
+  defaultNS: 'common',
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+  initAsync: false,
+})
 
+async function loadLocale(locale: string) {
+  const code = normalizeLocale(locale) || INITIAL_LOCALE
+  if (code === 'en' || code === INITIAL_LOCALE || i18n.hasResourceBundle(code, 'common')) return code
   try {
-    const mod = await LOCALE_LOADERS[code]();
-    i18n.addResourceBundle(code, 'common', mod.default, true, true);
-  } catch (e) {
-    console.warn(`Failed to load locale: ${lng}`, e);
+    const mod = await LOCALE_LOADERS[code]()
+    i18n.addResourceBundle(code, 'common', mod.default, true, true)
+    return code
+  } catch (error) {
+    console.warn(`Failed to load locale: ${code}`, error)
+    return i18n.language.split('-')[0]
   }
 }
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: 'en',
-    ns: ['common'],
-    defaultNS: 'common',
-    interpolation: {
-      escapeValue: false, // react already safes from xss
-    },
-    detection: {
-      order: ['localStorage', 'cookie', 'querystring', 'navigator', 'path', 'subdomain'],
-      caches: ['localStorage', 'cookie'],
-      lookupLocalStorage: 'i18nextLng',
-      lookupCookie: 'i18next',
-    },
-    react: {
-      useSuspense: false,
-    }
-  });
-
-// Load the detected language if it's not English — export the promise
-// so I18nProvider can wait for resources before rendering
-export const initialLocaleReady = loadLocale(i18n.language.split('-')[0]);
-
-/**
- * Switch language safely — preloads the bundle before switching
- * so the UI never flashes English as a fallback.
- */
-export async function changeLanguage(lng: string) {
-  await loadLocale(lng)
-  return i18n.changeLanguage(lng)
+async function applyLanguage(locale: string) {
+  const code = await loadLocale(locale)
+  if (i18n.language.split('-')[0] !== code) await i18n.changeLanguage(code)
 }
 
-export default i18n;
+let hydrationComplete = false
+let organizationLocale: string | undefined
+let reconciliationTimer: ReturnType<typeof setTimeout> | undefined
+let reconciliationVersion = 0
+
+const readCookieValue = (name: string) => {
+  const prefix = `${name}=`
+  const encoded = document.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith(prefix))?.slice(prefix.length)
+  return encoded ? decodeURIComponent(encoded) : null
+}
+
+function scheduleReconciliation() {
+  if (!hydrationComplete || typeof window === 'undefined') return
+  if (reconciliationTimer) clearTimeout(reconciliationTimer)
+  const scheduledVersion = ++reconciliationVersion
+  reconciliationTimer = setTimeout(async () => {
+    let persisted: string | null = null
+    let userPicked = false
+    try {
+      persisted = localStorage.getItem(LOCALE_STORAGE_KEY)
+      userPicked = localStorage.getItem(USER_PICKED_KEY) === '1'
+    } catch { /* storage unavailable */ }
+    userPicked ||= readCookieValue(USER_PICKED_KEY) === '1'
+    const browserLanguages = navigator.languages?.length ? [...navigator.languages] : [navigator.language]
+    const locale = resolvePreferredLocale({
+      userPicked,
+      persisted,
+      cookie: readCookieValue('i18next'),
+      organization: organizationLocale,
+      browser: browserLanguages,
+    })
+    await loadLocale(locale)
+    if (scheduledVersion === reconciliationVersion) await applyLanguage(locale)
+  }, 0)
+}
+
+/** Called from an effect: detection cannot run until the initial tree is hydrated. */
+export function beginClientLocaleReconciliation() {
+  hydrationComplete = true
+  scheduleReconciliation()
+}
+
+/** Registers the org preference with the same coordinator, avoiding competing effects. */
+export function setOrganizationLocale(locale?: string | null) {
+  organizationLocale = normalizeLocale(locale) || undefined
+  scheduleReconciliation()
+}
+
+/** Manual selection wins on subsequent visits and preempts pending automatic changes. */
+export async function changeLanguage(locale: string) {
+  const code = normalizeLocale(locale) || INITIAL_LOCALE
+  reconciliationVersion++
+  if (reconciliationTimer) clearTimeout(reconciliationTimer)
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(USER_PICKED_KEY, '1')
+      localStorage.setItem(LOCALE_STORAGE_KEY, code)
+    } catch { /* storage unavailable */ }
+    document.cookie = `i18next=${encodeURIComponent(code)}; Path=/; SameSite=Lax; Max-Age=31536000`
+    document.cookie = `${USER_PICKED_KEY}=1; Path=/; SameSite=Lax; Max-Age=31536000`
+  }
+  await applyLanguage(code)
+}
+
+export default i18n

@@ -280,10 +280,8 @@ const LoginClient = (props: LoginClientProps) => {
     <AuthLayout
       org={props.org}
       welcomeText={t('auth.login_to')}
-      title={t('auth.image_title_login', { defaultValue: 'Welcome back to LearnHouse.' })}
-      subtitle={t('auth.image_subtitle_login', {
-        defaultValue: 'Pick up where you left off — your courses, students, and tools are waiting.',
-      })}
+      title="XpeX Academy"
+      subtitle={t('auth.enter_credentials')}
     >
         {/* Error Top Bar */}
         {showErrorModal && (
@@ -352,14 +350,15 @@ const LoginClient = (props: LoginClientProps) => {
         <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
           <div className="w-full max-w-[420px] py-10">
             {/* Header */}
-            <h1 className="text-[28px] md:text-[32px] font-black text-black tracking-tight leading-tight">{t('auth.welcome_back')}</h1>
-            <p className="mt-2 text-black/45 text-[15px] font-medium">{t('auth.enter_credentials')}</p>
+            <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
+            <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.login_to')}</h1>
+            <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.enter_credentials')}</p>
 
             <div className="mt-8">
               <FormLayout onSubmit={formik.handleSubmit}>
                 <FormField name="email">
                   <div className="flex items-center space-x-2 mb-1.5">
-                    <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.email')}</Form.Label>
+                    <Form.Label className="grow text-[13px] font-semibold text-white/75">{t('auth.email')}</Form.Label>
                     {formik.touched.email && formik.errors.email && (
                       <span className="text-red-500 text-xs flex items-center space-x-1">
                         <Info size={11} />
@@ -373,14 +372,14 @@ const LoginClient = (props: LoginClientProps) => {
                       onBlur={formik.handleBlur}
                       value={formik.values.email}
                       type="email"
-                      className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
                     />
                   </Form.Control>
                 </FormField>
 
                 <FormField name="password">
                   <div className="flex items-center space-x-2 mb-1.5">
-                    <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.password')}</Form.Label>
+                    <Form.Label className="grow text-[13px] font-semibold text-white/75">{t('auth.password')}</Form.Label>
                     {formik.touched.password && formik.errors.password && (
                       <span className="text-red-500 text-xs flex items-center space-x-1">
                         <Info size={11} />
@@ -389,7 +388,7 @@ const LoginClient = (props: LoginClientProps) => {
                     )}
                     <Link
                       href="/forgot"
-                      className="text-xs text-black/60 hover:text-black font-semibold transition-colors"
+                      className="rounded text-xs font-semibold text-[#00D4FF] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
                     >
                       {t('auth.forgot_password')}
                     </Link>
@@ -401,7 +400,7 @@ const LoginClient = (props: LoginClientProps) => {
                       value={formik.values.password}
                       type="password"
                       autoComplete="current-password"
-                      className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
                     />
                   </Form.Control>
                 </FormField>
@@ -415,7 +414,7 @@ const LoginClient = (props: LoginClientProps) => {
                 <Form.Submit asChild>
                   <button
                     disabled={isSubmitting || (turnstileRequired && !turnstileToken)}
-                    className="box-border w-full inline-flex h-[44px] rounded-lg items-center justify-center bg-black hover:bg-black/85 text-white px-[15px] font-bold text-[14px] leading-none mt-2 transition-all disabled:opacity-50"
+                    className="mt-2 box-border inline-flex h-[44px] w-full items-center justify-center rounded-lg bg-[#FF7A00] px-[15px] text-[14px] font-bold leading-none text-[#0B1220] transition-colors hover:bg-[#ff922e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1220] disabled:opacity-50 motion-reduce:transition-none"
                   >
                     {isSubmitting ? (
                       <span className="flex items-center space-x-2">
@@ -432,10 +431,10 @@ const LoginClient = (props: LoginClientProps) => {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-neutral-200" />
+                  <div className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-3 text-black/30 bg-white text-xs font-medium">{t('common.or')}</span>
+                  <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/55">{t('common.or')}</span>
                 </div>
               </div>
 
@@ -444,7 +443,7 @@ const LoginClient = (props: LoginClientProps) => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="flex justify-center items-center w-full bg-white hover:bg-neutral-50 text-black space-x-3 font-medium p-3 rounded-lg border border-neutral-200 transition-all text-sm disabled:opacity-50"
+                  className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50 motion-reduce:transition-none"
                 >
                   <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4" />
                   <span>{t('auth.sign_in_with_google')}</span>
@@ -454,7 +453,7 @@ const LoginClient = (props: LoginClientProps) => {
                   <button
                     onClick={handleSSOLogin}
                     disabled={ssoLoading}
-                    className="flex justify-center items-center w-full bg-white hover:bg-neutral-50 text-black space-x-3 font-medium p-3 rounded-lg border border-neutral-200 transition-all text-sm disabled:opacity-50"
+                    className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50 motion-reduce:transition-none"
                   >
                     <Shield size={16} />
                     <span>{ssoLoading ? t('common.loading') : t('auth.sign_in_with_sso')}</span>
@@ -463,9 +462,9 @@ const LoginClient = (props: LoginClientProps) => {
               </div>
 
               {/* Sign Up Link */}
-              <p className="text-center text-sm text-black/35 mt-6">
+              <p className="mt-6 text-center text-sm text-white/55">
                 {t('auth.no_account')}{' '}
-                <Link href="/signup" className="text-black font-semibold hover:underline">
+                <Link href="/signup" className="rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
                   {t('auth.sign_up')}
                 </Link>
               </p>
