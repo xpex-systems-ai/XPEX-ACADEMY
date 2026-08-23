@@ -12,6 +12,8 @@ describe('XpeX authentication locale determinism', () => {
 
     expect(read('lib/localeResolution.ts')).toContain("INITIAL_LOCALE = 'pt'")
     expect(i18n).toContain('lng: INITIAL_LOCALE')
+    expect(i18n).toContain('initAsync: false')
+    expect(i18n).not.toContain('initImmediate')
     expect(i18n).not.toContain('LanguageDetector')
     expect(provider).toContain('beginClientLocaleReconciliation()')
     expect(root).not.toContain('suppressHydrationWarning')
@@ -19,12 +21,14 @@ describe('XpeX authentication locale determinism', () => {
 
   test('reconciles persisted, cookie, organization and browser locales deterministically', () => {
     expect(resolvePreferredLocale({})).toBe('pt')
-    expect(resolvePreferredLocale({ cookie: 'pt-BR' })).toBe('pt')
-    expect(resolvePreferredLocale({ persisted: 'pt', cookie: 'en' })).toBe('pt')
-    expect(resolvePreferredLocale({ persisted: 'en', organization: 'pt' })).toBe('en')
+    expect(resolvePreferredLocale({ cookie: 'en' })).toBe('pt')
+    expect(resolvePreferredLocale({ persisted: 'en', organization: 'pt' })).toBe('pt')
+    expect(resolvePreferredLocale({ userPicked: true, persisted: 'en', organization: 'pt' })).toBe('en')
+    expect(resolvePreferredLocale({ userPicked: true, cookie: 'es', organization: 'pt' })).toBe('es')
     expect(resolvePreferredLocale({ browser: 'pt-BR' })).toBe('pt')
-    expect(resolvePreferredLocale({ organization: 'pt', browser: 'en-US' })).toBe('pt')
-    expect(resolvePreferredLocale({ persisted: 'invalid', cookie: 'invalid' })).toBe('pt')
+    expect(resolvePreferredLocale({ browser: ['ca', 'es'] })).toBe('es')
+    expect(resolvePreferredLocale({ organization: 'pt', browser: ['ca', 'en-US'] })).toBe('pt')
+    expect(resolvePreferredLocale({ userPicked: true, persisted: 'invalid', cookie: 'invalid' })).toBe('pt')
   })
 
   test('loads a locale before changing the visible language and centralizes org sync', () => {
@@ -34,6 +38,8 @@ describe('XpeX authentication locale determinism', () => {
 
     expect(i18n).toContain('const code = await loadLocale(locale)')
     expect(i18n).toContain("localStorage.setItem(USER_PICKED_KEY, '1')")
+    expect(i18n).toContain('userPicked ||= readCookieValue(USER_PICKED_KEY)')
+    expect(i18n).toContain('browser: browserLanguages')
     expect(i18n).toContain('reconciliationVersion')
     expect(orgSync).toContain('setOrganizationLocale(orgDefault)')
     expect(orgSync).not.toContain('changeLanguage(')
@@ -58,6 +64,23 @@ describe('XpeX login branding and auth preservation', () => {
     expect(primarySurfaces).not.toContain('Default Organization')
     expect(primarySurfaces).not.toContain('utm_source=LearnHouse')
     expect(panel).toContain("name.trim().toLowerCase() !== 'default organization'")
+  })
+
+  test('keeps every shared AuthLayout consumer legible on the dark pane', () => {
+    const consumers = [
+      'app/auth/forgot/forgot.tsx',
+      'app/auth/reset/reset.tsx',
+      'app/auth/signup/signup.tsx',
+      'app/auth/signup/OpenSignup.tsx',
+      'app/auth/signup/InviteOnlySignUp.tsx',
+      'app/auth/verify-email/verify-email.tsx',
+    ].map(read)
+    for (const consumer of consumers) {
+      expect(consumer).not.toContain('text-black')
+      expect(consumer).not.toContain('bg-neutral-50')
+      expect(consumer).not.toContain('border-neutral-200')
+      expect(consumer).toContain('text-white')
+    }
   })
 
   test('keeps credentials, Google, SSO, Turnstile, forgot password and safe redirects', () => {

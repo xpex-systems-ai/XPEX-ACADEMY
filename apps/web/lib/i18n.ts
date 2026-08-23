@@ -38,7 +38,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'common',
   interpolation: { escapeValue: false },
   react: { useSuspense: false },
-  initImmediate: false,
+  initAsync: false,
 })
 
 async function loadLocale(locale: string) {
@@ -64,9 +64,10 @@ let organizationLocale: string | undefined
 let reconciliationTimer: ReturnType<typeof setTimeout> | undefined
 let reconciliationVersion = 0
 
-const readCookieLocale = () => {
-  const match = document.cookie.match(/(?:^|;\s*)i18next=([^;]+)/)
-  return match ? decodeURIComponent(match[1]) : null
+const readCookieValue = (name: string) => {
+  const prefix = `${name}=`
+  const encoded = document.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith(prefix))?.slice(prefix.length)
+  return encoded ? decodeURIComponent(encoded) : null
 }
 
 function scheduleReconciliation() {
@@ -75,12 +76,19 @@ function scheduleReconciliation() {
   const scheduledVersion = ++reconciliationVersion
   reconciliationTimer = setTimeout(async () => {
     let persisted: string | null = null
-    try { persisted = localStorage.getItem(LOCALE_STORAGE_KEY) } catch { /* storage unavailable */ }
+    let userPicked = false
+    try {
+      persisted = localStorage.getItem(LOCALE_STORAGE_KEY)
+      userPicked = localStorage.getItem(USER_PICKED_KEY) === '1'
+    } catch { /* storage unavailable */ }
+    userPicked ||= readCookieValue(USER_PICKED_KEY) === '1'
+    const browserLanguages = navigator.languages?.length ? [...navigator.languages] : [navigator.language]
     const locale = resolvePreferredLocale({
+      userPicked,
       persisted,
-      cookie: readCookieLocale(),
+      cookie: readCookieValue('i18next'),
       organization: organizationLocale,
-      browser: navigator.languages?.[0] || navigator.language,
+      browser: browserLanguages,
     })
     await loadLocale(locale)
     if (scheduledVersion === reconciliationVersion) await applyLanguage(locale)
@@ -110,6 +118,7 @@ export async function changeLanguage(locale: string) {
       localStorage.setItem(LOCALE_STORAGE_KEY, code)
     } catch { /* storage unavailable */ }
     document.cookie = `i18next=${encodeURIComponent(code)}; Path=/; SameSite=Lax; Max-Age=31536000`
+    document.cookie = `${USER_PICKED_KEY}=1; Path=/; SameSite=Lax; Max-Age=31536000`
   }
   await applyLanguage(code)
 }
