@@ -4,6 +4,7 @@ import smtplib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
 import pytest
 from fastapi import HTTPException
 from src.services.email.utils import (
@@ -31,6 +32,7 @@ def _config(**overrides):
     mailing = SimpleNamespace(
         email_provider=overrides.pop("email_provider", "resend"),
         system_email_address=overrides.pop("system_email_address", "system@test.com"),
+        brevo_api_key=overrides.pop("brevo_api_key", "brevo-test-key"),
         resend_api_key=overrides.pop("resend_api_key", "resend-test-key"),
         smtp_host=overrides.pop("smtp_host", "smtp.test"),
         smtp_port=overrides.pop("smtp_port", 587),
@@ -388,6 +390,78 @@ class TestEmailUtilsService:
         smtp_client.login.assert_not_called()
         smtp_client.sendmail.assert_called_once()
         smtp_client.quit.assert_called_once()
+
+    def test_send_email_brevo_uses_expected_https_request(self):
+        response = Mock()
+        response.json.return_value = {"messageId": "brevo-message-1"}
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(email_provider="brevo"),
+        ), patch("src.services.email.utils.httpx.post", return_value=response) as post:
+            result = send_email("to@test.com", "Hello", "<p>Body</p>")
+
+        assert result == {"messageId": "brevo-message-1"}
+        post.assert_called_once_with(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json",
+                "api-key": "brevo-test-key",
+            },
+            json={
+                "sender": {"name": "XpeX Academy", "email": "system@test.com"},
+                "to": [{"email": "to@test.com"}],
+                "subject": "Hello",
+                "htmlContent": "<p>Body</p>",
+            },
+            timeout=15.0,
+        )
+        response.raise_for_status.assert_called_once_with()
+
+    def test_send_email_brevo_missing_key_fails_before_network_call(self):
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(email_provider="brevo", brevo_api_key=""),
+        ), patch("src.services.email.utils.httpx.post") as post, pytest.raises(
+            HTTPException
+        ) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "Email service temporarily unavailable"
+        post.assert_not_called()
+
+    @pytest.mark.parametrize("status_code", [401, 403, 429, 500, 503])
+    def test_send_email_brevo_provider_error_is_generic(self, status_code):
+        request = httpx.Request("POST", "https://api.brevo.com/v3/smtp/email")
+        response = httpx.Response(status_code, request=request, text="secret body")
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(email_provider="brevo", brevo_api_key="super-secret"),
+        ), patch(
+            "src.services.email.utils.httpx.post", return_value=response
+        ), patch("src.services.email.utils.logger.error") as log, pytest.raises(
+            HTTPException
+        ) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "Email service temporarily unavailable"
+        assert "super-secret" not in str(log.call_args)
+        assert "secret body" not in str(log.call_args)
+
+    def test_send_email_brevo_timeout_is_generic(self):
+        with patch(
+            "src.services.email.utils.get_learnhouse_config",
+            return_value=_config(email_provider="brevo"),
+        ), patch(
+            "src.services.email.utils.httpx.post",
+            side_effect=httpx.TimeoutException("timed out"),
+        ), pytest.raises(HTTPException) as exc_info:
+            send_email("to@test.com", "Subject", "<p>Body</p>")
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "Email service temporarily unavailable"
 
     def test_send_email_resend_failure_raises_503(self):
         with patch(
