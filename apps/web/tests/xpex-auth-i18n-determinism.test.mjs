@@ -106,6 +106,8 @@ describe('XpeX login branding and auth preservation', () => {
     expect(passwordStrength).toContain("tone?: 'light' | 'dark'")
     expect(passwordStrength).toContain("isDark ? 'text-white/70'")
     expect(passwordStrength).toContain("isDark ? 'text-red-400'")
+    expect(passwordStrength).toContain('validator: (_password: string) => boolean')
+    expect(passwordStrength).not.toContain('\\[')
     expect(read('app/auth/reset/reset.tsx')).toContain('<PasswordStrengthIndicator tone="dark"')
     expect(read('app/auth/signup/OpenSignup.tsx')).toContain('<PasswordStrengthIndicator tone="dark"')
     expect(read('app/auth/signup/InviteOnlySignUp.tsx')).toContain('<PasswordStrengthIndicator tone="dark"')

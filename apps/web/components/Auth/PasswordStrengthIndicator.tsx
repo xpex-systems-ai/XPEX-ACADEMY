@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 interface PasswordRequirement {
     id: string
     label: string
-    validator: (password: string) => boolean
+    validator: (_password: string) => boolean
 }
 
 interface PasswordStrengthIndicatorProps {
@@ -47,7 +47,7 @@ export function PasswordStrengthIndicator({
         {
             id: 'special',
             label: t('auth.password_req_special'),
-            validator: (pwd: string) => /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(pwd),
+            validator: (pwd: string) => /[!@#$%^&*()_+\-=\x5B\x5D{}|;':",./<>?]/.test(pwd),
         },
     ], [t])
 
@@ -148,7 +148,7 @@ export function validatePasswordStrength(password: string): {
     if (!/[0-9]/.test(password)) {
         errors.push('Password must contain at least one number')
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=\x5B\x5D{}|;':",./<>?]/.test(password)) {
         errors.push('Password must contain at least one special character')
     }
 
