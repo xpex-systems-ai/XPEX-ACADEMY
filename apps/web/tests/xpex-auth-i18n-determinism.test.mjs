@@ -71,6 +71,8 @@ describe('XpeX login branding and auth preservation', () => {
     expect(panel).not.toContain('Portal educacional')
     expect(panel).not.toContain('Aprenda, crie e evolua')
     expect(panel).not.toContain('Ambiente seguro de aprendizagem')
+    expect(layout).toContain("{subtitle || title || 'XpeX Academy'}")
+    expect(layout).not.toContain('Acesso institucional seguro')
   })
 
   test('keeps every shared AuthLayout consumer legible on the dark pane', () => {
