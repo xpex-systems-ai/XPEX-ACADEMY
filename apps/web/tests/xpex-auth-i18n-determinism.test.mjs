@@ -64,6 +64,13 @@ describe('XpeX login branding and auth preservation', () => {
     expect(primarySurfaces).not.toContain('Default Organization')
     expect(primarySurfaces).not.toContain('utm_source=LearnHouse')
     expect(panel).toContain("name.trim().toLowerCase() !== 'default organization'")
+    expect(panel).toContain('AuthBrandingPanel({ org, welcomeText, title, subtitle }')
+    expect(panel).toContain("{welcomeText || 'XpeX Academy'}")
+    expect(panel).toContain("{title || 'XpeX Academy'}")
+    expect(panel).toContain('{subtitle}')
+    expect(panel).not.toContain('Portal educacional')
+    expect(panel).not.toContain('Aprenda, crie e evolua')
+    expect(panel).not.toContain('Ambiente seguro de aprendizagem')
   })
 
   test('keeps every shared AuthLayout consumer legible on the dark pane', () => {
@@ -75,7 +82,7 @@ describe('XpeX login branding and auth preservation', () => {
       'app/auth/signup/InviteOnlySignUp.tsx',
       'app/auth/verify-email/verify-email.tsx',
     ].map(read)
-    const darkSurfaces = [read('app/auth/login/login.tsx'), read('components/Auth/AuthLayout.tsx'), ...consumers]
+    const darkSurfaces = [read('app/auth/login/login.tsx'), read('components/Auth/AuthLayout.tsx'), read('components/Auth/AuthBrandingPanel.tsx'), ...consumers]
     for (const surface of darkSurfaces) {
       for (const lowContrastToken of ['text-white/25', 'text-white/30', 'text-white/35', 'text-white/40', 'text-white/45']) {
         expect(surface).not.toContain(lowContrastToken)

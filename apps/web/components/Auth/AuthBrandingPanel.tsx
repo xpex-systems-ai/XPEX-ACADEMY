@@ -13,7 +13,7 @@ interface AuthBrandingPanelProps {
 const visibleOrganizationName = (name?: string) =>
   name && name.trim().toLowerCase() !== 'default organization' ? name : null
 
-export default function AuthBrandingPanel({ org }: AuthBrandingPanelProps) {
+export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }: AuthBrandingPanelProps) {
   const branding = org?.config?.config?.customization?.auth_branding
     || org?.config?.config?.general?.auth_branding
     || {}
@@ -44,21 +44,21 @@ export default function AuthBrandingPanel({ org }: AuthBrandingPanelProps) {
           {org?.logo_image && (
             <img
               src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-              alt="Identidade da organização"
+              alt={organizationName || 'XpeX Academy'}
               className="mb-8 h-16 max-w-48 rounded-xl bg-white/95 object-contain p-2"
             />
           )}
-          <p className="text-xs font-black uppercase tracking-[.24em] text-[#00D4FF]">Portal educacional</p>
+          <p className="text-xs font-black uppercase tracking-[.24em] text-[#00D4FF]">{welcomeText || 'XpeX Academy'}</p>
           <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight xl:text-5xl">
-            Aprenda, crie e evolua com inteligência artificial.
+            {title || 'XpeX Academy'}
           </h1>
-          <p className="mt-5 text-base font-medium leading-8 text-white/65">
-            Projetos práticos, acompanhamento humano e tecnologia em uma jornada feita para você avançar.
-          </p>
-          {organizationName && <p className="mt-7 text-sm font-semibold text-white/75">Ambiente: {organizationName}</p>}
+          {subtitle && (
+            <p className="mt-5 text-base font-medium leading-8 text-white/65">{subtitle}</p>
+          )}
+          {organizationName && <p className="mt-7 text-sm font-semibold text-white/75">{organizationName}</p>}
         </div>
 
-        <p className="text-xs leading-5 text-white/40">Ambiente seguro de aprendizagem XpeX Academy.</p>
+        <p className="text-xs font-semibold leading-5 text-white/55">XpeX Academy</p>
       </div>
     </aside>
   )
