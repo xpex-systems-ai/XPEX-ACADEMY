@@ -38,7 +38,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'common',
   interpolation: { escapeValue: false },
   react: { useSuspense: false },
-  initImmediate: false,
+  initAsync: false,
 })
 
 async function loadLocale(locale: string) {
@@ -75,12 +75,17 @@ function scheduleReconciliation() {
   const scheduledVersion = ++reconciliationVersion
   reconciliationTimer = setTimeout(async () => {
     let persisted: string | null = null
-    try { persisted = localStorage.getItem(LOCALE_STORAGE_KEY) } catch { /* storage unavailable */ }
+    let explicitUserChoice = false
+    try {
+      persisted = localStorage.getItem(LOCALE_STORAGE_KEY)
+      explicitUserChoice = localStorage.getItem(USER_PICKED_KEY) === '1'
+    } catch { /* storage unavailable */ }
     const locale = resolvePreferredLocale({
+      explicitUserChoice,
       persisted,
       cookie: readCookieLocale(),
       organization: organizationLocale,
-      browser: navigator.languages?.[0] || navigator.language,
+      browser: navigator.languages?.length ? navigator.languages : navigator.language,
     })
     await loadLocale(locale)
     if (scheduledVersion === reconciliationVersion) await applyLanguage(locale)

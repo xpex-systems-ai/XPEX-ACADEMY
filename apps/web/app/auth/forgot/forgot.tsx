@@ -92,8 +92,8 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                 {/* Notification — soft, rounded, inset to match the auth page style */}
                 {showMessage && (error || message) && (
                     <div className={`
-                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
-                        ${error ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}
+                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in motion-reduce:animate-none slide-in-from-top duration-200
+                        ${error ? 'bg-red-950/70 text-red-100 border-red-500/40' : 'bg-emerald-950/70 text-emerald-100 border-emerald-500/40'}
                     `}>
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
                             {error ? <AlertTriangle size={18} className="shrink-0" /> : <CheckCircle size={18} className="shrink-0" />}
@@ -101,7 +101,7 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                         </div>
                         <button
                             onClick={() => setShowMessage(false)}
-                            className="p-1 rounded-lg hover:bg-black/5 transition-colors shrink-0 opacity-60 hover:opacity-100"
+                            className="p-1 rounded-lg hover:bg-white/10 transition-colors motion-reduce:transition-none shrink-0 opacity-60 hover:opacity-100"
                         >
                             <X size={16} />
                         </button>
@@ -111,15 +111,15 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                 <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
                     <div className="w-full max-w-[420px] py-10">
                         {/* Header */}
-                        <h1 className="text-[28px] md:text-[32px] font-black text-black tracking-tight leading-tight">{t('auth.forgot_password_title')}</h1>
-                        <p className="mt-2 text-black/45 text-[15px] font-medium">{t('auth.forgot_password_description')}</p>
+                        <h1 className="text-[28px] md:text-[32px] font-black text-white tracking-tight leading-tight">{t('auth.forgot_password_title')}</h1>
+                        <p className="mt-2 text-slate-300 text-[15px] font-medium">{t('auth.forgot_password_description')}</p>
 
                         {/* Form */}
                         <div className="mt-8">
                             <FormLayout onSubmit={formik.handleSubmit}>
                                 <FormField name="email">
                                     <div className="flex items-center space-x-2 mb-1.5">
-                                        <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.email')}</Form.Label>
+                                        <Form.Label className="grow text-[13px] font-semibold text-slate-200">{t('auth.email')}</Form.Label>
                                         {formik.errors.email && (
                                             <div className="text-red-500 text-xs flex items-center space-x-1">
                                                 <Info size={11} />
@@ -133,7 +133,7 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                                             value={formik.values.email}
                                             type="email"
                                             required
-                                            className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                                            className="box-border w-full bg-[#111C2E] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/30 focus:border-[#00D4FF] transition-all motion-reduce:transition-none placeholder:text-slate-500 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -147,11 +147,11 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                                 <Form.Submit asChild>
                                     <button
                                         disabled={isSubmitting || (turnstileRequired && !turnstileToken)}
-                                        className="box-border w-full inline-flex h-[44px] rounded-lg items-center justify-center bg-black hover:bg-black/85 text-white px-[15px] font-bold text-[14px] leading-none mt-2 transition-all disabled:opacity-50"
+                                        className="box-border w-full inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1220] h-[44px] rounded-lg items-center justify-center bg-[#FF7A00] hover:bg-[#ff8f26] text-[#0B1220] px-[15px] font-bold text-[14px] leading-none mt-2 transition-all motion-reduce:transition-none disabled:opacity-50"
                                     >
                                         {isSubmitting ? (
                                             <span className="flex items-center space-x-2">
-                                                <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" />
+                                                <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin motion-reduce:animate-none" />
                                                 <span>{t('common.loading')}</span>
                                             </span>
                                         ) : (
@@ -163,8 +163,8 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                         </div>
 
                         {/* Back to Login */}
-                        <p className="text-center text-sm text-black/35 mt-6">
-                            <Link href="/login" className="inline-flex items-center gap-2 text-black font-semibold hover:underline">
+                        <p className="text-center text-sm text-slate-400 mt-6">
+                            <Link href="/login" className="inline-flex items-center gap-2 text-white font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] rounded">
                                 <ArrowLeft size={16} />
                                 {t('auth.back_to_login')}
                             </Link>

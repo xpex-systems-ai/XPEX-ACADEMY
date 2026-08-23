@@ -11,17 +11,25 @@ const normalizeLocale = (locale?: string | null): string | null => {
 }
 
 export type LocaleCandidates = {
+  explicitUserChoice?: boolean
   persisted?: string | null
   cookie?: string | null
   organization?: string | null
-  browser?: string | null
+  browser?: string | readonly string[] | null
 }
 
 export function resolvePreferredLocale(candidates: LocaleCandidates): string {
-  return normalizeLocale(candidates.persisted)
-    || normalizeLocale(candidates.cookie)
+  const browserLocales: readonly (string | null | undefined)[] =
+    typeof candidates.browser === 'string' || candidates.browser == null
+      ? [candidates.browser]
+      : candidates.browser
+  const explicitLocale = candidates.explicitUserChoice
+    ? normalizeLocale(candidates.persisted) || normalizeLocale(candidates.cookie)
+    : null
+
+  return explicitLocale
     || normalizeLocale(candidates.organization)
-    || normalizeLocale(candidates.browser)
+    || browserLocales.map(normalizeLocale).find(Boolean)
     || INITIAL_LOCALE
 }
 

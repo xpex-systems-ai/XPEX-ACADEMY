@@ -117,8 +117,8 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                 {/* Message Top Bar */}
                 {showMessage && (error || message) && (
                     <div className={`
-                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
-                        ${error ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}
+                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in motion-reduce:animate-none slide-in-from-top duration-200
+                        ${error ? 'bg-red-950/70 text-red-100 border-red-500/40' : 'bg-emerald-950/70 text-emerald-100 border-emerald-500/40'}
                     `}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             {error ? <AlertTriangle size={18} className="shrink-0" /> : <CheckCircle size={18} className="shrink-0" />}
@@ -133,7 +133,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                         </div>
                         <button
                             onClick={() => setShowMessage(false)}
-                            className="p-1 rounded-lg hover:bg-black/5 transition-colors shrink-0 opacity-60 hover:opacity-100"
+                            className="p-1 rounded-lg hover:bg-white/10 transition-colors motion-reduce:transition-none shrink-0 opacity-60 hover:opacity-100"
                         >
                             <X size={18} />
                         </button>
@@ -143,15 +143,15 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                 <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
                     <div className="w-full max-w-[420px] py-10">
                         {/* Header */}
-                        <h1 className="text-[28px] md:text-[32px] font-black text-black tracking-tight leading-tight">{t('auth.reset_password_title')}</h1>
-                        <p className="mt-2 text-black/45 text-[15px] font-medium">{t('auth.reset_password_description')}</p>
+                        <h1 className="text-[28px] md:text-[32px] font-black text-white tracking-tight leading-tight">{t('auth.reset_password_title')}</h1>
+                        <p className="mt-2 text-slate-300 text-[15px] font-medium">{t('auth.reset_password_description')}</p>
 
                         {/* Form */}
                         <div className="mt-8">
                             <FormLayout onSubmit={formik.handleSubmit}>
                                 <FormField name="email">
                                     <div className="flex items-center space-x-2 mb-1.5">
-                                        <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.email')}</Form.Label>
+                                        <Form.Label className="grow text-[13px] font-semibold text-slate-200">{t('auth.email')}</Form.Label>
                                         {formik.errors.email && (
                                             <div className="text-red-500 text-xs flex items-center space-x-1">
                                                 <Info size={11} />
@@ -164,14 +164,14 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             onChange={formik.handleChange}
                                             value={formik.values.email}
                                             type="email"
-                                            className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                                            className="box-border w-full bg-[#111C2E] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/30 focus:border-[#00D4FF] transition-all motion-reduce:transition-none placeholder:text-slate-500 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
 
                                 <FormField name="reset_code">
                                     <div className="flex items-center space-x-2 mb-1.5">
-                                        <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.reset_code')}</Form.Label>
+                                        <Form.Label className="grow text-[13px] font-semibold text-slate-200">{t('auth.reset_code')}</Form.Label>
                                         {formik.errors.reset_code && (
                                             <div className="text-red-500 text-xs flex items-center space-x-1">
                                                 <Info size={11} />
@@ -184,14 +184,14 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             onChange={formik.handleChange}
                                             value={formik.values.reset_code}
                                             type="text"
-                                            className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                                            className="box-border w-full bg-[#111C2E] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/30 focus:border-[#00D4FF] transition-all motion-reduce:transition-none placeholder:text-slate-500 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
 
                                 <FormField name="new_password">
                                     <div className="flex items-center space-x-2 mb-1.5">
-                                        <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.new_password')}</Form.Label>
+                                        <Form.Label className="grow text-[13px] font-semibold text-slate-200">{t('auth.new_password')}</Form.Label>
                                         {formik.errors.new_password && (
                                             <div className="text-red-500 text-xs flex items-center space-x-1">
                                                 <Info size={11} />
@@ -205,7 +205,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             value={formik.values.new_password}
                                             type="password"
                                             autoComplete="new-password"
-                                            className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                                            className="box-border w-full bg-[#111C2E] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/30 focus:border-[#00D4FF] transition-all motion-reduce:transition-none placeholder:text-slate-500 text-sm"
                                         />
                                     </Form.Control>
                                     <PasswordStrengthIndicator password={formik.values.new_password} />
@@ -213,7 +213,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
 
                                 <FormField name="confirm_password">
                                     <div className="flex items-center space-x-2 mb-1.5">
-                                        <Form.Label className="grow text-[13px] font-semibold text-black/70">{t('auth.confirm_password')}</Form.Label>
+                                        <Form.Label className="grow text-[13px] font-semibold text-slate-200">{t('auth.confirm_password')}</Form.Label>
                                         {formik.errors.confirm_password && (
                                             <div className="text-red-500 text-xs flex items-center space-x-1">
                                                 <Info size={11} />
@@ -227,7 +227,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             value={formik.values.confirm_password}
                                             type="password"
                                             autoComplete="new-password"
-                                            className="box-border w-full bg-neutral-50 text-black rounded-lg px-4 border border-neutral-200 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all placeholder:text-black/25 text-sm"
+                                            className="box-border w-full bg-[#111C2E] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/30 focus:border-[#00D4FF] transition-all motion-reduce:transition-none placeholder:text-slate-500 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -241,11 +241,11 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                 <Form.Submit asChild>
                                     <button
                                         disabled={isSubmitting || (turnstileRequired && !turnstileToken)}
-                                        className="box-border w-full inline-flex h-[44px] rounded-lg items-center justify-center bg-black hover:bg-black/85 text-white px-[15px] font-bold text-[14px] leading-none mt-2 transition-all disabled:opacity-50"
+                                        className="box-border w-full inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1220] h-[44px] rounded-lg items-center justify-center bg-[#FF7A00] hover:bg-[#ff8f26] text-[#0B1220] px-[15px] font-bold text-[14px] leading-none mt-2 transition-all motion-reduce:transition-none disabled:opacity-50"
                                     >
                                         {isSubmitting ? (
                                             <span className="flex items-center space-x-2">
-                                                <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" />
+                                                <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin motion-reduce:animate-none" />
                                                 <span>{t('common.loading')}</span>
                                             </span>
                                         ) : (
@@ -257,9 +257,9 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                         </div>
 
                         {/* Back to Login */}
-                        <p className="text-center text-sm text-black/35 mt-6">
+                        <p className="text-center text-sm text-slate-400 mt-6">
                             {t('auth.remember_password')}{' '}
-                            <Link href="/login" className="text-black font-semibold hover:underline">
+                            <Link href="/login" className="text-white font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] rounded">
                                 {t('auth.login')}
                             </Link>
                         </p>

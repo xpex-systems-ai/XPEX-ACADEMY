@@ -100,8 +100,8 @@ function VerifyEmailClient({ org }: VerifyEmailClientProps) {
                 {/* Message Top Bar */}
                 {showMessage && !isVerifying && (error || success) && (
                     <div className={`
-                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
-                        ${error ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}
+                        mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in motion-reduce:animate-none slide-in-from-top duration-200
+                        ${error ? 'bg-red-950/70 text-red-100 border-red-500/40' : 'bg-emerald-950/70 text-emerald-100 border-emerald-500/40'}
                     `}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             {error ? <AlertTriangle size={18} className="shrink-0" /> : <CheckCircle size={18} className="shrink-0" />}
@@ -118,7 +118,7 @@ function VerifyEmailClient({ org }: VerifyEmailClientProps) {
                         </div>
                         <button
                             onClick={() => setShowMessage(false)}
-                            className="p-1 rounded-lg hover:bg-black/5 transition-colors shrink-0 opacity-60 hover:opacity-100"
+                            className="p-1 rounded-lg hover:bg-white/10 transition-colors motion-reduce:transition-none shrink-0 opacity-60 hover:opacity-100"
                         >
                             <X size={18} />
                         </button>
@@ -128,32 +128,32 @@ function VerifyEmailClient({ org }: VerifyEmailClientProps) {
                 <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
                     <div className="w-full max-w-[420px] py-10">
                         {/* Header */}
-                        <h1 className="text-[28px] md:text-[32px] font-black text-black tracking-tight leading-tight text-center">{t('auth.verify_email_title')}</h1>
+                        <h1 className="text-[28px] md:text-[32px] font-black text-white tracking-tight leading-tight text-center">{t('auth.verify_email_title')}</h1>
 
                         {/* Loading State */}
                         {isVerifying && (
                             <div className="mt-8 flex flex-col items-center gap-4">
-                                <Loader2 className="h-12 w-12 animate-spin text-black/40" />
-                                <p className="text-black/45 text-sm font-medium">{t('auth.verifying_email')}</p>
+                                <Loader2 className="h-12 w-12 animate-spin motion-reduce:animate-none text-slate-300" />
+                                <p className="text-slate-300 text-sm font-medium">{t('auth.verifying_email')}</p>
                             </div>
                         )}
 
                         {/* Error State */}
                         {!isVerifying && error && (
                             <div className="mt-8 space-y-5">
-                                <div className="flex justify-center bg-red-50 rounded-xl text-red-600 space-x-3 items-center p-4 border border-red-100">
+                                <div className="flex justify-center bg-red-950/70 rounded-xl text-red-100 space-x-3 items-center p-4 border border-red-500/40">
                                     <AlertTriangle size={18} className="shrink-0" />
                                     <div>
                                         <p className="font-semibold text-sm">{t('auth.verification_failed')}</p>
                                         <p className="text-sm font-medium mt-0.5">{error}</p>
                                     </div>
                                 </div>
-                                <p className="text-sm text-black/45 text-center font-medium">
+                                <p className="text-sm text-slate-300 text-center font-medium">
                                     {t('auth.verification_trouble')}
                                 </p>
                                 <Link
                                     href="/login"
-                                    className="box-border w-full inline-flex h-[44px] rounded-lg items-center justify-center bg-black hover:bg-black/85 text-white px-[15px] font-bold text-[14px] leading-none transition-all"
+                                    className="box-border w-full inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1220] h-[44px] rounded-lg items-center justify-center bg-[#FF7A00] hover:bg-[#ff8f26] text-[#0B1220] px-[15px] font-bold text-[14px] leading-none transition-all motion-reduce:transition-none"
                                 >
                                     {t('auth.back_to_login')}
                                 </Link>
@@ -164,17 +164,17 @@ function VerifyEmailClient({ org }: VerifyEmailClientProps) {
                         {!isVerifying && success && (
                             <div className="mt-8 space-y-5">
                                 <div className="flex flex-col items-center gap-4 text-center">
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                                        <CheckCircle className="h-8 w-8 text-green-500" />
+                                    <div className="w-16 h-16 bg-emerald-950/70 rounded-full flex items-center justify-center">
+                                        <CheckCircle className="h-8 w-8 text-emerald-300" />
                                     </div>
                                     <div>
-                                        <h2 className="font-bold text-lg text-black">{t('auth.email_verified_success')}</h2>
-                                        <p className="text-sm text-black/45 font-medium mt-1">{t('auth.email_verified_message')}</p>
+                                        <h2 className="font-bold text-lg text-white">{t('auth.email_verified_success')}</h2>
+                                        <p className="text-sm text-slate-300 font-medium mt-1">{t('auth.email_verified_message')}</p>
                                     </div>
                                 </div>
                                 <Link
                                     href="/home"
-                                    className="box-border w-full inline-flex h-[44px] rounded-lg items-center justify-center bg-black hover:bg-black/85 text-white px-[15px] font-bold text-[14px] leading-none transition-all"
+                                    className="box-border w-full inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1220] h-[44px] rounded-lg items-center justify-center bg-[#FF7A00] hover:bg-[#ff8f26] text-[#0B1220] px-[15px] font-bold text-[14px] leading-none transition-all motion-reduce:transition-none"
                                 >
                                     {t('auth.continue_to_dashboard', { defaultValue: 'Continue to your dashboard' })}
                                 </Link>

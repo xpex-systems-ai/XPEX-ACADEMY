@@ -12,6 +12,7 @@ describe('XpeX authentication locale determinism', () => {
 
     expect(read('lib/localeResolution.ts')).toContain("INITIAL_LOCALE = 'pt'")
     expect(i18n).toContain('lng: INITIAL_LOCALE')
+    expect(i18n).toContain('initAsync: false')
     expect(i18n).not.toContain('LanguageDetector')
     expect(provider).toContain('beginClientLocaleReconciliation()')
     expect(root).not.toContain('suppressHydrationWarning')
@@ -19,11 +20,12 @@ describe('XpeX authentication locale determinism', () => {
 
   test('reconciles persisted, cookie, organization and browser locales deterministically', () => {
     expect(resolvePreferredLocale({})).toBe('pt')
-    expect(resolvePreferredLocale({ cookie: 'pt-BR' })).toBe('pt')
-    expect(resolvePreferredLocale({ persisted: 'pt', cookie: 'en' })).toBe('pt')
-    expect(resolvePreferredLocale({ persisted: 'en', organization: 'pt' })).toBe('en')
-    expect(resolvePreferredLocale({ browser: 'pt-BR' })).toBe('pt')
-    expect(resolvePreferredLocale({ organization: 'pt', browser: 'en-US' })).toBe('pt')
+    expect(resolvePreferredLocale({ explicitUserChoice: true, persisted: 'en', organization: 'pt' })).toBe('en')
+    expect(resolvePreferredLocale({ explicitUserChoice: true, cookie: 'en', organization: 'pt' })).toBe('en')
+    expect(resolvePreferredLocale({ persisted: 'en', cookie: 'en', organization: 'pt' })).toBe('pt')
+    expect(resolvePreferredLocale({ organization: 'en', browser: ['pt-BR'] })).toBe('en')
+    expect(resolvePreferredLocale({ browser: ['ca', 'es'] })).toBe('es')
+    expect(resolvePreferredLocale({ browser: ['ca', 'en-US'] })).toBe('en')
     expect(resolvePreferredLocale({ persisted: 'invalid', cookie: 'invalid' })).toBe('pt')
   })
 
@@ -79,4 +81,46 @@ describe('XpeX login branding and auth preservation', () => {
     expect(login).toContain('focus-visible:ring-2')
     expect(login).toContain('motion-reduce:transition-none')
   })
+  test('keeps every AuthLayout consumer legible on the dark pane', () => {
+    const routes = [
+      'app/auth/login/login.tsx',
+      'app/auth/forgot/forgot.tsx',
+      'app/auth/reset/reset.tsx',
+      'app/auth/signup/signup.tsx',
+      'app/auth/signup/OpenSignup.tsx',
+      'app/auth/signup/InviteOnlySignUp.tsx',
+      'app/auth/verify-email/verify-email.tsx',
+    ]
+
+    for (const route of routes) {
+      const source = read(route)
+      expect(source).not.toMatch(/text-black(?:\/\d+)?/)
+    }
+    for (const route of routes.slice(1)) {
+      const source = read(route)
+      expect(source).toContain('motion-reduce:')
+      expect(source).toContain('focus-visible:')
+    }
+  })
+
+  test('preserves signup, recovery, verification and invitation flows', () => {
+    const signup = read('app/auth/signup/signup.tsx')
+    const openSignup = read('app/auth/signup/OpenSignup.tsx')
+    const inviteSignup = read('app/auth/signup/InviteOnlySignUp.tsx')
+    const forgot = read('app/auth/forgot/forgot.tsx')
+    const reset = read('app/auth/reset/reset.tsx')
+    const verify = read('app/auth/verify-email/verify-email.tsx')
+
+    expect(`${openSignup}\n${inviteSignup}`).toContain("signIn('google'")
+    expect(`${openSignup}\n${inviteSignup}`).toContain('<TurnstileWidget')
+    expect(openSignup).toContain('/redirect_from_auth?next=')
+    expect(inviteSignup).toContain('signUpWithInviteCode')
+    expect(signup).toContain('validateInviteCode')
+    expect(signup).toContain('joinOrg(')
+    expect(forgot).toContain('sendResetLink')
+    expect(reset).toContain('resetPassword(')
+    expect(verify).toContain('hasRunRef')
+    expect(verify).toContain("window.location.assign('/home')")
+  })
+
 })
