@@ -24,6 +24,21 @@ def _is_allowed_base_url(url: str) -> bool:
         if parsed.scheme not in ("http", "https") or not parsed.hostname:
             return False
 
+        # A production deployment configured for SSL must never let a
+        # downgrade Origin/Referer determine the links placed in email. Local
+        # HTTP remains available when SSL is disabled (or via the explicit
+        # development-only localhost allowance below).
+        is_development_localhost = (
+            config.general_config.development_mode
+            and parsed.hostname in ("localhost", "127.0.0.1")
+        )
+        if (
+            config.hosting_config.ssl
+            and parsed.scheme != "https"
+            and not is_development_localhost
+        ):
+            return False
+
         req_host = parsed.hostname.removeprefix("www.").lower()
 
         configured_hosts = set()
@@ -223,6 +238,24 @@ def send_email(to: EmailStr, subject: str, body: str):
 
     lh_config = get_learnhouse_config()
     mailing = lh_config.mailing_config
+
+    # Fail before contacting a provider when the selected provider cannot be
+    # used. Keep the browser-facing error deliberately generic and never log
+    # credential contents.
+    if not (mailing.system_email_address or "").strip():
+        logger.error("Outbound email is not configured: sender address is missing")
+        raise HTTPException(
+            status_code=503, detail="Email service temporarily unavailable"
+        )
+    if (
+        mailing.email_provider == "resend"
+        and not (mailing.resend_api_key or "").strip()
+    ):
+        logger.error("Outbound email is not configured: Resend credential is missing")
+        raise HTTPException(
+            status_code=503, detail="Email service temporarily unavailable"
+        )
+
     sender = f"LearnHouse <{mailing.system_email_address}>"
 
     # Resend (and most providers) require a plain `email@example.com` string.
@@ -292,4 +325,3 @@ def _send_email_smtp(sender: str, to: str, subject: str, body: str, mailing):
                 server.quit()
             except Exception:
                 pass
-
