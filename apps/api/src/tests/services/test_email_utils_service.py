@@ -6,14 +6,13 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException
-from starlette.requests import Request
-
 from src.services.email.utils import (
     _is_allowed_base_url,
     get_base_url_from_request,
     get_org_signup_base_url,
     send_email,
 )
+from starlette.requests import Request
 
 
 def _config(**overrides):

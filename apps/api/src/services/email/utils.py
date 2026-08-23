@@ -6,10 +6,9 @@ from email.mime.text import MIMEText
 from urllib.parse import urlparse
 
 import resend
+from config.config import get_learnhouse_config
 from fastapi import Request
 from pydantic import EmailStr
-
-from config.config import get_learnhouse_config
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +149,6 @@ async def _get_primary_verified_custom_domain(db_session, org_id: int) -> str | 
     """Return the org's primary verified custom domain, or any verified one."""
     try:
         from sqlmodel import select
-
         from src.db.custom_domains import CustomDomain
 
         primary = (await db_session.execute(
