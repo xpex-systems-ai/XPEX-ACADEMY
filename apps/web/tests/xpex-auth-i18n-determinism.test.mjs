@@ -152,6 +152,7 @@ describe('XpeX login branding and auth preservation', () => {
     expect(layout).toContain('lg:flex-row')
     expect(layout).toContain('lg:hidden')
     expect(layout).toContain('<LanguageSwitcher primaryColor="#0B1220" />')
+    expect(layout).toContain('border-white/20 bg-[#0B1220] shadow-lg')
     expect(read('components/Footers/LegalFooters.tsx')).toContain("tone === 'dark' ? 'text-white/55'")
     expect(read('components/Auth/AuthMobileHeader.tsx')).toContain('items-center gap-3 pr-20')
     const passwordStrength = read('components/Auth/PasswordStrengthIndicator.tsx')
