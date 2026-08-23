@@ -231,7 +231,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                 value={formik.values.email}
                 type="email"
                 required
-                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
               />
             </Form.Control>
           </FormField>
@@ -253,7 +253,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                   onBlur={formik.handleBlur}
                   value={formik.values.first_name}
                   type="text"
-                  className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                  className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                 />
               </Form.Control>
             </FormField>
@@ -273,7 +273,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                   onBlur={formik.handleBlur}
                   value={formik.values.last_name}
                   type="text"
-                  className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                  className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                 />
               </Form.Control>
             </FormField>
@@ -297,7 +297,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
               />
             </Form.Control>
             <PasswordStrengthIndicator tone="dark" password={formik.values.password} />
@@ -320,7 +320,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                 value={formik.values.username}
                 type="text"
                 required
-                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
               />
             </Form.Control>
           </FormField>
@@ -335,7 +335,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
                 onBlur={formik.handleBlur}
                 value={formik.values.bio}
                 placeholder={t('user.bio_placeholder')}
-                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 py-3 border border-white/15 appearance-none focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm resize-none min-h-[80px]"
+                className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 py-3 border border-white/15 appearance-none focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm resize-none min-h-[80px]"
               />
             </Form.Control>
           </FormField>
@@ -369,7 +369,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
             <div className="w-full border-t border-white/15" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/35">{t('common.or')}</span>
+            <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/55">{t('common.or')}</span>
           </div>
         </div>
 
@@ -384,7 +384,7 @@ function OpenSignUpComponent({ org: propOrg }: OpenSignUpComponentProps = {}) {
         </button>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-white/40 mt-6">
+        <p className="text-center text-sm text-white/55 mt-6">
           {t('auth.already_have_account')}{' '}
           <Link href="/login" className="rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
             {t('auth.login')}

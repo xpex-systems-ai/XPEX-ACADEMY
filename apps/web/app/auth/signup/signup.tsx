@@ -73,7 +73,7 @@ function SignUpClient(props: SignUpClientProps) {
         // Don't flash the open/invite signup form while the session is still
         // resolving — a logged-in user would otherwise briefly see it.
         <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
-          <Loader2 size={22} className="animate-spin text-white/35" />
+          <Loader2 size={22} className="animate-spin text-white/55" />
         </div>
       )}
       {session.status !== 'loading' && joinMethod == 'open' &&
@@ -83,7 +83,7 @@ function SignUpClient(props: SignUpClientProps) {
           ) : (
             // Signed in on the org-less apex — the effect above redirects to /home.
             <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
-              <Loader2 size={22} className="animate-spin text-white/35" />
+              <Loader2 size={22} className="animate-spin text-white/55" />
             </div>
           )
         ) : (
@@ -336,7 +336,7 @@ const NoTokenScreen = ({ org }: NoTokenScreenProps) => {
                     type="text"
                     placeholder={t('auth.enter_invite_code')}
                     required
-                    className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                    className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                   />
                 </Form.Control>
               </FormField>

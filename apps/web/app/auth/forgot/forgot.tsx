@@ -133,7 +133,7 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                                             value={formik.values.email}
                                             type="email"
                                             required
-                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -163,7 +163,7 @@ function ForgotPasswordClient({ org }: ForgotPasswordClientProps) {
                         </div>
 
                         {/* Back to Login */}
-                        <p className="text-center text-sm text-white/40 mt-6">
+                        <p className="text-center text-sm text-white/55 mt-6">
                             <Link href="/login" className="inline-flex items-center gap-2 rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
                                 <ArrowLeft size={16} />
                                 {t('auth.back_to_login')}

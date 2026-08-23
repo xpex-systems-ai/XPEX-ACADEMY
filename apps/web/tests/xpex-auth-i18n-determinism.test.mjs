@@ -75,6 +75,12 @@ describe('XpeX login branding and auth preservation', () => {
       'app/auth/signup/InviteOnlySignUp.tsx',
       'app/auth/verify-email/verify-email.tsx',
     ].map(read)
+    const darkSurfaces = [read('app/auth/login/login.tsx'), read('components/Auth/AuthLayout.tsx'), ...consumers]
+    for (const surface of darkSurfaces) {
+      for (const lowContrastToken of ['text-white/25', 'text-white/30', 'text-white/35', 'text-white/40', 'text-white/45']) {
+        expect(surface).not.toContain(lowContrastToken)
+      }
+    }
     for (const consumer of consumers) {
       expect(consumer).not.toContain('text-black')
       expect(consumer).not.toContain('bg-neutral-50')

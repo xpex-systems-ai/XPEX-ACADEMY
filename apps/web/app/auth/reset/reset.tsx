@@ -164,7 +164,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             onChange={formik.handleChange}
                                             value={formik.values.email}
                                             type="email"
-                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -184,7 +184,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             onChange={formik.handleChange}
                                             value={formik.values.reset_code}
                                             type="text"
-                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -205,7 +205,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             value={formik.values.new_password}
                                             type="password"
                                             autoComplete="new-password"
-                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                                         />
                                     </Form.Control>
                                     <PasswordStrengthIndicator tone="dark" password={formik.values.new_password} />
@@ -227,7 +227,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                                             value={formik.values.confirm_password}
                                             type="password"
                                             autoComplete="new-password"
-                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/25 text-sm"
+                                            className="box-border w-full bg-white/[.06] text-white rounded-lg px-4 border border-white/15 inline-flex h-[44px] appearance-none items-center focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 focus:border-[#00D4FF] transition-all placeholder:text-white/55 text-sm"
                                         />
                                     </Form.Control>
                                 </FormField>
@@ -257,7 +257,7 @@ function ResetPasswordClient({ org }: ResetPasswordClientProps) {
                         </div>
 
                         {/* Back to Login */}
-                        <p className="text-center text-sm text-white/40 mt-6">
+                        <p className="text-center text-sm text-white/55 mt-6">
                             {t('auth.remember_password')}{' '}
                             <Link href="/login" className="rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
                                 {t('auth.login')}

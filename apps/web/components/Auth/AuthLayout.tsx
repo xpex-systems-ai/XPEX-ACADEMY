@@ -43,7 +43,7 @@ export default function AuthLayout({ org, welcomeText, title, subtitle, children
           <AuthFooter className="shrink-0" tone="dark" />
         ) : (
           <div className="shrink-0 px-6 pb-8 pt-6 text-center">
-            <p className="text-[13px] font-medium text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               XpeX Academy • Acesso institucional seguro.
             </p>
           </div>

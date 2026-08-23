@@ -372,7 +372,7 @@ const LoginClient = (props: LoginClientProps) => {
                       onBlur={formik.handleBlur}
                       value={formik.values.email}
                       type="email"
-                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/25 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
                     />
                   </Form.Control>
                 </FormField>
@@ -400,7 +400,7 @@ const LoginClient = (props: LoginClientProps) => {
                       value={formik.values.password}
                       type="password"
                       autoComplete="current-password"
-                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/25 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
                     />
                   </Form.Control>
                 </FormField>
@@ -434,7 +434,7 @@ const LoginClient = (props: LoginClientProps) => {
                   <div className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/35">{t('common.or')}</span>
+                  <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/55">{t('common.or')}</span>
                 </div>
               </div>
 
@@ -462,7 +462,7 @@ const LoginClient = (props: LoginClientProps) => {
               </div>
 
               {/* Sign Up Link */}
-              <p className="mt-6 text-center text-sm text-white/40">
+              <p className="mt-6 text-center text-sm text-white/55">
                 {t('auth.no_account')}{' '}
                 <Link href="/signup" className="rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
                   {t('auth.sign_up')}
