@@ -9,9 +9,9 @@ host rather than being copied into an email.
 
 ## XpeX production Railway API manifest
 
-Apply these variables to the production **API** service, then redeploy it. The
-frontend domain is a hostname without a scheme or path. The allowed origin is
-a complete HTTPS origin.
+Apply these variables to the Railway production service **XPEX-ACADEMY**, then
+redeploy it. The frontend domain is a hostname without a scheme or path. The
+allowed origin is a complete HTTPS origin.
 
 ```dotenv
 LEARNHOUSE_TENANCY=single

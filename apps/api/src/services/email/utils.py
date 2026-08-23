@@ -3,12 +3,12 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 from urllib.parse import urlparse
 
-from pydantic import EmailStr
-from fastapi import Request
 import resend
+from fastapi import Request
+from pydantic import EmailStr
+
 from config.config import get_learnhouse_config
 
 logger = logging.getLogger(__name__)
@@ -63,10 +63,10 @@ def _is_allowed_base_url(url: str) -> bool:
         if req_host in configured_hosts:
             return True
 
-        if config.general_config.development_mode and req_host in ("localhost", "127.0.0.1"):
-            return True
-
-        return False
+        return config.general_config.development_mode and req_host in (
+            "localhost",
+            "127.0.0.1",
+        )
 
     allowed_origins = config.hosting_config.allowed_origins
 
@@ -109,7 +109,7 @@ async def get_org_signup_base_url(
     org_slug: str,
     request: Request,
     db_session=None,
-    org_id: Optional[int] = None,
+    org_id: int | None = None,
 ) -> str:
     """
     Return the org-scoped frontend base URL for invitation / signup links.
@@ -146,17 +146,18 @@ async def get_org_signup_base_url(
     return f"{scheme}://{org_slug}.{base_domain}"
 
 
-async def _get_primary_verified_custom_domain(db_session, org_id: int) -> Optional[str]:
+async def _get_primary_verified_custom_domain(db_session, org_id: int) -> str | None:
     """Return the org's primary verified custom domain, or any verified one."""
     try:
         from sqlmodel import select
+
         from src.db.custom_domains import CustomDomain
 
         primary = (await db_session.execute(
             select(CustomDomain).where(
                 CustomDomain.org_id == org_id,
                 CustomDomain.status == "verified",
-                CustomDomain.primary == True,  # noqa: E712
+                CustomDomain.primary == True,
             )
         )).scalars().first()
         if primary:
@@ -174,7 +175,7 @@ async def _get_primary_verified_custom_domain(db_session, org_id: int) -> Option
         return None
 
 
-def get_trusted_base_url_from_request(request: Request) -> Optional[str]:
+def get_trusted_base_url_from_request(request: Request) -> str | None:
     """
     Return the request's Origin/Referer base URL **only if** it is an allowed
     origin, otherwise None.
@@ -256,7 +257,7 @@ def send_email(to: EmailStr, subject: str, body: str):
             status_code=503, detail="Email service temporarily unavailable"
         )
 
-    sender = f"LearnHouse <{mailing.system_email_address}>"
+    sender = f"{lh_config.site_name} <{mailing.system_email_address}>"
 
     # Resend (and most providers) require a plain `email@example.com` string.
     # Pydantic's EmailStr is a str subclass, but third-party JSON serializers
@@ -284,8 +285,8 @@ def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing):
             "subject": subject,
             "html": body,
         })
-    except Exception as e:
-        logger.error("Resend email failed to %s: %s", to, e, exc_info=True)
+    except Exception:
+        logger.exception("Resend email failed to %s", to)
         raise HTTPException(status_code=503, detail="Email service temporarily unavailable")
 
 
@@ -313,15 +314,19 @@ def _send_email_smtp(sender: str, to: str, subject: str, body: str, mailing):
 
         server.sendmail(mailing.system_email_address, to, msg.as_string())
         return {"id": None, "to": to}
-    except smtplib.SMTPException as e:
-        logger.error("SMTP error sending to %s: %s", to, e, exc_info=True)
+    except smtplib.SMTPException:
+        logger.exception("SMTP error sending to %s", to)
         raise HTTPException(status_code=503, detail="Email service error")
-    except OSError as e:
-        logger.error("SMTP connection error to %s:%s: %s", mailing.smtp_host, mailing.smtp_port, e, exc_info=True)
+    except OSError:
+        logger.exception(
+            "SMTP connection error to %s:%s",
+            mailing.smtp_host,
+            mailing.smtp_port,
+        )
         raise HTTPException(status_code=503, detail="Email service unavailable")
     finally:
         if server is not None:
             try:
                 server.quit()
-            except Exception:
-                pass
+            except (smtplib.SMTPException, OSError):
+                logger.warning("SMTP connection cleanup failed")
