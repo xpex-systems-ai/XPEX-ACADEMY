@@ -239,6 +239,8 @@
   },
   "auth": {
     "login": "Login",
+    "xpex_access_title": "Access your learning space",
+    "xpex_access_subtitle": "Sign in securely to continue your journey.",
     "sign_in": "Sign in",
     "email": "Email",
     "password": "Password",

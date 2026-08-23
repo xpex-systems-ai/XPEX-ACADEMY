@@ -8,7 +8,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html className="font-default" lang="pt-BR" suppressHydrationWarning>
+    <html className="font-default" lang="pt-BR">
       <head>
         {/* Synchronous script — blocks parsing to guarantee window.__RUNTIME_CONFIG__ exists before any JS runs.
             Next.js <Script strategy="beforeInteractive"> is not truly blocking in all browsers (Safari). */}
@@ -19,7 +19,7 @@ export default function RootLayout({
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="/embed-bg.js" />
       </head>
-      <body suppressHydrationWarning>
+      <body>
         <Providers>
           <div className="animate-fade-in">{children}</div>
         </Providers>

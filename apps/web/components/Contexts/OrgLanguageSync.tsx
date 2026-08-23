@@ -2,9 +2,7 @@
 
 import { useEffect } from 'react'
 import { useOrg } from './OrgContext'
-import i18n, { changeLanguage } from '@/lib/i18n'
-
-const USER_PICKED_KEY = 'i18nextLng_userPicked'
+import { setOrganizationLocale } from '@/lib/i18n'
 
 export default function OrgLanguageSync() {
   const org = useOrg() as any
@@ -14,17 +12,8 @@ export default function OrgLanguageSync() {
     org?.config?.config?.general?.default_language
 
   useEffect(() => {
-    if (!orgDefault) return
-
-    let userPicked: string | null = null
-    try {
-      userPicked = localStorage.getItem(USER_PICKED_KEY)
-    } catch {}
-    if (userPicked) return
-
-    if (i18n.language.split('-')[0] !== orgDefault) {
-      changeLanguage(orgDefault)
-    }
+    setOrganizationLocale(orgDefault)
+    return () => setOrganizationLocale(undefined)
   }, [orgDefault])
 
   return null

@@ -16,17 +16,19 @@ import { getPlatformUrl } from '@services/config/config'
 const TERMS_URL = getPlatformUrl('/terms') || 'https://www.learnhouse.io/terms'
 const PRIVACY_URL = getPlatformUrl('/privacy') || 'https://www.learnhouse.io/privacy'
 
-export function AuthFooter({ className = '' }: { className?: string }) {
+export function AuthFooter({ className = '', tone = 'light' }: { className?: string; tone?: 'light' | 'dark' }) {
   const { t } = useTranslation()
+  const text = tone === 'dark' ? 'text-white/35' : 'text-black/30'
+  const link = tone === 'dark' ? 'text-white/55 hover:text-white/80' : 'text-black/50 hover:text-black/70'
   return (
     <div className={`pb-8 pt-6 text-center px-6 ${className}`}>
-      <p className="text-[13px] text-black/30 font-medium">
+      <p className={`text-[13px] font-medium ${text}`}>
         {t('auth.terms_text', { defaultValue: "By continuing, you agree to LearnHouse's" })}{' '}
         <Link
           href={TERMS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-black/50 hover:text-black/70 transition-colors"
+          className={`${link} transition-colors`}
         >
           {t('auth.terms_of_service', { defaultValue: 'Terms of Service' })}
         </Link>{' '}
@@ -35,12 +37,17 @@ export function AuthFooter({ className = '' }: { className?: string }) {
           href={PRIVACY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-black/50 hover:text-black/70 transition-colors"
+          className={`${link} transition-colors`}
         >
           {t('auth.privacy_policy', { defaultValue: 'Privacy Policy' })}
         </Link>
         .
       </p>
+      {tone === 'dark' && (
+        <p className="mt-2 text-[11px] text-white/25">
+          Versão modificada do projeto open-source LearnHouse, distribuído sob licença AGPL.
+        </p>
+      )}
     </div>
   )
 }

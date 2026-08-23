@@ -234,6 +234,8 @@
   },
   "auth": {
     "login": "Entrar",
+    "xpex_access_title": "Acesse seu ambiente de aprendizagem",
+    "xpex_access_subtitle": "Entre com segurança para continuar sua jornada.",
     "email": "E-mail",
     "password": "Senha",
     "forgot_password": "Esqueceu a senha?",
