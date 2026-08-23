@@ -57,17 +57,17 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
           style={{ backgroundImage: `url(${backgroundImage})` }}
         />
       )}
-      <div
-        className={cn(
-          'absolute inset-0',
-          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
-        )}
-      />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,122,0,.28),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(0,212,255,.22),transparent_30%)]" />
       <div
         className={cn(
           'absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.16)_1px,transparent_1px)] [background-size:32px_32px]',
           isDarkText ? 'opacity-[0.03]' : 'opacity-10',
+        )}
+      />
+      <div
+        className={cn(
+          'absolute inset-0',
+          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 

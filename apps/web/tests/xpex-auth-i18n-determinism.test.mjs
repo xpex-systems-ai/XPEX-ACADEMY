@@ -74,6 +74,7 @@ describe('XpeX login branding and auth preservation', () => {
     expect(panel).toContain('branding.unsplash_photo_url')
     expect(panel).toContain('utm_source=XpeX_Academy')
     expect(panel).toContain("hasCustomBackground ? 'bg-[#0B1220]/90'")
+    expect(panel.indexOf('bg-[radial-gradient')).toBeLessThan(panel.indexOf("hasCustomBackground ? 'bg-[#0B1220]/90'"))
     expect(panel).toContain('const unsplashPhotographerUrl')
     expect(panel).toContain('const unsplashPhotoUrl')
     expect(panel).toContain('href={unsplashPhotoUrl}')
