@@ -33,10 +33,12 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
     ? branding.welcome_message.trim()
     : null
   const isDarkText = Boolean(org && branding.text_color === 'dark')
-  const unsplashCreditUrl = withUnsplashAttribution(
-    branding.unsplash_photographer_url || branding.unsplash_photo_url || 'https://unsplash.com/',
+  const unsplashPhotographerUrl = withUnsplashAttribution(
+    branding.unsplash_photographer_url || 'https://unsplash.com/',
   )
-  const unsplashHomeUrl = `https://unsplash.com/?${UNSPLASH_UTM}`
+  const unsplashPhotoUrl = withUnsplashAttribution(
+    branding.unsplash_photo_url || branding.unsplash_photographer_url || 'https://unsplash.com/',
+  )
   const showUnsplashCredit = branding.background_type === 'unsplash'
     && Boolean(backgroundImage)
     && Boolean(branding.unsplash_photographer_name)
@@ -58,7 +60,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/65' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,122,0,.28),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(0,212,255,.22),transparent_30%)]" />
@@ -129,7 +131,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
             <p className={cn('text-[11px] font-medium', isDarkText ? 'text-slate-700' : 'text-white/70')}>
               ©{' '}
               <a
-                href={unsplashCreditUrl}
+                href={unsplashPhotographerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:opacity-80"
@@ -138,7 +140,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
               </a>
               {' · '}
               <a
-                href={unsplashHomeUrl}
+                href={unsplashPhotoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:opacity-80"
