@@ -43,7 +43,7 @@ dependencies = [
     "protobuf==7.35.1",
     "workos==8.2.0",
     "dnspython==2.8.0",
-    "defusedxml==0.7.0",
+    "defusedxml==0.7.1",
     "llama-index-core==0.14.22",
     "pgvector==0.4.2",
     "pypdf==6.13.3",
