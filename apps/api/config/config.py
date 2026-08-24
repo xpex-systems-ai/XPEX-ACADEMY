@@ -100,8 +100,9 @@ class HostingConfig(BaseModel):
 
 
 class MailingConfig(BaseModel):
-    email_provider: Literal["resend", "smtp"]
+    email_provider: Literal["brevo", "resend", "smtp"]
     system_email_address: str
+    brevo_api_key: Optional[str] = None
     resend_api_key: Optional[str] = None
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
@@ -424,6 +425,7 @@ def get_learnhouse_config() -> LearnHouseConfig:
 
     # Mailing config
     env_email_provider = os.environ.get("LEARNHOUSE_EMAIL_PROVIDER")
+    env_brevo_api_key = os.environ.get("LEARNHOUSE_BREVO_API_KEY")
     env_resend_api_key = os.environ.get("LEARNHOUSE_RESEND_API_KEY")
     env_system_email_address = os.environ.get("LEARNHOUSE_SYSTEM_EMAIL_ADDRESS")
     env_smtp_host = os.environ.get("LEARNHOUSE_SMTP_HOST")
@@ -434,6 +436,9 @@ def get_learnhouse_config() -> LearnHouseConfig:
 
     email_provider = env_email_provider or yaml_config.get("mailing_config", {}).get(
         "email_provider", "resend"
+    )
+    brevo_api_key = env_brevo_api_key or yaml_config.get("mailing_config", {}).get(
+        "brevo_api_key"
     )
     resend_api_key = env_resend_api_key or yaml_config.get("mailing_config", {}).get(
         "resend_api_key"
@@ -642,6 +647,7 @@ def get_learnhouse_config() -> LearnHouseConfig:
         mailing_config=MailingConfig(
             email_provider=email_provider,
             system_email_address=system_email_address,
+            brevo_api_key=brevo_api_key,
             resend_api_key=resend_api_key,
             smtp_host=smtp_host,
             smtp_port=smtp_port,

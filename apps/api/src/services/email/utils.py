@@ -5,12 +5,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.parse import urlparse
 
+import httpx
 import resend
 from config.config import get_learnhouse_config
 from fastapi import Request
 from pydantic import EmailStr
 
 logger = logging.getLogger(__name__)
+
+_BREVO_EMAIL_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
+_BREVO_TIMEOUT = 15.0
 
 
 def _is_allowed_base_url(url: str) -> bool:
@@ -254,6 +258,13 @@ def send_email(to: EmailStr, subject: str, body: str):
         raise HTTPException(
             status_code=503, detail="Email service temporarily unavailable"
         )
+    if mailing.email_provider == "brevo" and not (
+        mailing.brevo_api_key or ""
+    ).strip():
+        logger.error("Outbound email is not configured: Brevo credential is missing")
+        raise HTTPException(
+            status_code=503, detail="Email service temporarily unavailable"
+        )
 
     sender = f"{lh_config.site_name} <{mailing.system_email_address}>"
 
@@ -269,8 +280,57 @@ def send_email(to: EmailStr, subject: str, body: str):
 
     if mailing.email_provider == "smtp":
         return _send_email_smtp(sender, to_addr, subject, body, mailing)
-    else:
-        return _send_email_resend(sender, to_addr, subject, body, mailing)
+    if mailing.email_provider == "brevo":
+        return _send_email_brevo(lh_config.site_name, to_addr, subject, body, mailing)
+    return _send_email_resend(sender, to_addr, subject, body, mailing)
+
+
+def _send_email_brevo(sender_name: str, to: str, subject: str, body: str, mailing):
+    from fastapi import HTTPException
+
+    try:
+        response = httpx.post(
+            _BREVO_EMAIL_ENDPOINT,
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json",
+                "api-key": mailing.brevo_api_key,
+            },
+            json={
+                "sender": {"name": sender_name, "email": mailing.system_email_address},
+                "to": [{"email": to}],
+                "subject": subject,
+                "htmlContent": body,
+            },
+            timeout=_BREVO_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "Brevo email failed: provider=brevo status=%s recipient=%s exception=%s",
+            exc.response.status_code,
+            to,
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=503, detail="Email service temporarily unavailable"
+        ) from None
+    except httpx.RequestError as exc:
+        logger.error(
+            "Brevo email failed: provider=brevo recipient=%s exception=%s",
+            to,
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=503, detail="Email service temporarily unavailable"
+        ) from None
+
+    try:
+        result = response.json()
+    except ValueError:
+        result = {}
+    message_id = result.get("messageId") if isinstance(result, dict) else None
+    return {"messageId": message_id}
 
 
 def _send_email_resend(sender: str, to: str, subject: str, body: str, mailing):
