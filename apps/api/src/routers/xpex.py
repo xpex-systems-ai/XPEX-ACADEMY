@@ -6,6 +6,7 @@ from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.xpex.dashboard import get_student_dashboard
+from src.services.xpex.teacher_dashboard import get_teacher_dashboard
 
 router = APIRouter()
 
@@ -21,5 +22,20 @@ async def learning_dashboard(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Organization membership required",
+        )
+    return dashboard
+
+
+@router.get("/teacher-dashboard")
+async def teacher_dashboard(
+    organization_slug: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    dashboard = await get_teacher_dashboard(current_user, organization_slug, db_session)
+    if dashboard is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher membership required",
         )
     return dashboard
