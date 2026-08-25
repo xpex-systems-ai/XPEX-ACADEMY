@@ -4,7 +4,7 @@ import { signOut } from '@components/Contexts/AuthContext'
 import { Bell, LogOut, Menu, MessageCircle, Search, ShieldCheck, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { xpexAuthenticatedNavigation } from './xpex-navigation'
 import type { XpexRole } from './xpex-types'
 import './xpex.css'
@@ -47,10 +47,10 @@ export function XpexSidebar({ role, open, close }: { role: XpexRole; open: boole
   </aside>
 }
 
-export function XpexTopbar({ role, displayName, openMenu }: { role: XpexRole; displayName: string; openMenu: () => void }) {
+export function XpexTopbar({ role, displayName, openMenu, menuOpen, menuButtonRef }: { role: XpexRole; displayName: string; openMenu: () => void; menuOpen?: boolean; menuButtonRef?: RefObject<HTMLButtonElement | null> }) {
   const initials = displayName.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'XP'
   return <header className="xpex-topbar">
-    <button className="xpex-icon-button xpex-mobile-only" onClick={openMenu} aria-label="Abrir menu" aria-controls="xpex-sidebar"><Menu size={20}/></button>
+    <button ref={menuButtonRef} className="xpex-icon-button xpex-mobile-only" onClick={openMenu} aria-label="Abrir menu" aria-controls="xpex-sidebar" aria-expanded={menuOpen}><Menu aria-hidden="true" size={20}/></button>
     <label className="xpex-search"><Search aria-hidden="true" size={18}/><span className="sr-only">Buscar na XpeX Academy</span><input placeholder="Buscar na Academy" disabled aria-describedby="xpex-search-status"/><span id="xpex-search-status" className="sr-only">Busca em breve</span></label>
     <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — em breve"><Bell size={18}/></button><button className="xpex-icon-button xpex-hide-small" disabled aria-label="Mensagens — em breve"><MessageCircle size={18}/></button>
       <div className="xpex-profile" aria-label={`Usuário: ${displayName}, papel: ${roleLabels[role]}`}><span className="xpex-avatar">{initials}</span><span><strong>{displayName}</strong><small>{roleLabels[role]}</small></span></div>
@@ -61,11 +61,20 @@ export function XpexTopbar({ role, displayName, openMenu }: { role: XpexRole; di
 
 export function XpexAuthenticatedShell({ role, allowedRoles, displayName, children }: { role: XpexRole; allowedRoles: XpexRole[]; displayName: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setOpen(false); menuButton.current?.focus() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [open])
   return <div className="xpex-root xpex-authenticated">
     <a href="#conteudo-xpex" className="xpex-skip">Pular para o conteúdo</a>
     {open && <button className="xpex-drawer-backdrop" aria-label="Fechar navegação" onClick={() => setOpen(false)}/>}
     <XpexSidebar role={role} open={open} close={() => setOpen(false)}/>
-    <div className="xpex-workspace"><XpexTopbar role={role} displayName={displayName} openMenu={() => setOpen(true)}/>
+    <div className="xpex-workspace"><XpexTopbar role={role} displayName={displayName} openMenu={() => setOpen(true)} menuOpen={open} menuButtonRef={menuButton}/>
       {allowedRoles.length > 1 && <nav className="xpex-role-switcher" aria-label="Alternar papel autorizado">{allowedRoles.map(item => <Link key={item} href={`/xpex/${item}`} aria-current={item === role ? 'page' : undefined}>{roleLabels[item]}</Link>)}</nav>}
       <main id="conteudo-xpex" tabIndex={-1} className="xpex-content">{children}</main>
     </div>
