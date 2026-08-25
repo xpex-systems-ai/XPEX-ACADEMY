@@ -49,13 +49,16 @@ def _is_completed_card(card: dict) -> bool:
 
 
 def _continue_learning_card(cards: list[dict]) -> dict | None:
-    """Prefer a resumable enrollment; fall back to the most recent completed card."""
+    """Prefer a resumable active enrollment, then a completed course for review."""
     for card in cards:
-        if card["enrollment_state"] == StatusEnum.STATUS_PAUSED.value:
+        if card["enrollment_state"] != StatusEnum.STATUS_IN_PROGRESS.value:
             continue
         if not _is_completed_card(card):
             return card
-    return cards[0] if cards else None
+    for card in cards:
+        if card["enrollment_state"] != StatusEnum.STATUS_PAUSED.value and _is_completed_card(card):
+            return card
+    return None
 
 
 async def get_student_dashboard(
@@ -313,7 +316,10 @@ def _summary(cards: list[dict]) -> dict:
     completed = sum(card["completed_lessons"] for card in cards)
     total = sum(card["total_lessons"] for card in cards)
     return {
-        "active_courses": len(cards),
+        "active_courses": sum(
+            card["enrollment_state"] == StatusEnum.STATUS_IN_PROGRESS.value
+            for card in cards
+        ),
         "completed_lessons": completed,
         "total_lessons": total,
         "overall_progress_percent": progress_percent(completed, total),
