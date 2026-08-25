@@ -25,6 +25,7 @@ describe('XPEX-UI-001 student area', () => {
     expect(dashboard).toContain('Nenhum curso disponível ainda')
     expect(primitives).toContain('<SafeImage')
     expect(primitives).toContain('aria-hidden="true">X</span>')
+    expect(dashboard).toContain('getCourseThumbnailMediaDirectory(course.org_uuid, course.course_id, course.image_url)')
   })
   test('keeps student controls accessible and excludes administration', () => {
     expect(shell).toContain("event.key === 'Escape'")
