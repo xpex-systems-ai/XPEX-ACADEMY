@@ -10,6 +10,7 @@ const PUBLIC_RUNTIME_KEYS = [
   'NEXT_PUBLIC_LEARNHOUSE_DEFAULT_ORG',
   'NEXT_PUBLIC_COLLAB_URL',
   'NEXT_PUBLIC_POSTHOG_KEY',
+  'NEXT_PUBLIC_TURNSTILE_SITE_KEY',
 ] as const
 
 export const dynamic = 'force-dynamic'
