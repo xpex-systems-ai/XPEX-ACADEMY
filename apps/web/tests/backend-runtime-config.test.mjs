@@ -53,3 +53,49 @@ describe('deployed backend runtime configuration', () => {
     expect(run('https://[::1]/').stderr).toContain('must be a public HTTPS origin')
   })
 })
+
+describe('Vercel runtime-config.js route', () => {
+  test('publishes only the explicit public allowlist and escapes script-breaking input', async () => {
+    const { buildRuntimeConfigScript, getPublicRuntimeConfig } = await import('../app/runtime-config.js/route.ts')
+    const env = {
+      NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'https://api.example.com/',
+      NEXT_PUBLIC_LEARNHOUSE_DOMAIN: 'academy.example.com',
+      NEXT_PUBLIC_POSTHOG_KEY: '</script><script>alert(1)</script>',
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'public-turnstile-site-key',
+      TURNSTILE_SECRET_KEY: 'must-never-be-public',
+      LEARNHOUSE_BREVO_API_KEY: 'must-never-be-public',
+      LEARNHOUSE_AUTH_JWT_SECRET_KEY: 'must-never-be-public',
+      DATABASE_URL: 'must-never-be-public',
+    }
+
+    expect(getPublicRuntimeConfig(env)).toEqual({
+      NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'https://api.example.com/',
+      NEXT_PUBLIC_LEARNHOUSE_DOMAIN: 'academy.example.com',
+      NEXT_PUBLIC_POSTHOG_KEY: '</script><script>alert(1)</script>',
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'public-turnstile-site-key',
+    })
+
+    const script = buildRuntimeConfigScript(env)
+    expect(script).toContain('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL')
+    expect(script).toContain('\\u003c/script>')
+    expect(script).not.toContain('</script>')
+    expect(script).not.toContain('must-never-be-public')
+    expect(script).toContain('NEXT_PUBLIC_TURNSTILE_SITE_KEY')
+    expect(script).toContain('public-turnstile-site-key')
+    expect(script).not.toContain('TURNSTILE_SECRET_KEY')
+    expect(script).not.toContain('LEARNHOUSE_BREVO_API_KEY')
+    expect(script).not.toContain('LEARNHOUSE_AUTH_JWT_SECRET_KEY')
+    expect(script).not.toContain('DATABASE_URL')
+  })
+
+  test('serves JavaScript dynamically without cache or MIME sniffing', async () => {
+    const { GET } = await import('../app/runtime-config.js/route.ts')
+    const response = await GET()
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/javascript; charset=utf-8')
+    expect(response.headers.get('cache-control')).toBe('private, no-store, max-age=0')
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(await response.text()).toContain('window.__RUNTIME_CONFIG__')
+  })
+})
