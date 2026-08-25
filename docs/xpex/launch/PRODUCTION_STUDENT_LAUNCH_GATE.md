@@ -6,6 +6,7 @@
 |---|---|
 | Audit date | 2026-08-25 (UTC) |
 | Required base | `c8f91cda7f5bd547052be006af145769577a9793` |
+| Latest remotely reviewed head | `b68266c3ac9c94fc03fcbc1436799bcbdea6d441` |
 | Work branch | `codex/fix-e-validar-percurso-do-aluno-em-producao` |
 | Canonical URL | **Unconfirmed.** `https://xpex-academy-ai.vercel.app` is only a candidate from older documentation. |
 | Decision | **NO-GO** |
@@ -34,6 +35,23 @@ the API provider's secret store.
 
 No migration, deployment, production mutation, pilot bootstrap, or secret read
 was performed in this mission.
+
+### DNS rebinding and resolved-address control
+
+The second review identified that validating only the textual hostname still
+allowed a public-looking name to resolve to a non-global destination, and that
+a separate DNS check followed by ordinary `fetch` would leave a time-of-check /
+time-of-use rebinding window. The Launch Gate now resolves the canonical name
+exactly once, rejects an empty answer and rejects the entire answer set if any
+IPv4 or IPv6 record is not globally routable. This includes shared address space
+`100.64.0.0/10`, private, loopback, link-local, documentation, benchmarking,
+multicast, reserved/future-use, discard-only, unique-local, and IPv4-mapped IPv6
+forms.
+
+The HTTPS transport receives the approved address through a pinned `lookup`
+callback, while retaining the original hostname in `hostname` and `servername`
+for HTTP Host and TLS SNI/certificate validation. Certificate verification stays
+enabled, redirects are not followed, and there is no fallback to ordinary DNS.
 
 ## Automated checks
 
@@ -117,11 +135,15 @@ frontend/API row is launch-blocking; therefore **NO-GO** is mandatory.
 
 ## CI/workflow classification
 
-- **Executed and passed:** the deterministic Launch Gate validation and the
+- **Executed and passed:** the deterministic Launch Gate validation (including
+  DNS answer-set rejection, pinned connection, TLS/SNI, certificate failure,
+  IANA non-global ranges, CGNAT boundaries, and IPv4-mapped CGNAT) and the
   applicable backend-runtime, public-root, XpeX authorization, and native
-  learning web tests passed locally after the P2 corrections. The 75 focused
-  API tests for email delivery, password reset, XpeX dashboard, and pilot
-  controls also passed, as did the focused Ruff check.
+  learning web tests passed locally after the P2 corrections. On the second
+  review, the Launch Gate reported 8 passed and 4 live probes skipped; the
+  combined directed web run reported 44 passed, 4 skipped, and 0 failed. The 75
+  focused API tests and Ruff check recorded by the prior correction remain
+  historical evidence and were not rerun for this test-only revision.
 - **Passed with conditional tests skipped:** the Launch Gate command completed,
   but all four live-production probes were explicitly skipped because
   `XPEX_LAUNCH_BASE_URL` was not available. This is not production evidence.
