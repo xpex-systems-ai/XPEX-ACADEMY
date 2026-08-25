@@ -1,5 +1,5 @@
 from src.db.trail_runs import StatusEnum
-from src.services.xpex.dashboard import _continue_learning_card, _is_completed_card
+from src.services.xpex.dashboard import _continue_learning_card, _is_completed_card, _summary
 
 
 def card(*, state=StatusEnum.STATUS_IN_PROGRESS.value, completed=0, total=2, title="Course"):
@@ -29,7 +29,19 @@ def test_continue_learning_skips_paused_course_when_active_course_exists():
     assert _continue_learning_card([paused, active]) is active
 
 
+def test_continue_learning_returns_none_when_only_paused_courses_exist():
+    paused = card(state=StatusEnum.STATUS_PAUSED.value, completed=1, total=3, title="Paused")
+    assert _continue_learning_card([paused]) is None
+
+
 def test_continue_learning_falls_back_honestly_when_all_courses_are_completed():
     latest_completed = card(completed=2, total=2, title="Latest")
     older_completed = card(state=StatusEnum.STATUS_COMPLETED.value, title="Older")
     assert _continue_learning_card([latest_completed, older_completed]) is latest_completed
+
+
+def test_summary_counts_only_in_progress_enrollments_as_active():
+    active = card(state=StatusEnum.STATUS_IN_PROGRESS.value)
+    paused = card(state=StatusEnum.STATUS_PAUSED.value)
+    completed = card(state=StatusEnum.STATUS_COMPLETED.value, completed=2, total=2)
+    assert _summary([active, paused, completed])["active_courses"] == 1
