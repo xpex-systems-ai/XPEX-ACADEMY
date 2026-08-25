@@ -61,6 +61,8 @@ describe('Vercel runtime-config.js route', () => {
       NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'https://api.example.com/',
       NEXT_PUBLIC_LEARNHOUSE_DOMAIN: 'academy.example.com',
       NEXT_PUBLIC_POSTHOG_KEY: '</script><script>alert(1)</script>',
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'public-turnstile-site-key',
+      TURNSTILE_SECRET_KEY: 'must-never-be-public',
       LEARNHOUSE_BREVO_API_KEY: 'must-never-be-public',
       LEARNHOUSE_AUTH_JWT_SECRET_KEY: 'must-never-be-public',
       DATABASE_URL: 'must-never-be-public',
@@ -70,6 +72,7 @@ describe('Vercel runtime-config.js route', () => {
       NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'https://api.example.com/',
       NEXT_PUBLIC_LEARNHOUSE_DOMAIN: 'academy.example.com',
       NEXT_PUBLIC_POSTHOG_KEY: '</script><script>alert(1)</script>',
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'public-turnstile-site-key',
     })
 
     const script = buildRuntimeConfigScript(env)
@@ -77,6 +80,9 @@ describe('Vercel runtime-config.js route', () => {
     expect(script).toContain('\\u003c/script>')
     expect(script).not.toContain('</script>')
     expect(script).not.toContain('must-never-be-public')
+    expect(script).toContain('NEXT_PUBLIC_TURNSTILE_SITE_KEY')
+    expect(script).toContain('public-turnstile-site-key')
+    expect(script).not.toContain('TURNSTILE_SECRET_KEY')
     expect(script).not.toContain('LEARNHOUSE_BREVO_API_KEY')
     expect(script).not.toContain('LEARNHOUSE_AUTH_JWT_SECRET_KEY')
     expect(script).not.toContain('DATABASE_URL')
