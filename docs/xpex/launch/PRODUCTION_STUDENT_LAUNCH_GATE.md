@@ -6,9 +6,12 @@
 |---|---|
 | Audit date | 2026-08-25 (UTC) |
 | Required base | `c8f91cda7f5bd547052be006af145769577a9793` |
-| Work branch | `codex/xpex-production-student-launch-gate` |
+| Work branch | `codex/fix-e-validar-percurso-do-aluno-em-producao` |
 | Canonical URL | **Unconfirmed.** `https://xpex-academy-ai.vercel.app` is only a candidate from older documentation. |
 | Decision | **NO-GO** |
+
+Codex Cloud environments may materialize this branch as a local `work` branch
+with a synthetic SHA; the remote PR is the canonical state.
 
 The repository snapshot has no Git remote or provider metadata, and outbound
 HTTP checks of all three known Vercel candidates were blocked by the execution
@@ -114,8 +117,23 @@ frontend/API row is launch-blocking; therefore **NO-GO** is mandatory.
 
 ## CI/workflow classification
 
-- API Tests and API Lint were previously reported green; rerun results for this
-  exact commit must be attached to the PR.
+- **Executed and passed:** the deterministic Launch Gate validation and the
+  applicable backend-runtime, public-root, XpeX authorization, and native
+  learning web tests passed locally after the P2 corrections. The 75 focused
+  API tests for email delivery, password reset, XpeX dashboard, and pilot
+  controls also passed, as did the focused Ruff check.
+- **Passed with conditional tests skipped:** the Launch Gate command completed,
+  but all four live-production probes were explicitly skipped because
+  `XPEX_LAUNCH_BASE_URL` was not available. This is not production evidence.
+- **Blocked by the local dependency environment:** Web Lint could not load
+  `eslint-plugin-unused-imports`, and Web Build could not find the `next` binary.
+  Neither command is classified as passed.
+- **Not executed for this correction:** the complete API and general E2E suites.
+  Earlier reported workflow success is not substituted for an execution on this
+  commit.
+- **Manual validation pending:** canonical-domain/provider configuration,
+  readiness, authenticated Wave 0, tenant isolation, persisted progress, Brevo
+  delivery/reset, and redacted-log review.
 - `Staging build` authenticates to GCP only on pushes and requires configured
   workload identity/service-account/project secrets. It is not evidence for the
   documented Railway production path and must not receive fabricated values.
