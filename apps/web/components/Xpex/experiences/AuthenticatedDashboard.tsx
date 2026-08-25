@@ -1,6 +1,7 @@
 import { BookOpen, CalendarDays, CheckCircle2, FilePlus2, GraduationCap, MessageCircle, Route, Users } from 'lucide-react'
 import Link from 'next/link'
 import type { XpexLearningCourse, XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
+import type { XpexTeacherDashboardData } from '@/lib/xpex/teacher-dashboard'
 import { getCourseThumbnailMediaDirectory } from '@services/media/media'
 import type { XpexRole } from '../xpex-types'
 import { XpexActivityList, XpexComingSoon, XpexCourseCard, XpexEmptyState, XpexErrorState, XpexKpiGrid, XpexMetricCard, XpexPanel, XpexQuickAction, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
@@ -20,18 +21,17 @@ const getEnrollmentStatusLabel = (course: XpexLearningCourse) => {
   return 'Não iniciado'
 }
 
-// Dados reais, quando disponíveis; estados vazios quando a fonte não os oferece.
 const copy = {
   aluno: { eyebrow: 'Área do aluno', description: 'Acompanhe cursos e atividades vinculados à sua matrícula, sem estimativas ou dados simulados.' },
-  professora: { eyebrow: 'Área da professora', description: 'Organize o trabalho pedagógico somente nas turmas autorizadas para a sua conta.' },
+  professora: { eyebrow: 'Área da professora', description: 'Acompanhe somente cursos em que sua autoria está ativa e os estados agregados das matrículas vinculadas.' },
   polo: { eyebrow: 'Visão institucional', description: 'Acompanhe a operação da organização com informações autorizadas e dados disponíveis.' },
 } as const
 
-export function AuthenticatedDashboard({ role, displayName, organizationName, organizationSlug, learningData, learningDataFailed = false }: { role: XpexRole; displayName: string; organizationName?: string; organizationSlug: string; learningData?: XpexLearningDashboardData | null; learningDataFailed?: boolean }) {
+export function AuthenticatedDashboard({ role, displayName, organizationName, organizationSlug, learningData, learningDataFailed = false, teacherData, teacherDataFailed = false }: { role: XpexRole; displayName: string; organizationName?: string; organizationSlug: string; learningData?: XpexLearningDashboardData | null; learningDataFailed?: boolean; teacherData?: XpexTeacherDashboardData | null; teacherDataFailed?: boolean }) {
   const title = role === 'polo' && organizationName ? organizationName : `Olá, ${displayName}.`
   return <div className="xpex-dashboard">
     <XpexRoleHero eyebrow={`${copy[role].eyebrow}${organizationName ? ` · ${organizationName}` : ''}`} title={title} description={copy[role].description}/>
-    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName}/>}
+    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard data={teacherData} failed={teacherDataFailed} organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName}/>}
   </div>
 }
 
@@ -49,16 +49,29 @@ function StudentDashboard({ data, failed, organizationName, organizationSlug }: 
     <EntryPoints role="aluno" organizationSlug={organizationSlug}/><XpexPanel id="atividades"><XpexSectionHeader eyebrow="Atualizações" title="Atividades recentes"/><div className="mt-5"><XpexActivityList items={[]}/></div></XpexPanel>
   </>
 }
-function TeacherDashboard({ organizationName }: { organizationName?: string }) { return <>
-  {organizationName && <p className="xpex-context">Organização atual: <strong>{organizationName}</strong></p>}
-  <XpexEmptyState title="Nenhuma turma disponível" description="Turmas, alunos e indicadores aparecerão somente quando estiverem atribuídos e autorizados para esta conta."/>
-  <section><XpexSectionHeader eyebrow="Ferramentas" title="Áreas da professora"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Minhas turmas"/><XpexQuickAction icon={Users} title="Alunos"/><XpexQuickAction icon={CalendarDays} title="Mentorias"/><XpexQuickAction icon={MessageCircle} title="Mensagens"/></div></section>
-  <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Atualizações" title="Atividades recentes"/><div className="mt-5"><XpexActivityList items={[]}/></div></XpexPanel><EntryPoints role="professora"/>
-</> }
+
+function TeacherDashboard({ data, failed, organizationName }: { data?: XpexTeacherDashboardData | null; failed: boolean; organizationName?: string }) {
+  if (failed) return <XpexErrorState title="Não foi possível carregar sua visão pedagógica" description="Tente novamente em instantes. Nenhum dado de aluno foi exposto fora do seu escopo autorizado."/>
+  const courses = data?.courses ?? []
+  return <>
+    {organizationName && <p className="xpex-context">Organização atual: <strong>{organizationName}</strong></p>}
+    <XpexKpiGrid>
+      <XpexMetricCard icon={BookOpen} label="Cursos publicados" value={String(data?.summary.published_courses ?? 0)} detail="Com autoria ativa nesta conta"/>
+      <XpexMetricCard icon={Users} label="Alunos matriculados" value={String(data?.summary.enrolled_students ?? 0)} detail="Contagem única nos seus cursos"/>
+      <XpexMetricCard icon={GraduationCap} label="Alunos em andamento" value={String(data?.summary.active_students ?? 0)} detail="Matrículas ativas"/>
+      <XpexMetricCard icon={CheckCircle2} label="Alunos concluídos" value={String(data?.summary.completed_students ?? 0)} detail="Conclusões registradas" tone="orange"/>
+    </XpexKpiGrid>
+    <section id="cursos"><XpexSectionHeader eyebrow="Acompanhamento" title="Meus cursos"/>{courses.length ? <div className="xpex-course-grid">{courses.map(course => <Link key={course.course_id} href={course.target_href} className="xpex-card block p-5"><span className="xpex-label">Curso publicado</span><h3 className="mt-2 text-lg font-black text-white">{course.title}</h3>{course.description && <p className="mt-2 text-sm text-slate-400">{course.description}</p>}<div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300"><span><strong className="text-white">{course.enrolled_students}</strong> matriculados</span><span><strong className="text-white">{course.active_students}</strong> em andamento</span><span><strong className="text-white">{course.completed_students}</strong> concluídos</span><span><strong className="text-white">{course.paused_students}</strong> pausados</span></div><span className="xpex-primary mt-4">Abrir curso</span></Link>)}</div> : <div className="mt-4"><XpexEmptyState title="Nenhum curso atribuído" description="Quando sua conta tiver autoria ativa em um curso publicado, os indicadores pedagógicos aparecerão aqui."/></div>}</section>
+    <section><XpexSectionHeader eyebrow="Ferramentas" title="Áreas da professora"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Meus cursos"/><XpexQuickAction icon={Users} title="Alunos"/><XpexQuickAction icon={CalendarDays} title="Mentorias"/><XpexQuickAction icon={MessageCircle} title="Mensagens"/></div></section>
+    <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Privacidade" title="Visão agregada por padrão"/><p className="mt-3 text-sm text-slate-400">Este painel não lista nomes, e-mails ou dados pessoais de estudantes. Ele resume somente estados de matrícula dos cursos em que sua autoria está ativa.</p></XpexPanel><EntryPoints role="professora"/>
+  </>
+}
+
 function PoleDashboard({ organizationName }: { organizationName?: string }) { return <>
   {!organizationName && <p className="xpex-context">Nome da organização indisponível</p>}
   <XpexEmptyState title="Operação ainda sem dados" description="Indicadores, turmas, eventos e avisos aparecerão quando as integrações operacionais oferecerem dados autorizados."/>
   <section><XpexSectionHeader eyebrow="Operação" title="Ações do polo"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Nova turma"/><XpexQuickAction icon={BookOpen} title="Novo curso"/><XpexQuickAction icon={Users} title="Novo aluno"/><XpexQuickAction icon={FilePlus2} title="Relatório"/></div></section>
   <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Atualizações" title="Atividades recentes"/><div className="mt-5"><XpexActivityList items={[]}/></div></XpexPanel><EntryPoints role="polo"/>
 </> }
+
 function EntryPoints({ role, organizationSlug }: { role: XpexRole; organizationSlug?: string }) { return <section aria-label={`Próximas experiências para ${role}`}><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid">{role === 'aluno' && organizationSlug ? <Link href={`/orgs/${organizationSlug}/courses`} className="xpex-card block p-5"><span className="xpex-label">Catálogo disponível</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Encontre cursos publicados e autorizados para sua organização.</p><span className="xpex-primary mt-4">Ver cursos</span></Link> : <XpexComingSoon title="Cursos" description="O catálogo estará disponível quando sua organização oferecer cursos."/>}<XpexComingSoon title="Trilhas" description="As trilhas aparecerão quando forem disponibilizadas para sua conta."/><XpexComingSoon title="Laboratório de IA" description="Este módulo ainda não está disponível para estudantes."/></div></section> }
