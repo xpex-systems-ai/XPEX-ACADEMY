@@ -40,6 +40,27 @@ def _activity_sub_type_value(activity_sub_type: object | None) -> str | None:
     return str(value) if value is not None else None
 
 
+def _is_completed_card(card: dict) -> bool:
+    """Treat explicit completion or fully completed meaningful content as complete."""
+    return card["enrollment_state"] == StatusEnum.STATUS_COMPLETED.value or (
+        card["total_lessons"] > 0
+        and card["completed_lessons"] >= card["total_lessons"]
+    )
+
+
+def _continue_learning_card(cards: list[dict]) -> dict | None:
+    """Prefer a resumable active enrollment, then a completed course for review."""
+    for card in cards:
+        if card["enrollment_state"] != StatusEnum.STATUS_IN_PROGRESS.value:
+            continue
+        if not _is_completed_card(card):
+            return card
+    for card in cards:
+        if card["enrollment_state"] != StatusEnum.STATUS_PAUSED.value and _is_completed_card(card):
+            return card
+    return None
+
+
 async def get_student_dashboard(
     user: PublicUser, organization_slug: str, db_session: AsyncSession
 ) -> dict | None:
@@ -278,7 +299,7 @@ async def get_student_dashboard(
         "organization": membership.name,
         "summary": _summary(cards),
         "courses": cards,
-        "continue_learning": cards[0] if cards else None,
+        "continue_learning": _continue_learning_card(cards),
     }
 
 
@@ -295,7 +316,10 @@ def _summary(cards: list[dict]) -> dict:
     completed = sum(card["completed_lessons"] for card in cards)
     total = sum(card["total_lessons"] for card in cards)
     return {
-        "active_courses": len(cards),
+        "active_courses": sum(
+            card["enrollment_state"] == StatusEnum.STATUS_IN_PROGRESS.value
+            for card in cards
+        ),
         "completed_lessons": completed,
         "total_lessons": total,
         "overall_progress_percent": progress_percent(completed, total),

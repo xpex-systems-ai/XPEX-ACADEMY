@@ -34,4 +34,11 @@ describe('XPEX-UI-001 student area', () => {
     expect(shell).not.toContain('Administrador')
     expect(css).toContain('@media(prefers-reduced-motion:reduce)')
   })
+  test('honors paused and completed enrollment states without false resume copy', () => {
+    expect(dashboard).toContain("course.enrollment_state === 'STATUS_PAUSED'")
+    expect(dashboard).toContain("course.enrollment_state === 'STATUS_COMPLETED'")
+    expect(dashboard).toContain("return 'Pausado'")
+    expect(dashboard).toContain('Curso concluído. Revise o conteúdo quando quiser.')
+    expect(dashboard).toContain('currentCompleted ? `Revisar ${current.title}`')
+  })
 })
