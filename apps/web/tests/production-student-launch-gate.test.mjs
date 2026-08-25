@@ -82,6 +82,9 @@ function isNonPublicIp(hostname) {
     const mappedOctets = [words[6] >> 8, words[6] & 0xff, words[7] >> 8, words[7] & 0xff]
     const discardOnly = ipv6Prefix(words, [0x0100, 0, 0, 0, 0, 0, 0, 0], 64)
     const localTranslation = ipv6Prefix(words, [0x0064, 0xff9b, 0x0001, 0, 0, 0, 0, 0], 48)
+    const teredo = ipv6Prefix(words, [0x2001, 0, 0, 0, 0, 0, 0, 0], 32)
+    const dnsSdAnycast = words[0] === 0x2001 && words[1] === 0x0001
+      && words.slice(2, 7).every(word => word === 0) && words[7] === 0x0003
     const benchmarking = ipv6Prefix(words, [0x2001, 0x0002, 0, 0, 0, 0, 0, 0], 48)
     const documentation = ipv6Prefix(words, [0x2001, 0x0db8, 0, 0, 0, 0, 0, 0], 32)
     const orchidV1 = ipv6Prefix(words, [0x2001, 0x0010, 0, 0, 0, 0, 0, 0], 28)
@@ -90,8 +93,9 @@ function isNonPublicIp(hostname) {
     const documentationV2 = ipv6Prefix(words, [0x3fff, 0, 0, 0, 0, 0, 0, 0], 20)
     const outsideGlobalUnicast = (words[0] & 0xe000) !== 0x2000
     return unspecified || loopback || uniqueLocal || linkLocal || multicast
-      || discardOnly || localTranslation || benchmarking || documentation
-      || orchidV1 || orchidV2 || sixToFour || documentationV2
+      || discardOnly || localTranslation || teredo || dnsSdAnycast
+      || benchmarking || documentation || orchidV1 || orchidV2
+      || sixToFour || documentationV2
       || (outsideGlobalUnicast && !ipv4Mapped)
       || (ipv4Mapped && isNonPublicIpv4Octets(mappedOctets))
   }
@@ -262,8 +266,9 @@ describe('Production student launch gate: deterministic validation', () => {
       '169.254.0.1', '172.16.0.0', '172.31.255.255', '192.0.0.1', '192.0.2.1',
       '192.88.99.1', '192.168.0.1', '198.18.0.0', '198.51.100.1', '203.0.113.1',
       '224.0.0.1', '240.0.0.1', '255.255.255.255', '::', '::1', '100::1',
-      '64:ff9b:1::1', '2001:2::1', '2001:db8::1', '2001:10::1', '2001:20::1',
-      '2002::1', '3fff::1', '3fff:fff::1', 'fc00::1', 'fe80::1', 'ff02::1',
+      '64:ff9b:1::1', '2001::1', '2001:1::3', '2001:2::1', '2001:db8::1',
+      '2001:10::1', '2001:20::1', '2002::1', '3fff::1', '3fff:fff::1',
+      'fc00::1', 'fe80::1', 'ff02::1',
       '::ffff:100.64.0.0', '::ffff:100.64.0.1',
       '::ffff:100.127.255.255',
     ]
