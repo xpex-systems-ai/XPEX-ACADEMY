@@ -102,7 +102,7 @@ async def get_teacher_dashboard(
                 "active_students": len(active_students),
                 "completed_students": len(completed_students),
                 "paused_students": len(paused_students),
-                "target_href": f"/orgs/{organization_slug}/courses/{course.course_uuid.removeprefix('course_')}",
+                "target_href": f"/orgs/{organization_slug}/course/{course.course_uuid}",
             }
         )
 
