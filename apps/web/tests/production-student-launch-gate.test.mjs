@@ -84,10 +84,14 @@ function isNonPublicIp(hostname) {
     const localTranslation = ipv6Prefix(words, [0x0064, 0xff9b, 0x0001, 0, 0, 0, 0, 0], 48)
     const benchmarking = ipv6Prefix(words, [0x2001, 0x0002, 0, 0, 0, 0, 0, 0], 48)
     const documentation = ipv6Prefix(words, [0x2001, 0x0db8, 0, 0, 0, 0, 0, 0], 32)
-    const orchid = ipv6Prefix(words, [0x2001, 0x0020, 0, 0, 0, 0, 0, 0], 28)
+    const orchidV1 = ipv6Prefix(words, [0x2001, 0x0010, 0, 0, 0, 0, 0, 0], 28)
+    const orchidV2 = ipv6Prefix(words, [0x2001, 0x0020, 0, 0, 0, 0, 0, 0], 28)
+    const sixToFour = ipv6Prefix(words, [0x2002, 0, 0, 0, 0, 0, 0, 0], 16)
+    const documentationV2 = ipv6Prefix(words, [0x3fff, 0, 0, 0, 0, 0, 0, 0], 20)
     const outsideGlobalUnicast = (words[0] & 0xe000) !== 0x2000
     return unspecified || loopback || uniqueLocal || linkLocal || multicast
-      || discardOnly || localTranslation || benchmarking || documentation || orchid
+      || discardOnly || localTranslation || benchmarking || documentation
+      || orchidV1 || orchidV2 || sixToFour || documentationV2
       || (outsideGlobalUnicast && !ipv4Mapped)
       || (ipv4Mapped && isNonPublicIpv4Octets(mappedOctets))
   }
@@ -127,9 +131,13 @@ function pinnedHttpsGet(target, approved, transport = httpsRequest) {
       path: `${url.pathname}${url.search}`,
       method: 'GET',
       rejectUnauthorized: true,
-      lookup(requestedHostname, _options, callback) {
+      lookup(requestedHostname, lookupOptions, callback) {
         if (requestedHostname !== approved.hostname) {
           callback(new Error('Unexpected hostname lookup rejected'))
+          return
+        }
+        if (lookupOptions?.all) {
+          callback(null, [{ address: approved.pinned.address, family: approved.pinned.family }])
           return
         }
         callback(null, approved.pinned.address, approved.pinned.family)
@@ -254,8 +262,9 @@ describe('Production student launch gate: deterministic validation', () => {
       '169.254.0.1', '172.16.0.0', '172.31.255.255', '192.0.0.1', '192.0.2.1',
       '192.88.99.1', '192.168.0.1', '198.18.0.0', '198.51.100.1', '203.0.113.1',
       '224.0.0.1', '240.0.0.1', '255.255.255.255', '::', '::1', '100::1',
-      '64:ff9b:1::1', '2001:2::1', '2001:db8::1', '2001:20::1', 'fc00::1',
-      'fe80::1', 'ff02::1', '::ffff:100.64.0.0', '::ffff:100.64.0.1',
+      '64:ff9b:1::1', '2001:2::1', '2001:db8::1', '2001:10::1', '2001:20::1',
+      '2002::1', '3fff::1', '3fff:fff::1', 'fc00::1', 'fe80::1', 'ff02::1',
+      '::ffff:100.64.0.0', '::ffff:100.64.0.1',
       '::ffff:100.127.255.255',
     ]
     const global = [
@@ -306,6 +315,10 @@ describe('Production student launch gate: deterministic validation', () => {
       })
       options.lookup('changed.example.com', {}, (error) => {
         expect(error.message).toBe('Unexpected hostname lookup rejected')
+      })
+      options.lookup('academy.example.com', { all: true }, (error, records) => {
+        expect(error).toBeNull()
+        expect(records).toEqual([{ address: '8.8.8.8', family: 4 }])
       })
       queueMicrotask(() => callback({ statusCode: 200, headers: {}, resume() {} }))
       return { once() {}, end() {} }
