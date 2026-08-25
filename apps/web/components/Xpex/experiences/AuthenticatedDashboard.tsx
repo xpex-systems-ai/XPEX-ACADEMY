@@ -1,8 +1,14 @@
-import { BookOpen, CalendarDays, FilePlus2, GraduationCap, MessageCircle, Route, Users } from 'lucide-react'
+import { BookOpen, CalendarDays, CheckCircle2, FilePlus2, GraduationCap, MessageCircle, Route, Users } from 'lucide-react'
 import Link from 'next/link'
-import type { XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
+import type { XpexLearningCourse, XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
+import { getCourseThumbnailMediaDirectory } from '@services/media/media'
 import type { XpexRole } from '../xpex-types'
 import { XpexActivityList, XpexComingSoon, XpexCourseCard, XpexEmptyState, XpexErrorState, XpexKpiGrid, XpexMetricCard, XpexPanel, XpexQuickAction, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
+
+const getCourseImageUrl = (course: XpexLearningCourse) =>
+  course.image_url
+    ? getCourseThumbnailMediaDirectory(course.org_uuid, course.course_id, course.image_url)
+    : null
 
 // Dados reais, quando disponíveis; estados vazios quando a fonte não os oferece.
 const copy = {
@@ -14,15 +20,21 @@ const copy = {
 export function AuthenticatedDashboard({ role, displayName, organizationName, organizationSlug, learningData, learningDataFailed = false }: { role: XpexRole; displayName: string; organizationName?: string; organizationSlug: string; learningData?: XpexLearningDashboardData | null; learningDataFailed?: boolean }) {
   const title = role === 'polo' && organizationName ? organizationName : `Olá, ${displayName}.`
   return <div className="xpex-dashboard">
-    <XpexRoleHero eyebrow={copy[role].eyebrow} title={title} description={copy[role].description}/>
-    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName}/>}
+    <XpexRoleHero eyebrow={`${copy[role].eyebrow}${organizationName ? ` · ${organizationName}` : ''}`} title={title} description={copy[role].description}/>
+    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName}/>}
   </div>
 }
 
-function StudentDashboard({ data, failed, organizationSlug }: { data?: XpexLearningDashboardData | null; failed: boolean; organizationSlug: string }) {
+function StudentDashboard({ data, failed, organizationName, organizationSlug }: { data?: XpexLearningDashboardData | null; failed: boolean; organizationName?: string; organizationSlug: string }) {
   if (failed) return <XpexErrorState title="Não foi possível carregar sua jornada" description="Tente novamente em instantes. Seus dados de aprendizagem permanecem seguros."/>
+  const courses = data?.courses ?? []
+  const current = data?.continue_learning
+  const activeCourses = data ? data.summary.active_courses : 0
   return <>
-    {data?.courses.length ? <><XpexKpiGrid><XpexMetricCard icon={BookOpen} label="Cursos em andamento" value={String(data.summary.active_courses)} detail="Matrículas ativas"/><XpexMetricCard icon={GraduationCap} label="Aulas concluídas" value={`${data.summary.completed_lessons}/${data.summary.total_lessons}`} detail="Dados da sua jornada"/>{data.summary.overall_progress_percent !== null && <XpexMetricCard icon={Route} label="Progresso geral" value={`${data.summary.overall_progress_percent}%`} detail="Calculado com aulas publicadas" tone="orange"/>}</XpexKpiGrid><section id="cursos"><XpexSectionHeader eyebrow="Jornada" title="Continuar aprendendo"/><div className="xpex-course-grid">{data.courses.map(course => <XpexCourseCard key={course.course_id} title={course.title} href={course.target_href} progress={course.progress_percent}/>)}</div></section></> : <section id="cursos"><XpexEmptyState title="Nenhum curso disponível ainda" description="Quando uma matrícula válida for publicada, seu curso e a ação de continuar aparecerão aqui."/></section>}
+    {courses.length ? <XpexKpiGrid><XpexMetricCard icon={BookOpen} label="Cursos matriculados" value={String(courses.length)} detail="Acesso válido nesta organização"/><XpexMetricCard icon={GraduationCap} label="Cursos em andamento" value={String(activeCourses)} detail="Matrículas ativas"/><XpexMetricCard icon={CheckCircle2} label="Atividades concluídas" value={String(data!.summary.completed_lessons)} detail={`De ${data!.summary.total_lessons} atividades publicadas`}/>{data!.summary.overall_progress_percent !== null && <XpexMetricCard icon={Route} label="Progresso agregado" value={`${data!.summary.overall_progress_percent}%`} detail="Calculado com atividades publicadas" tone="orange"/>}</XpexKpiGrid> : null}
+    <section id="continuar"><XpexSectionHeader eyebrow="Sua jornada" title="Continue de onde parou"/>{current ? <div className="xpex-course-grid"><XpexCourseCard featured title={current.title} href={current.target_href} progress={current.progress_percent} imageUrl={getCourseImageUrl(current)} organization={organizationName ?? data?.organization} status={current.completed_lessons >= current.total_lessons && current.total_lessons > 0 ? 'Concluído' : 'Em andamento'}/></div> : <div className="mt-4"><XpexEmptyState compact title="Pronto para começar?" description={courses.length ? 'Abra um dos seus cursos matriculados para iniciar uma atividade.' : 'Quando uma matrícula válida for publicada, sua próxima atividade aparecerá aqui.'}/></div>}</section>
+    <section id="cursos"><XpexSectionHeader eyebrow="Aprendizado autorizado" title="Meus cursos"/>{courses.length ? <div className="xpex-course-grid">{courses.map(course => <XpexCourseCard key={course.course_id} title={course.title} href={course.target_href} progress={course.progress_percent} imageUrl={getCourseImageUrl(course)} organization={organizationName ?? data?.organization} status={course.completed_lessons >= course.total_lessons && course.total_lessons > 0 ? 'Concluído' : course.completed_lessons > 0 ? 'Em andamento' : 'Não iniciado'}/>)}</div> : <div className="mt-4"><XpexEmptyState title="Nenhum curso disponível ainda" description="Quando uma matrícula válida for publicada, seu curso e a ação de continuar aparecerão aqui."/></div>}</section>
+    <section aria-label="Próximas ações"><XpexSectionHeader eyebrow="Agora" title="Próxima ação"/><div className="xpex-entry-grid">{current ? <Link href={current.target_href} className="xpex-card xpex-next-action"><Route aria-hidden="true"/><div><strong>Continuar {current.title}</strong><span>Retome sua próxima atividade disponível.</span></div></Link> : courses[0] ? <Link href={courses[0].target_href} className="xpex-card xpex-next-action"><BookOpen aria-hidden="true"/><div><strong>Abrir {courses[0].title}</strong><span>Conheça as atividades liberadas para sua matrícula.</span></div></Link> : <XpexComingSoon title="Aguardando matrícula" description="Nenhuma ação de aprendizagem está disponível para sua conta."/>}</div></section>
     <EntryPoints role="aluno" organizationSlug={organizationSlug}/><XpexPanel id="atividades"><XpexSectionHeader eyebrow="Atualizações" title="Atividades recentes"/><div className="mt-5"><XpexActivityList items={[]}/></div></XpexPanel>
   </>
 }

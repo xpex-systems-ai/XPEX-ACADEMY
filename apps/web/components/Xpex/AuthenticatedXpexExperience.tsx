@@ -48,9 +48,8 @@ export async function AuthenticatedXpexExperience({
         session.tokens.access_token,
         organizationSlug
       )
-    } catch (error) {
+    } catch {
       learningDataFailed = true
-      console.error('[XPEX_DASHBOARD] Unable to load learner dashboard', error)
     }
   }
   const organizationName = organization?.name
