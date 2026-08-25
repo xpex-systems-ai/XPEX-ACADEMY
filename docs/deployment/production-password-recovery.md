@@ -15,19 +15,25 @@ allowed origin is a complete HTTPS origin.
 
 ```dotenv
 LEARNHOUSE_TENANCY=single
-LEARNHOUSE_FRONTEND_DOMAIN=xpex-academy-ai.vercel.app
+LEARNHOUSE_FRONTEND_DOMAIN=<CANONICAL_FRONTEND_HOSTNAME>
 LEARNHOUSE_SSL=true
-LEARNHOUSE_ALLOWED_ORIGINS=https://xpex-academy-ai.vercel.app
-LEARNHOUSE_EMAIL_PROVIDER=resend
-LEARNHOUSE_RESEND_API_KEY=<REDACTED>
+LEARNHOUSE_ALLOWED_ORIGINS=https://<CANONICAL_FRONTEND_HOSTNAME>
+LEARNHOUSE_EMAIL_PROVIDER=brevo
+LEARNHOUSE_BREVO_API_KEY=<SECRET_CONFIGURED_IN_RAILWAY>
 LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=<VERIFIED_SENDER_ADDRESS>
 ```
 
-`LEARNHOUSE_RESEND_API_KEY` is a secret and must be a valid production Resend
-credential installed by an authorized operator. The sender address is not an
-API credential, but it must belong to a domain verified for that Resend
-account. Do not put either effective value in source control, tickets, browser
-responses, or command output.
+`LEARNHOUSE_BREVO_API_KEY` is a secret and must be a valid production Brevo
+credential installed by an authorized operator. The API sends transactional
+mail to Brevo over HTTPS; SMTP variables are not required for this provider.
+The sender address is not an API credential, but it must be an active sender or
+belong to a domain authenticated in the same Brevo account. Do not put any
+effective value in source control, tickets, browser responses, or command
+output.
+
+`<CANONICAL_FRONTEND_HOSTNAME>` must be replaced only after the operator has
+confirmed which Vercel project is canonical. Do not infer it from an old
+runbook or configure more than one production origin as a shortcut.
 
 `LEARNHOUSE_DOMAIN` is not required to select the email-link frontend in this
 single-tenancy deployment. It can continue to represent other routing needs;
@@ -36,12 +42,12 @@ origin or general `*.vercel.app` trust is needed.
 
 ## Post-deploy verification
 
-1. From `https://xpex-academy-ai.vercel.app/forgot`, request recovery for a
+1. From `https://<CANONICAL_FRONTEND_HOSTNAME>/forgot`, request recovery for a
    controlled account.
 2. Confirm the request is not rejected for its Origin or Referer and does not
    return `503`.
 3. Confirm delivery, and verify the link starts with
-   `https://xpex-academy-ai.vercel.app/reset?`.
+   `https://<CANONICAL_FRONTEND_HOSTNAME>/reset?`.
 4. Complete the reset and log in with the new password.
 5. Confirm the session and `/xpex` still work, inspect API logs for secret
    leakage, and verify a deliberately untrusted Origin remains rejected.
