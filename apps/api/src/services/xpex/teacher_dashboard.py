@@ -7,7 +7,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.courses.courses import Course
 from src.db.organizations import Organization
-from src.db.resource_authors import ResourceAuthor, ResourceAuthorshipStatusEnum
+from src.db.resource_authors import (
+    ResourceAuthor,
+    ResourceAuthorshipStatusEnum,
+)
 from src.db.roles import Role
 from src.db.trail_runs import StatusEnum, TrailRun
 from src.db.user_organizations import UserOrganization
@@ -41,7 +44,8 @@ async def get_teacher_dashboard(
             await db_session.execute(
                 select(ResourceAuthor.resource_uuid).where(
                     ResourceAuthor.user_id == user.id,
-                    ResourceAuthor.authorship_status == ResourceAuthorshipStatusEnum.ACTIVE,
+                    ResourceAuthor.authorship_status
+                    == ResourceAuthorshipStatusEnum.ACTIVE,
                 )
             )
         ).scalars().all()
@@ -85,13 +89,19 @@ async def get_teacher_dashboard(
         course_runs = runs_by_course.get(course.id, [])
         unique_students = {run.user_id for run in course_runs}
         active_students = {
-            run.user_id for run in course_runs if run.status == StatusEnum.STATUS_IN_PROGRESS
+            run.user_id
+            for run in course_runs
+            if run.status == StatusEnum.STATUS_IN_PROGRESS
         }
         completed_students = {
-            run.user_id for run in course_runs if run.status == StatusEnum.STATUS_COMPLETED
+            run.user_id
+            for run in course_runs
+            if run.status == StatusEnum.STATUS_COMPLETED
         }
         paused_students = {
-            run.user_id for run in course_runs if run.status == StatusEnum.STATUS_PAUSED
+            run.user_id
+            for run in course_runs
+            if run.status == StatusEnum.STATUS_PAUSED
         }
         cards.append(
             {
@@ -102,16 +112,22 @@ async def get_teacher_dashboard(
                 "active_students": len(active_students),
                 "completed_students": len(completed_students),
                 "paused_students": len(paused_students),
-                "target_href": f"/orgs/{organization_slug}/course/{course.course_uuid}",
+                "target_href": (
+                    f"/orgs/{organization_slug}/course/{course.course_uuid}"
+                ),
             }
         )
 
     all_students = {run.user_id for run in runs}
     active_students = {
-        run.user_id for run in runs if run.status == StatusEnum.STATUS_IN_PROGRESS
+        run.user_id
+        for run in runs
+        if run.status == StatusEnum.STATUS_IN_PROGRESS
     }
     completed_students = {
-        run.user_id for run in runs if run.status == StatusEnum.STATUS_COMPLETED
+        run.user_id
+        for run in runs
+        if run.status == StatusEnum.STATUS_COMPLETED
     }
 
     return {
