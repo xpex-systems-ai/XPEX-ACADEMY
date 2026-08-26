@@ -27,6 +27,26 @@ if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
     fi
 fi
 
+# Optional guarded one-shot XPeX bootstrap. Disabled by default. The underlying
+# command blocks on ambiguous org/student/course scope and is idempotent when a
+# valid enrollment already exists. Keep startup alive on a blocked operation so
+# an ops repair can never take the Academy offline.
+if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
+    echo "XPEX_OPS bootstrap requested"
+    if [ -z "${XPEX_OPS_FIRST_NAME:-}" ] || [ -z "${XPEX_OPS_LAST_NAME:-}" ] || [ -z "${XPEX_OPS_ORG_SLUG:-}" ]; then
+        echo "XPEX_OPS BLOCKED missing bootstrap target configuration"
+    else
+        (
+            cd /app/api || exit 90
+            .venv/bin/python scripts/xpex_ops_enroll.py \
+                --first-name "$XPEX_OPS_FIRST_NAME" \
+                --last-name "$XPEX_OPS_LAST_NAME" \
+                --org-slug "$XPEX_OPS_ORG_SLUG" \
+                --execute
+        ) || echo "XPEX_OPS bootstrap blocked; application startup will continue"
+    fi
+fi
+
 # Start the services
 # Use server-wrapper.js for runtime environment variable injection
 PORT="$WEB_PORT" pm2 start server-wrapper.js --cwd /app/web --name learnhouse-web > /dev/null 2>&1
