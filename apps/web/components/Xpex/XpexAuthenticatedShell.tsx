@@ -1,7 +1,7 @@
 'use client'
 
 import { signOut } from '@components/Contexts/AuthContext'
-import { Award, Bell, BookOpen, Bot, FileText, LayoutDashboard, LogOut, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
+import { Award, Bell, BookOpen, Bot, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
@@ -20,6 +20,7 @@ function StudentNavigation({ organizationSlug, onNavigate }: { organizationSlug:
   const items = [
     { label: 'Início', icon: LayoutDashboard, href: '/xpex/aluno' },
     { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' },
+    { label: 'Trilhas', icon: Map, href: '/xpex/trails' },
     { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
     { label: 'Laboratório de IA', icon: Bot, href: '/xpex/ai-lab' },
     { label: 'Comunidade', icon: Users, href: '/xpex/community' },
