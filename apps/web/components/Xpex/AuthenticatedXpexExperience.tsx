@@ -10,6 +10,7 @@ import { AuthenticatedDashboard } from './experiences/AuthenticatedDashboard'
 import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
 import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
+import { getXpexTeacherDashboard } from '@/lib/xpex/teacher-dashboard'
 
 function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
@@ -42,14 +43,28 @@ export async function AuthenticatedXpexExperience({
   const displayName = fullName || session.user.username || 'Pessoa participante'
   let learningData = null
   let learningDataFailed = false
-  if (role === 'aluno' && session.tokens?.access_token) {
-    try {
-      learningData = await getXpexLearningDashboard(
-        session.tokens.access_token,
-        organizationSlug
-      )
-    } catch {
-      learningDataFailed = true
+  let teacherData = null
+  let teacherDataFailed = false
+  if (session.tokens?.access_token) {
+    if (role === 'aluno') {
+      try {
+        learningData = await getXpexLearningDashboard(
+          session.tokens.access_token,
+          organizationSlug
+        )
+      } catch {
+        learningDataFailed = true
+      }
+    }
+    if (role === 'professora') {
+      try {
+        teacherData = await getXpexTeacherDashboard(
+          session.tokens.access_token,
+          organizationSlug
+        )
+      } catch {
+        teacherDataFailed = true
+      }
     }
   }
   const organizationName = organization?.name
@@ -60,6 +75,8 @@ export async function AuthenticatedXpexExperience({
         displayName={displayName}
         learningData={learningData}
         learningDataFailed={learningDataFailed}
+        teacherData={teacherData}
+        teacherDataFailed={teacherDataFailed}
         organizationName={organizationName}
         organizationSlug={organizationSlug}
       />
