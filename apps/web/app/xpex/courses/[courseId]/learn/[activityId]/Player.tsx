@@ -33,6 +33,8 @@ function ActivityRenderer({ activity, courseUuid, orgUuid, orgSlug }: { activity
 export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activityMeta, previous, next, lessonNumber, totalLessons, completedLessons }: { courseId: string; courseUuid: string; orgUuid: string; orgSlug: string; activity: PlayerActivity; activityMeta: XpexLearningActivity; previous?: XpexLearningActivity; next?: XpexLearningActivity; lessonNumber: number; totalLessons: number; completedLessons: number }) {
   const [pending, startTransition] = useTransition()
   const [saved, setSaved] = useState(activityMeta.complete)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const [completedNextHref, setCompletedNextHref] = useState<string | null | undefined>(undefined)
   const router = useRouter()
   const path = (item: XpexLearningActivity) => `/xpex/courses/${courseId}/learn/${item.activity_uuid.replace('activity_', '')}`
   const canComplete = activity.content?.paid_access !== false && activity.activity_type !== 'TYPE_ASSIGNMENT' && ['TYPE_VIDEO', 'TYPE_DOCUMENT', 'TYPE_DYNAMIC'].includes(activity.activity_type)
@@ -51,10 +53,21 @@ export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activ
     <footer>
       {previous ? <Link href={path(previous)}>← Anterior</Link> : <span />}
       <div className="flex items-center gap-3">
-        {canComplete && !saved && <button disabled={pending} aria-busy={pending} onClick={() => startTransition(async () => { await completeXpexActivity(courseId, activity.activity_uuid.replace('activity_', '')); setSaved(true); router.refresh() })}>{pending ? 'Salvando…' : 'Concluir aula'}</button>}
+        {canComplete && !saved && <button disabled={pending} aria-busy={pending} onClick={() => startTransition(async () => {
+          setCompletionError(null)
+          try {
+            const result = await completeXpexActivity(courseId, activity.activity_uuid.replace('activity_', ''))
+            setCompletedNextHref(result.nextHref)
+            setSaved(true)
+            router.refresh()
+          } catch {
+            setCompletionError('Não foi possível salvar a conclusão. Tente novamente.')
+          }
+        })}>{pending ? 'Salvando…' : 'Concluir aula'}</button>}
         {saved ? <span role="status" className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-300">Progresso salvo · aula concluída</span> : null}
+        {completionError ? <span role="alert" className="text-sm font-semibold text-red-300">{completionError}</span> : null}
       </div>
-      {next ? <Link href={path(next)}>Próxima →</Link> : <Link href={`/xpex/courses/${courseId}`}>Concluir curso</Link>}
+      {next ? <Link href={completedNextHref ?? path(next)}>Próxima →</Link> : <Link href={`/xpex/courses/${courseId}`}>Concluir curso</Link>}
     </footer>
   </article>
 }

@@ -17,6 +17,8 @@ describe('XPeX next-generation learning experience', () => {
     expect(player).toContain('<progress')
     expect(player).toContain('aria-labelledby="lesson-title"')
     expect(player).toContain('router.refresh()')
+    expect(player).toContain('result.nextHref')
+    expect(player).toContain('role="alert"')
   })
 
   test('persists completion before refreshing the official dashboard state', () => {
