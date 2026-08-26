@@ -36,16 +36,28 @@ def _to_async_url(url: str) -> str:
     return url
 
 
-async def _verify_dashboard(session: AsyncSession, user: User, org: Organization, course: Course) -> bool:
-    dashboard = await get_student_dashboard(PublicUser.model_validate(user), org.slug, session)
+async def _verify_dashboard(
+    session: AsyncSession,
+    user: User,
+    org: Organization,
+    course: Course,
+) -> bool:
+    dashboard = await get_student_dashboard(
+        PublicUser.model_validate(user), org.slug, session
+    )
     if dashboard is None:
         print("BLOCKED dashboard_membership_not_resolved")
         return False
+
     cards = dashboard.get("courses", [])
-    card = next((item for item in cards if item.get("course_id") == course.course_uuid), None)
+    card = next(
+        (item for item in cards if item.get("course_id") == course.course_uuid),
+        None,
+    )
     if card is None:
         print("BLOCKED dashboard_course_not_visible")
         return False
+
     current = dashboard.get("continue_learning")
     print(
         "DASHBOARD_VERIFY "
@@ -56,13 +68,24 @@ async def _verify_dashboard(session: AsyncSession, user: User, org: Organization
     return True
 
 
-async def run(first_name: str, last_name: str, org_slug: str, execute: bool, user_uuid: str | None = None) -> int:
+async def run(
+    first_name: str,
+    last_name: str,
+    org_slug: str,
+    execute: bool,
+    user_uuid: str | None = None,
+) -> int:
     config = get_learnhouse_config()
     sql_url = config.database_config.sql_connection_string  # type: ignore[attr-defined]
     engine = create_async_engine(_to_async_url(sql_url), pool_pre_ping=True)
+
     try:
         async with AsyncSession(engine, expire_on_commit=False) as session:
-            org = (await session.exec(select(Organization).where(Organization.slug == org_slug))).one_or_none()
+            org = (
+                await session.exec(
+                    select(Organization).where(Organization.slug == org_slug)
+                )
+            ).one_or_none()
             if org is None:
                 print(f"BLOCKED organization_not_found slug={org_slug}")
                 return 2
@@ -75,16 +98,24 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool, use
             if user_uuid:
                 filters.append(User.user_uuid == user_uuid.strip())
 
-            candidates = list((await session.execute(
-                select(User, UserOrganization, Role)
-                .join(UserOrganization, UserOrganization.user_id == User.id)
-                .join(Role, Role.id == UserOrganization.role_id)
-                .where(*filters)
-            )).all())
+            candidates = list(
+                (
+                    await session.execute(
+                        select(User, UserOrganization, Role)
+                        .join(
+                            UserOrganization,
+                            UserOrganization.user_id == User.id,
+                        )
+                        .join(Role, Role.id == UserOrganization.role_id)
+                        .where(*filters)
+                    )
+                ).all()
+            )
             if len(candidates) != 1:
                 print(
                     f"BLOCKED student_match_count={len(candidates)} "
-                    f"org_id={org.id} org_slug={org.slug} exact_uuid_filter={bool(user_uuid)}"
+                    f"org_id={org.id} org_slug={org.slug} "
+                    f"exact_uuid_filter={bool(user_uuid)}"
                 )
                 return 3
 
@@ -92,25 +123,48 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool, use
             print(
                 "STUDENT "
                 f"user_id={user.id} user_uuid={user.user_uuid} "
-                f"org_id={org.id} org_slug={org.slug} role_uuid={role.role_uuid}"
+                f"org_id={org.id} org_slug={org.slug} "
+                f"role_uuid={role.role_uuid}"
             )
             if role.role_uuid != EXPECTED_STUDENT_ROLE_UUID:
-                print(f"BLOCKED unexpected_role role_uuid={role.role_uuid} expected={EXPECTED_STUDENT_ROLE_UUID}")
+                print(
+                    "BLOCKED unexpected_role "
+                    f"role_uuid={role.role_uuid} "
+                    f"expected={EXPECTED_STUDENT_ROLE_UUID}"
+                )
                 return 6
 
-            courses = list((await session.exec(select(Course).where(Course.org_id == org.id, Course.published == True))).all())
-            print(f"PUBLISHED_COURSES count={len(courses)}")
-            for course in courses:
-                active_authors = list((await session.exec(
-                    select(ResourceAuthor.user_id).where(
-                        ResourceAuthor.resource_uuid == course.course_uuid,
-                        ResourceAuthor.authorship_status == ResourceAuthorshipStatusEnum.ACTIVE,
+            courses = list(
+                (
+                    await session.exec(
+                        select(Course).where(
+                            Course.org_id == org.id,
+                            Course.published.is_(True),
+                        )
                     )
-                )).all())
+                ).all()
+            )
+            print(f"PUBLISHED_COURSES count={len(courses)}")
+
+            for course in courses:
+                active_authors = list(
+                    (
+                        await session.exec(
+                            select(ResourceAuthor.user_id).where(
+                                ResourceAuthor.resource_uuid
+                                == course.course_uuid,
+                                ResourceAuthor.authorship_status
+                                == ResourceAuthorshipStatusEnum.ACTIVE,
+                            )
+                        )
+                    ).all()
+                )
                 print(
                     "COURSE "
-                    f"course_id={course.id} course_uuid={course.course_uuid} "
-                    f"name={course.name!r} active_author_count={len(set(active_authors))}"
+                    f"course_id={course.id} "
+                    f"course_uuid={course.course_uuid} "
+                    f"name={course.name!r} "
+                    f"active_author_count={len(set(active_authors))}"
                 )
 
             if len(courses) != 1:
@@ -118,14 +172,24 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool, use
                 return 4
 
             course = courses[0]
-            existing = (await session.exec(select(TrailRun).where(
-                TrailRun.user_id == user.id,
-                TrailRun.org_id == org.id,
-                TrailRun.course_id == course.id,
-            ))).first()
+            existing = (
+                await session.exec(
+                    select(TrailRun).where(
+                        TrailRun.user_id == user.id,
+                        TrailRun.org_id == org.id,
+                        TrailRun.course_id == course.id,
+                    )
+                )
+            ).first()
             if existing is not None:
-                print(f"ENROLLMENT_EXISTS trail_run_id={existing.id} status={existing.status.value}")
-                if existing.status in {StatusEnum.STATUS_IN_PROGRESS, StatusEnum.STATUS_COMPLETED}:
+                print(
+                    "ENROLLMENT_EXISTS "
+                    f"trail_run_id={existing.id} status={existing.status.value}"
+                )
+                if existing.status in {
+                    StatusEnum.STATUS_IN_PROGRESS,
+                    StatusEnum.STATUS_COMPLETED,
+                }:
                     if not await _verify_dashboard(session, user, org, course):
                         return 7
                     print("PASS enrollment_already_valid_and_dashboard_visible")
@@ -134,10 +198,21 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool, use
                 return 5
 
             if not execute:
-                print(f"DRY_RUN_READY user_id={user.id} course_uuid={course.course_uuid} org_slug={org.slug}")
+                print(
+                    "DRY_RUN_READY "
+                    f"user_id={user.id} course_uuid={course.course_uuid} "
+                    f"org_slug={org.slug}"
+                )
                 return 0
 
-            trail = (await session.exec(select(Trail).where(Trail.org_id == org.id, Trail.user_id == user.id))).first()
+            trail = (
+                await session.exec(
+                    select(Trail).where(
+                        Trail.org_id == org.id,
+                        Trail.user_id == user.id,
+                    )
+                )
+            ).first()
             now = str(datetime.now())
             if trail is None:
                 trail = Trail(
@@ -165,7 +240,8 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool, use
             print(
                 "ENROLLED "
                 f"trail_run_id={run_row.id} user_id={user.id} "
-                f"course_uuid={course.course_uuid} status={run_row.status.value}"
+                f"course_uuid={course.course_uuid} "
+                f"status={run_row.status.value}"
             )
             if not await _verify_dashboard(session, user, org, course):
                 return 7
@@ -183,7 +259,17 @@ def main() -> None:
     parser.add_argument("--user-uuid")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
-    raise SystemExit(asyncio.run(run(args.first_name, args.last_name, args.org_slug, args.execute, args.user_uuid)))
+    raise SystemExit(
+        asyncio.run(
+            run(
+                args.first_name,
+                args.last_name,
+                args.org_slug,
+                args.execute,
+                args.user_uuid,
+            )
+        )
+    )
 
 
 if __name__ == "__main__":
