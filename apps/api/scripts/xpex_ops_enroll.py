@@ -24,7 +24,6 @@ from src.db.user_organizations import UserOrganization
 from src.db.users import PublicUser, User
 from src.services.xpex.dashboard import get_student_dashboard
 
-
 EXPECTED_STUDENT_ROLE_UUID = "role_global_user"
 
 
