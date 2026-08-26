@@ -16,7 +16,8 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
   const course = learning?.data.courses.find(item => item.course_id.replace('course_', '') === courseId)
   if (!learning || !course) return <XpexStudentDenied />
 
-  const next = course.activities.find(activity => !activity.complete) ?? course.activities[0]
+  const nextIncomplete = course.activities.find(activity => !activity.complete)
+  const reviewActivity = course.activities[0]
   const completed = course.completed_lessons ?? 0
   const total = course.total_lessons || course.activities.length || 1
   const progress = Math.min(100, Math.round((completed / total) * 100))
@@ -32,7 +33,7 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
             <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">{course.title}</h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">{course.description || 'Conteúdo publicado e autorizado para sua matrícula.'}</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              {next ? <Link className="xpex-primary" href={`/xpex/courses/${courseId}/learn/${next.activity_uuid.replace('activity_', '')}`}>{completed ? 'Continuar aprendendo' : 'Começar curso'}</Link> : null}
+              {nextIncomplete ? <Link className="xpex-primary" href={`/xpex/courses/${courseId}/learn/${nextIncomplete.activity_uuid.replace('activity_', '')}`}>{completed ? 'Continuar aprendendo' : 'Começar curso'}</Link> : reviewActivity ? <Link className="xpex-primary" href={`/xpex/courses/${courseId}/learn/${reviewActivity.activity_uuid.replace('activity_', '')}`}>Revisar curso</Link> : null}
               <Link className="xpex-secondary" href="/xpex/courses">Voltar aos meus cursos</Link>
             </div>
           </div>
