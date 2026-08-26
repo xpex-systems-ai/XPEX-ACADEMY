@@ -33,15 +33,15 @@ export function XpexLegalAttribution() {
   </footer>
 }
 
-function StudentNavigation({ organizationSlug, onNavigate }: { organizationSlug: string; onNavigate?: () => void }) {
+function StudentNavigation({ onNavigate }: { organizationSlug: string; onNavigate?: () => void }) {
   const pathname = usePathname()
   const items = [
     { label: 'Início', icon: LayoutDashboard, href: '/xpex/aluno' },
     { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' },
     { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
-    { label: 'Laboratório de IA', icon: Bot, href: `/orgs/${organizationSlug}/copilot` },
-    { label: 'Comunidade', icon: Users, href: `/orgs/${organizationSlug}/communities` },
-    { label: 'Certificados', icon: Award, href: `/orgs/${organizationSlug}/certificates` },
+    { label: 'Laboratório de IA', icon: Bot, href: '/copilot' },
+    { label: 'Comunidade', icon: Users, href: '/communities' },
+    { label: 'Certificados', icon: Award, href: '/certificates' },
   ]
   return <nav className="xpex-role-nav" aria-label="Navegação da área Aluno">
     {items.map(({ label, icon: Icon, href }) => {
@@ -89,12 +89,12 @@ export function XpexTopbar({ role, displayName, organizationSlug, openMenu, menu
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
     const value = query.trim()
-    router.push(value ? `/orgs/${organizationSlug}/search?q=${encodeURIComponent(value)}` : `/orgs/${organizationSlug}/search`)
+    router.push(value ? `/search?q=${encodeURIComponent(value)}` : '/search')
   }
   return <header className="xpex-topbar">
     <button ref={menuButtonRef} className="xpex-icon-button xpex-mobile-only" onClick={openMenu} aria-label="Abrir menu" aria-controls="xpex-sidebar" aria-expanded={menuOpen}><Menu aria-hidden="true" size={20}/></button>
     <form className="xpex-search" onSubmit={submitSearch}><Search aria-hidden="true" size={18}/><span className="sr-only">Buscar na XpeX Academy</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar cursos, aulas, conteúdos..."/><button className="sr-only" type="submit">Buscar</button></form>
-    <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — integração ainda não disponível"><Bell size={18}/></button><Link href={`/orgs/${organizationSlug}/copilot`} className="xpex-icon-button xpex-hide-small" aria-label="Abrir assistente GX"><MessageCircle size={18}/></Link>
+    <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — integração ainda não disponível"><Bell size={18}/></button><Link href="/copilot" className="xpex-icon-button xpex-hide-small" aria-label="Abrir assistente GX"><MessageCircle size={18}/></Link>
       <div className="xpex-profile" aria-label={`Usuário: ${displayName}, papel: ${roleLabels[role]}`}><span className="xpex-avatar">{initials}</span><span><strong>{displayName}</strong><small>{roleLabels[role]}</small></span></div>
       <button type="button" onClick={() => signOut({ redirect: true, callbackUrl: '/login' })} className="xpex-icon-button" aria-label="Sair da XpeX Academy"><LogOut size={18}/></button>
     </div>
