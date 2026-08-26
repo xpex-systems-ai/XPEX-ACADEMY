@@ -8,6 +8,7 @@ const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const dashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
 const futuristicDashboard = read('components/Xpex/experiences/FuturisticStudentDashboard.tsx')
 const primitives = read('components/Xpex/XpexPrimitives.tsx')
+const trails = read('app/xpex/trails/page.tsx')
 const testsDirectory = dirname(fileURLToPath(import.meta.url))
 
 describe('authenticated XPeX ecosystem', () => {
@@ -24,6 +25,7 @@ describe('authenticated XPeX ecosystem', () => {
     const destinations = {
       'Início': '/xpex/aluno',
       'Meus Cursos': '/xpex/courses',
+      'Trilhas': '/xpex/trails',
       'Atividades': '/xpex/activities',
       'Laboratório de IA': '/xpex/ai-lab',
       'Comunidade': '/xpex/community',
@@ -35,7 +37,7 @@ describe('authenticated XPeX ecosystem', () => {
       expect(shell).toContain(`href: '${href}'`)
     }
 
-    for (const route of ['ai-lab', 'community', 'certificates', 'search', 'notifications']) {
+    for (const route of ['trails', 'ai-lab', 'community', 'certificates', 'search', 'notifications']) {
       expect(existsSync(join(testsDirectory, '..', 'app', 'xpex', route, 'page.tsx'))).toBe(true)
     }
 
@@ -52,6 +54,18 @@ describe('authenticated XPeX ecosystem', () => {
     expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/copilot')
     expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/communities')
     expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/certificates')
+  })
+
+  test('keeps trails grounded in authorized learner data', () => {
+    expect(trails).toContain("getAuthorizedStudentLearning('/xpex/trails')")
+    expect(trails).toContain('learning.data.courses')
+    expect(trails).toContain('course.completed_lessons')
+    expect(trails).toContain('course.total_lessons')
+    expect(trails).toContain('course.progress_percent')
+    expect(trails).toContain('Em breve')
+    expect(trails).not.toContain('18.6K')
+    expect(trails).not.toContain('5.342')
+    expect(trails).not.toContain('1.254h')
   })
 
   test('uses real learner data and honest empty states without fixed metrics', () => {
