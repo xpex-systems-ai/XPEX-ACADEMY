@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const dashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
+const futuristicDashboard = read('components/Xpex/experiences/FuturisticStudentDashboard.tsx')
 const primitives = read('components/Xpex/XpexPrimitives.tsx')
 const testsDirectory = dirname(fileURLToPath(import.meta.url))
 
@@ -41,6 +42,16 @@ describe('authenticated XPeX ecosystem', () => {
     expect(shell).toContain('/xpex/search?q=')
     expect(shell).toContain('href="/xpex/notifications"')
     expect(shell).toContain('href="/xpex/ai-lab"')
+  })
+
+  test('keeps futuristic dashboard actions inside the native XPeX student shell', () => {
+    for (const href of ['/xpex/courses', '/xpex/activities', '/xpex/ai-lab', '/xpex/community', '/xpex/certificates']) {
+      expect(futuristicDashboard).toContain(`href="${href}"`)
+    }
+    expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/courses')
+    expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/copilot')
+    expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/communities')
+    expect(futuristicDashboard).not.toContain('/orgs/${organizationSlug}/certificates')
   })
 
   test('uses real learner data and honest empty states without fixed metrics', () => {
