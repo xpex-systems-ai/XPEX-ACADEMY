@@ -5,6 +5,7 @@ import { useTransition } from 'react'
 import type { XpexLearningActivity } from '@/lib/xpex/learning-dashboard'
 import { getXpexModuleGuide } from '@/lib/xpex/module-guides'
 import { GXModuleGuide } from '@components/Xpex/GXModuleGuide'
+import { GXMotionLesson } from '@components/Xpex/GXMotionLesson'
 import { completeXpexActivity } from './actions'
 
 const VideoActivity = dynamic(() => import('@components/Objects/Activities/Video/Video'), { ssr: false })
@@ -40,6 +41,7 @@ export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activ
       <Link href={`/xpex/courses/${courseId}`}>Voltar ao curso</Link>
     </header>
     <div className="xpex-player-stage"><ActivityRenderer activity={activity} courseUuid={courseUuid} orgUuid={orgUuid} orgSlug={orgSlug} /></div>
+    {guide ? <GXMotionLesson guide={guide} /> : null}
     {guide ? <GXModuleGuide guide={guide} /> : null}
     <footer>
       {previous ? <Link href={path(previous)}>← Anterior</Link> : <span />}
