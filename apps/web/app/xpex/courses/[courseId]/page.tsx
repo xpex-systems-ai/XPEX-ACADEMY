@@ -21,7 +21,13 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
   const completed = course.completed_lessons ?? 0
   const total = course.total_lessons || course.activities.length || 1
   const progress = Math.min(100, Math.round((completed / total) * 100))
-  const chapters = Array.from(new Set(course.activities.map(activity => activity.chapter_name).filter(Boolean)))
+  const modules = course.activities.reduce<Array<{ name: string; activities: typeof course.activities }>>((groups, activity) => {
+    const name = activity.chapter_name || 'Conteúdo do curso'
+    const existing = groups.find(group => group.name === name)
+    if (existing) existing.activities.push(activity)
+    else groups.push({ name, activities: [activity] })
+    return groups
+  }, [])
 
   return (
     <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug}>
@@ -46,24 +52,27 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-cyan-400" style={{ width: `${progress}%` }} /></div>
           </article>
           <article className="xpex-card"><span className="xpex-badge">Conteúdo</span><h2 className="mt-3 text-3xl font-black">{course.activities.length}</h2><p>Atividades publicadas retornadas pelo domínio autorizado.</p></article>
-          <article className="xpex-card"><span className="xpex-badge">Capítulos</span><h2 className="mt-3 text-3xl font-black">{chapters.length}</h2><p>Estrutura derivada diretamente das atividades do curso.</p></article>
+          <article className="xpex-card"><span className="xpex-badge">Módulos</span><h2 className="mt-3 text-3xl font-black">{modules.length}</h2><p>Estrutura derivada diretamente dos capítulos publicados.</p></article>
         </section>
 
         <section className="mt-8" aria-labelledby="course-content-heading">
           <div className="mb-4 flex items-end justify-between gap-4"><div><p className="xpex-label">Experiência de aprendizagem</p><h2 id="course-content-heading" className="text-2xl font-black md:text-3xl">Conteúdo do curso</h2></div><span className="text-sm text-slate-400">{course.activities.length} itens</span></div>
-          <div className="space-y-3">
-            {course.activities.map((activity, index) => {
+          {modules.length === 0 ? <div className="xpex-empty" role="status"><h3>Nenhuma aula disponível</h3><p>Este curso ainda não possui atividades publicadas para sua matrícula.</p></div> : <div className="space-y-5">
+            {modules.map((module, moduleIndex) => <section key={module.name} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 md:p-5" aria-labelledby={`module-${moduleIndex}`}>
+              <div className="mb-3 flex items-center justify-between gap-3 px-1"><div><p className="xpex-label">Módulo {String(moduleIndex + 1).padStart(2, '0')}</p><h3 id={`module-${moduleIndex}`} className="mt-1 text-lg font-black text-white md:text-xl">{module.name}</h3></div><span className="text-xs text-slate-500">{module.activities.length} {module.activities.length === 1 ? 'aula' : 'aulas'}</span></div>
+              <div className="space-y-2">{module.activities.map(activity => {
+              const index = course.activities.findIndex(item => item.activity_uuid === activity.activity_uuid)
               const href = `/xpex/courses/${courseId}/learn/${activity.activity_uuid.replace('activity_', '')}`
               const type = activityTypeLabel[activity.activity_type] ?? 'Conteúdo'
-              return <Link className="group block rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-cyan-400/30 hover:bg-white/[0.05]" key={activity.activity_uuid} href={href}>
+              return <Link className="group block rounded-xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-cyan-400/30 hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" key={activity.activity_uuid} href={href} aria-label={`${activity.complete ? 'Concluída' : 'Disponível'}: aula ${index + 1}, ${activity.name}, ${type}`}>
                 <div className="flex items-center gap-4">
                   <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${activity.complete ? 'bg-emerald-400/15 text-emerald-300' : 'bg-cyan-400/10 text-cyan-300'}`}>{activity.complete ? '✓' : String(index + 1).padStart(2, '0')}</div>
                   <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500"><span>{activity.chapter_name || 'Curso'}</span><span>·</span><span>{type}</span></div><h3 className="mt-1 truncate text-base font-bold text-white group-hover:text-cyan-200 md:text-lg">{activity.name}</h3></div>
                   <span className="hidden rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-400 md:inline-flex">{activity.complete ? 'Concluída' : 'Abrir'}</span>
                 </div>
-              </Link>
-            })}
-          </div>
+              </Link>})}</div>
+            </section>)}
+          </div>}
         </section>
 
         <section className="mt-8 rounded-2xl border border-orange-400/15 bg-orange-400/[0.04] p-5" aria-label="Arquitetura do conteúdo">
