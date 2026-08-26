@@ -1,10 +1,24 @@
 'use client'
 
 import { signOut } from '@components/Contexts/AuthContext'
-import { Bell, LogOut, Menu, MessageCircle, Search, ShieldCheck, X } from 'lucide-react'
+import {
+  Award,
+  Bell,
+  BookOpen,
+  Bot,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Search,
+  ShieldCheck,
+  Users,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { xpexAuthenticatedNavigation } from './xpex-navigation'
 import type { XpexRole } from './xpex-types'
 import './xpex.css'
@@ -19,14 +33,35 @@ export function XpexLegalAttribution() {
   </footer>
 }
 
-export function XpexRoleNavigation({ role, onNavigate }: { role: XpexRole; onNavigate?: () => void }) {
+function StudentNavigation({ organizationSlug, onNavigate }: { organizationSlug: string; onNavigate?: () => void }) {
   const pathname = usePathname()
+  const items = [
+    { label: 'Início', icon: LayoutDashboard, href: '/xpex/aluno' },
+    { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' },
+    { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
+    { label: 'Laboratório de IA', icon: Bot, href: `/orgs/${organizationSlug}/copilot` },
+    { label: 'Comunidade', icon: Users, href: `/orgs/${organizationSlug}/communities` },
+    { label: 'Certificados', icon: Award, href: `/orgs/${organizationSlug}/certificates` },
+  ]
+  return <nav className="xpex-role-nav" aria-label="Navegação da área Aluno">
+    {items.map(({ label, icon: Icon, href }) => {
+      const current = pathname === href || pathname.startsWith(`${href}/`)
+      return <Link key={label} href={href} aria-current={current ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${current ? 'xpex-nav-active' : ''}`}>
+        <Icon aria-hidden="true" size={18}/><span>{label}</span>
+      </Link>
+    })}
+  </nav>
+}
+
+export function XpexRoleNavigation({ role, organizationSlug, onNavigate }: { role: XpexRole; organizationSlug: string; onNavigate?: () => void }) {
+  const pathname = usePathname()
+  if (role === 'aluno') return <StudentNavigation organizationSlug={organizationSlug} onNavigate={onNavigate}/>
   return <nav className="xpex-role-nav" aria-label={`Navegação da área ${roleLabels[role]}`}>
     {xpexAuthenticatedNavigation[role].map(({ label, icon: Icon, href }, index) => {
-      const isFunctional = index === 0 || role === 'aluno'
+      const isFunctional = index === 0
       if (isFunctional) {
-        const destination = index === 0 ? `/xpex/${role}` : href
-        const isCurrent = index === 0 ? pathname === '/xpex' || pathname === destination : pathname === destination || pathname.startsWith(`${destination}/`)
+        const destination = `/xpex/${role}`
+        const isCurrent = pathname === '/xpex' || pathname === destination
         return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}>
           <Icon aria-hidden="true" size={18}/><span>{label}</span>
         </Link>
@@ -38,28 +73,35 @@ export function XpexRoleNavigation({ role, onNavigate }: { role: XpexRole; onNav
   </nav>
 }
 
-export function XpexSidebar({ role, open, close }: { role: XpexRole; open: boolean; close: () => void }) {
+export function XpexSidebar({ role, organizationSlug, open, close }: { role: XpexRole; organizationSlug: string; open: boolean; close: () => void }) {
   return <aside id="xpex-sidebar" aria-label="Menu principal XpeX" className={`xpex-sidebar ${open ? 'is-open' : ''}`}>
-    <div className="xpex-brand-row"><Link href="/xpex" className="xpex-brand" aria-label="XpeX Academy — início"><span aria-hidden="true">XP</span><strong>XpeX<small>Academy</small></strong></Link><button className="xpex-icon-button xpex-mobile-only" onClick={close} aria-label="Fechar menu"><X size={20}/></button></div>
-    <p className="xpex-nav-label">Ecossistema autenticado</p><XpexRoleNavigation role={role} onNavigate={close}/>
+    <div className="xpex-brand-row"><Link href={`/xpex/${role}`} className="xpex-brand" aria-label="XpeX Academy — início"><span aria-hidden="true">X</span><strong>XPeX<small>Academy</small></strong></Link><button className="xpex-icon-button xpex-mobile-only" onClick={close} aria-label="Fechar menu"><X size={20}/></button></div>
+    <p className="xpex-nav-label">Aprenda. Automatize. Construa.</p><XpexRoleNavigation role={role} organizationSlug={organizationSlug} onNavigate={close}/>
     <div className="xpex-session-card"><ShieldCheck aria-hidden="true" size={17}/><div><strong>Sessão protegida</strong><span>Permissões validadas no servidor</span></div></div>
     <XpexLegalAttribution/>
   </aside>
 }
 
-export function XpexTopbar({ role, displayName, openMenu, menuOpen, menuButtonRef }: { role: XpexRole; displayName: string; openMenu: () => void; menuOpen?: boolean; menuButtonRef?: RefObject<HTMLButtonElement | null> }) {
+export function XpexTopbar({ role, displayName, organizationSlug, openMenu, menuOpen, menuButtonRef }: { role: XpexRole; displayName: string; organizationSlug: string; openMenu: () => void; menuOpen?: boolean; menuButtonRef?: RefObject<HTMLButtonElement | null> }) {
   const initials = displayName.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'XP'
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault()
+    const value = query.trim()
+    router.push(value ? `/orgs/${organizationSlug}/search?q=${encodeURIComponent(value)}` : `/orgs/${organizationSlug}/search`)
+  }
   return <header className="xpex-topbar">
     <button ref={menuButtonRef} className="xpex-icon-button xpex-mobile-only" onClick={openMenu} aria-label="Abrir menu" aria-controls="xpex-sidebar" aria-expanded={menuOpen}><Menu aria-hidden="true" size={20}/></button>
-    <label className="xpex-search"><Search aria-hidden="true" size={18}/><span className="sr-only">Buscar na XpeX Academy</span><input placeholder="Buscar na Academy" disabled aria-describedby="xpex-search-status"/><span id="xpex-search-status" className="sr-only">Busca em breve</span></label>
-    <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — em breve"><Bell size={18}/></button><button className="xpex-icon-button xpex-hide-small" disabled aria-label="Mensagens — em breve"><MessageCircle size={18}/></button>
+    <form className="xpex-search" onSubmit={submitSearch}><Search aria-hidden="true" size={18}/><span className="sr-only">Buscar na XpeX Academy</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar cursos, aulas, conteúdos..."/><button className="sr-only" type="submit">Buscar</button></form>
+    <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — integração ainda não disponível"><Bell size={18}/></button><Link href={`/orgs/${organizationSlug}/copilot`} className="xpex-icon-button xpex-hide-small" aria-label="Abrir assistente GX"><MessageCircle size={18}/></Link>
       <div className="xpex-profile" aria-label={`Usuário: ${displayName}, papel: ${roleLabels[role]}`}><span className="xpex-avatar">{initials}</span><span><strong>{displayName}</strong><small>{roleLabels[role]}</small></span></div>
       <button type="button" onClick={() => signOut({ redirect: true, callbackUrl: '/login' })} className="xpex-icon-button" aria-label="Sair da XpeX Academy"><LogOut size={18}/></button>
     </div>
   </header>
 }
 
-export function XpexAuthenticatedShell({ role, allowedRoles, displayName, children }: { role: XpexRole; allowedRoles: XpexRole[]; displayName: string; children: ReactNode }) {
+export function XpexAuthenticatedShell({ role, allowedRoles, displayName, organizationSlug, children }: { role: XpexRole; allowedRoles: XpexRole[]; displayName: string; organizationSlug: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -73,8 +115,8 @@ export function XpexAuthenticatedShell({ role, allowedRoles, displayName, childr
   return <div className="xpex-root xpex-authenticated">
     <a href="#conteudo-xpex" className="xpex-skip">Pular para o conteúdo</a>
     {open && <button className="xpex-drawer-backdrop" aria-label="Fechar navegação" onClick={() => setOpen(false)}/>}
-    <XpexSidebar role={role} open={open} close={() => setOpen(false)}/>
-    <div className="xpex-workspace"><XpexTopbar role={role} displayName={displayName} openMenu={() => setOpen(true)} menuOpen={open} menuButtonRef={menuButton}/>
+    <XpexSidebar role={role} organizationSlug={organizationSlug} open={open} close={() => setOpen(false)}/>
+    <div className="xpex-workspace"><XpexTopbar role={role} displayName={displayName} organizationSlug={organizationSlug} openMenu={() => setOpen(true)} menuOpen={open} menuButtonRef={menuButton}/>
       {allowedRoles.length > 1 && <nav className="xpex-role-switcher" aria-label="Alternar papel autorizado">{allowedRoles.map(item => <Link key={item} href={`/xpex/${item}`} aria-current={item === role ? 'page' : undefined}>{roleLabels[item]}</Link>)}</nav>}
       <main id="conteudo-xpex" tabIndex={-1} className="xpex-content">{children}</main>
     </div>

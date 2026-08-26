@@ -7,6 +7,7 @@ import {
   type XpexExperienceRole,
 } from '@/lib/xpex/access'
 import { AuthenticatedDashboard } from './experiences/AuthenticatedDashboard'
+import { FuturisticStudentDashboard } from './experiences/FuturisticStudentDashboard'
 import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
 import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
@@ -69,17 +70,27 @@ export async function AuthenticatedXpexExperience({
   }
   const organizationName = organization?.name
   return (
-    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName}>
-      <AuthenticatedDashboard
-        role={role}
-        displayName={displayName}
-        learningData={learningData}
-        learningDataFailed={learningDataFailed}
-        teacherData={teacherData}
-        teacherDataFailed={teacherDataFailed}
-        organizationName={organizationName}
-        organizationSlug={organizationSlug}
-      />
+    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug}>
+      {role === 'aluno' ? (
+        <FuturisticStudentDashboard
+          displayName={displayName}
+          organizationName={organizationName}
+          organizationSlug={organizationSlug}
+          data={learningData}
+          failed={learningDataFailed}
+        />
+      ) : (
+        <AuthenticatedDashboard
+          role={role}
+          displayName={displayName}
+          learningData={learningData}
+          learningDataFailed={learningDataFailed}
+          teacherData={teacherData}
+          teacherDataFailed={teacherDataFailed}
+          organizationName={organizationName}
+          organizationSlug={organizationSlug}
+        />
+      )}
     </XpexAuthenticatedShell>
   )
 }
