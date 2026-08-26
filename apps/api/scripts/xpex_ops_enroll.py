@@ -6,15 +6,14 @@ published course each resolve unambiguously. It never prints PII or secrets.
 
 import argparse
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
+from config.config import get_learnhouse_config
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from config.config import get_learnhouse_config
 from src.db.courses.courses import Course
 from src.db.organizations import Organization
 from src.db.resource_authors import ResourceAuthor, ResourceAuthorshipStatusEnum
@@ -194,7 +193,7 @@ async def run(
                     select(Trail).where(Trail.org_id == org.id, Trail.user_id == user.id)
                 )
             ).scalars().first()
-            now = str(datetime.now())
+            now = str(datetime.now(UTC))
             if trail is None:
                 trail = Trail(
                     org_id=org.id,
