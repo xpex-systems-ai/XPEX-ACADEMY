@@ -38,11 +38,20 @@ if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
     else
         (
             cd /app/api || exit 90
-            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
-                --first-name "$XPEX_OPS_FIRST_NAME" \
-                --last-name "$XPEX_OPS_LAST_NAME" \
-                --org-slug "$XPEX_OPS_ORG_SLUG" \
-                --execute
+            if [ -n "${XPEX_OPS_USER_UUID:-}" ]; then
+                PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
+                    --first-name "$XPEX_OPS_FIRST_NAME" \
+                    --last-name "$XPEX_OPS_LAST_NAME" \
+                    --org-slug "$XPEX_OPS_ORG_SLUG" \
+                    --user-uuid "$XPEX_OPS_USER_UUID" \
+                    --execute
+            else
+                PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
+                    --first-name "$XPEX_OPS_FIRST_NAME" \
+                    --last-name "$XPEX_OPS_LAST_NAME" \
+                    --org-slug "$XPEX_OPS_ORG_SLUG" \
+                    --execute
+            fi
         ) || echo "XPEX_OPS bootstrap blocked; application startup will continue"
     fi
 fi
