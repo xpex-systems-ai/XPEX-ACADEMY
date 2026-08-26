@@ -10,5 +10,8 @@ export async function completeXpexActivity(courseId: string, activityId: string)
   if (!learning || !course || !activity) throw new Error('Conteúdo não autorizado')
   if (activity.activity_type === 'TYPE_ASSIGNMENT' || !['TYPE_VIDEO', 'TYPE_DOCUMENT', 'TYPE_DYNAMIC'].includes(activity.activity_type)) throw new Error('Esta atividade exige um fluxo de conclusão específico')
   await markActivityAsComplete(learning.organization.slug, course.course_id, activity.activity_uuid, learning.accessToken)
-  for (const path of ['/xpex', '/xpex/courses', `/xpex/courses/${courseId}`, '/xpex/activities']) revalidatePath(path)
+  for (const path of ['/xpex', '/xpex/courses', `/xpex/courses/${courseId}`, `/xpex/courses/${courseId}/learn/${activityId}`, '/xpex/activities']) revalidatePath(path)
+  const activityIndex = course.activities.findIndex(item => item.activity_uuid === activity.activity_uuid)
+  const next = course.activities[activityIndex + 1]
+  return { nextHref: next ? `/xpex/courses/${courseId}/learn/${next.activity_uuid.replace('activity_', '')}` : null }
 }
