@@ -54,12 +54,12 @@ function CourseCard({ course, featured = false }: { course: XpexLearningCourse; 
   )
 }
 
-function EmptyCourseState({ organizationSlug }: { organizationSlug: string }) {
+function EmptyCourseState() {
   return (
     <div className="xpex-f-empty">
       <BookOpen aria-hidden="true" />
       <div><strong>Sua jornada começa aqui</strong><span>Nenhum curso matriculado está disponível para esta conta agora.</span></div>
-      <Link href={`/orgs/${organizationSlug}/courses`}>Explorar cursos <ChevronRight size={16} /></Link>
+      <Link href="/xpex/courses">Explorar cursos <ChevronRight size={16} /></Link>
     </div>
   )
 }
@@ -88,7 +88,7 @@ export function FuturisticStudentDashboard({
   const overall = summary?.overall_progress_percent
 
   return (
-    <div className="xpex-f-dashboard" id="visao-geral">
+    <div className="xpex-f-dashboard" id="visao-geral" data-organization={organizationSlug}>
       <section className="xpex-f-hero">
         <div className="xpex-f-hero-copy">
           <span className="xpex-f-kicker">{organizationName ?? data?.organization ?? 'XpeX Academy'}</span>
@@ -98,7 +98,7 @@ export function FuturisticStudentDashboard({
           {current ? (
             <Link href={current.target_href} className="xpex-f-primary">Continuar aprendendo <CirclePlay size={17} /></Link>
           ) : (
-            <Link href={`/orgs/${organizationSlug}/courses`} className="xpex-f-primary">Explorar cursos <Compass size={17} /></Link>
+            <Link href="/xpex/courses" className="xpex-f-primary">Explorar cursos <Compass size={17} /></Link>
           )}
           <div className="xpex-f-overall">
             <div><span>Seu progresso geral</span><strong>{overall === null || overall === undefined ? '—' : `${overall}% concluído`}</strong></div>
@@ -122,17 +122,17 @@ export function FuturisticStudentDashboard({
         <div className="xpex-f-main">
           <section id="cursos" className="xpex-f-section">
             <div className="xpex-f-heading"><div><span>Minha jornada</span><h2>Meus cursos</h2></div><Link href="/xpex/courses">Ver todos <ChevronRight size={15}/></Link></div>
-            {courses.length ? <div className="xpex-f-course-grid">{courses.slice(0, 5).map(course => <CourseCard key={course.course_id} course={course} featured={course.course_id === current?.course_id} />)}</div> : <EmptyCourseState organizationSlug={organizationSlug}/>} 
+            {courses.length ? <div className="xpex-f-course-grid">{courses.slice(0, 5).map(course => <CourseCard key={course.course_id} course={course} featured={course.course_id === current?.course_id} />)}</div> : <EmptyCourseState/>}
           </section>
 
           <section className="xpex-f-section">
             <div className="xpex-f-heading"><div><span>Acesso rápido</span><h2>Explorar</h2></div></div>
             <div className="xpex-f-explore">
-              <Link href={`/orgs/${organizationSlug}/courses`}><BookOpen/><strong>Todos os cursos</strong><span>Conteúdo publicado</span></Link>
-              <Link href={`/orgs/${organizationSlug}/copilot`}><FlaskConical/><strong>Laboratório de IA</strong><span>Copiloto da organização</span></Link>
-              <Link href={`/orgs/${organizationSlug}/communities`}><Users/><strong>Comunidade</strong><span>Conecte e colabore</span></Link>
+              <Link href="/xpex/courses"><BookOpen/><strong>Todos os cursos</strong><span>Conteúdo publicado</span></Link>
+              <Link href="/xpex/ai-lab"><FlaskConical/><strong>Laboratório de IA</strong><span>Assistente GX para aprendizagem</span></Link>
+              <Link href="/xpex/community"><Users/><strong>Comunidade</strong><span>Conecte e colabore</span></Link>
               <Link href="/xpex/activities"><LayoutGrid/><strong>Atividades</strong><span>Sua aprendizagem</span></Link>
-              <Link href={`/orgs/${organizationSlug}/certificates`}><Award/><strong>Certificados</strong><span>Conquistas registradas</span></Link>
+              <Link href="/xpex/certificates"><Award/><strong>Certificados</strong><span>Conquistas registradas</span></Link>
             </div>
           </section>
 
@@ -146,9 +146,9 @@ export function FuturisticStudentDashboard({
           <section className="xpex-f-ai" id="gx">
             <div className="xpex-f-rail-title"><Bot/><span><small>Assistente IA</small><strong>GX está online</strong></span></div>
             <div className="xpex-f-ai-message"><BrainCircuit/><p>Olá, {firstName}! Posso te ajudar a estudar, revisar conteúdos e organizar seu próximo passo.</p></div>
-            <Link href={`/orgs/${organizationSlug}/copilot`}>Abrir GX <ChevronRight size={16}/></Link>
-            <Link href={`/orgs/${organizationSlug}/copilot`} className="secondary">Explique um conteúdo</Link>
-            <Link href={`/orgs/${organizationSlug}/copilot`} className="secondary">Crie um plano de estudos</Link>
+            <Link href="/xpex/ai-lab">Abrir GX <ChevronRight size={16}/></Link>
+            <Link href="/xpex/ai-lab" className="secondary">Explique um conteúdo</Link>
+            <Link href="/xpex/ai-lab" className="secondary">Crie um plano de estudos</Link>
           </section>
 
           <section className="xpex-f-side-card">
