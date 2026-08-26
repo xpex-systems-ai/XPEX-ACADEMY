@@ -59,7 +59,7 @@ export default async function XpexAiLabPage() {
   const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
   const activeCourses = courses.filter(course => (course.progress_percent ?? 0) < 100).length
   const orgBase = `/orgs/${learning.organization.slug}`
-  const continueCourse = learning.data.continue_learning ?? courses[0] ?? null
+  const continueCourse = learning.data.continue_learning
   const gxStage = progress < 25 ? 'Fundamentos' : progress < 70 ? 'Construção prática' : 'Projeto e especialização'
   const gxRecommendation = progress < 25
     ? 'Comece por Prompt Engineering, conclua a próxima atividade e use o GX para revisar conceitos antes de avançar.'
