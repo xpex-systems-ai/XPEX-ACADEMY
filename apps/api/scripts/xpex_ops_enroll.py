@@ -22,7 +22,11 @@ from src.db.roles import Role
 from src.db.trail_runs import StatusEnum, TrailRun
 from src.db.trails import Trail
 from src.db.user_organizations import UserOrganization
-from src.db.users import User
+from src.db.users import PublicUser, User
+from src.services.xpex.dashboard import get_student_dashboard
+
+
+EXPECTED_STUDENT_ROLE_UUID = "role_global_user"
 
 
 def _to_async_url(url: str) -> str:
@@ -31,6 +35,36 @@ def _to_async_url(url: str) -> str:
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
+
+
+async def _verify_dashboard(
+    session: AsyncSession,
+    user: User,
+    org: Organization,
+    course: Course,
+) -> bool:
+    dashboard = await get_student_dashboard(
+        PublicUser.model_validate(user), org.slug, session
+    )
+    if dashboard is None:
+        print("BLOCKED dashboard_membership_not_resolved")
+        return False
+    cards = dashboard.get("courses", [])
+    card = next(
+        (item for item in cards if item.get("course_id") == course.course_uuid),
+        None,
+    )
+    if card is None:
+        print("BLOCKED dashboard_course_not_visible")
+        return False
+    current = dashboard.get("continue_learning")
+    print(
+        "DASHBOARD_VERIFY "
+        f"courses={len(cards)} course_visible=true "
+        f"enrollment_state={card.get('enrollment_state')} "
+        f"continue_learning={bool(current)} target_href={card.get('target_href')}"
+    )
+    return True
 
 
 async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> int:
@@ -69,12 +103,18 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> 
                 )
                 return 3
 
-            user, membership, role = candidates[0]
+            user, _membership, role = candidates[0]
             print(
                 "STUDENT "
                 f"user_id={user.id} user_uuid={user.user_uuid} "
                 f"org_id={org.id} org_slug={org.slug} role_uuid={role.role_uuid}"
             )
+            if role.role_uuid != EXPECTED_STUDENT_ROLE_UUID:
+                print(
+                    "BLOCKED unexpected_role "
+                    f"role_uuid={role.role_uuid} expected={EXPECTED_STUDENT_ROLE_UUID}"
+                )
+                return 6
 
             courses = list(
                 (
@@ -128,7 +168,9 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> 
                     StatusEnum.STATUS_IN_PROGRESS,
                     StatusEnum.STATUS_COMPLETED,
                 }:
-                    print("PASS enrollment_already_valid")
+                    if not await _verify_dashboard(session, user, org, course):
+                        return 7
+                    print("PASS enrollment_already_valid_and_dashboard_visible")
                     return 0
                 print("BLOCKED existing_enrollment_requires_manual_state_decision")
                 return 5
@@ -174,7 +216,9 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> 
                 f"trail_run_id={run_row.id} user_id={user.id} "
                 f"course_uuid={course.course_uuid} status={run_row.status.value}"
             )
-            print("PASS enrollment_created")
+            if not await _verify_dashboard(session, user, org, course):
+                return 7
+            print("PASS enrollment_created_and_dashboard_visible")
             return 0
     finally:
         await engine.dispose()
