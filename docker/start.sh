@@ -1,13 +1,8 @@
 #!/bin/sh
 
-# Set environment variables for proper Python logging
 export PYTHONUNBUFFERED=1
 export PYTHONIOENCODING=utf-8
 
-# Railway injects PORT and sends public traffic directly to that port. Keep the
-# three application processes on fixed internal ports and make nginx the only
-# process listening on the provider-facing port; otherwise Railway can route
-# /api/v1 to Next.js and its public backend URL proxies back to itself.
 PUBLIC_PORT="${PORT:-80}"
 WEB_PORT="${WEB_PORT:-8000}"
 /app/render-nginx-config.sh \
@@ -17,8 +12,6 @@ WEB_PORT="${WEB_PORT:-8000}"
     "$WEB_PORT"
 mv /tmp/nginx-default.conf /etc/nginx/conf.d/default.conf
 
-# Wait for database and redis if connection strings point to external services
-# (In docker-compose, depends_on handles this, but useful for standalone)
 if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
     DB_HOST=$(echo "$LEARNHOUSE_SQL_CONNECTION_STRING" | sed -n 's/.*@\([^:]*\):\([0-9]*\)\/.*/\1/p')
     if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ] && [ "$DB_HOST" != "db" ]; then
@@ -27,10 +20,8 @@ if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
     fi
 fi
 
-# Optional guarded one-shot XPeX bootstrap. Disabled by default. The underlying
-# command blocks on ambiguous org/student/course scope and is idempotent when a
-# valid enrollment already exists. Keep startup alive on a blocked operation so
-# an ops repair can never take the Academy offline.
+# Guarded one-shot enrollment repair. It is opt-in, ambiguity-safe and can be
+# narrowed to the exact authenticated learner UUID when duplicate names exist.
 if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
     echo "XPEX_OPS bootstrap requested"
     if [ -z "${XPEX_OPS_FIRST_NAME:-}" ] || [ -z "${XPEX_OPS_LAST_NAME:-}" ] || [ -z "${XPEX_OPS_ORG_SLUG:-}" ]; then
@@ -38,26 +29,28 @@ if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
     else
         (
             cd /app/api || exit 90
-            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
-                --first-name "$XPEX_OPS_FIRST_NAME" \
-                --last-name "$XPEX_OPS_LAST_NAME" \
-                --org-slug "$XPEX_OPS_ORG_SLUG" \
-                --execute
+            if [ -n "${XPEX_OPS_USER_UUID:-}" ]; then
+                PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
+                    --first-name "$XPEX_OPS_FIRST_NAME" \
+                    --last-name "$XPEX_OPS_LAST_NAME" \
+                    --org-slug "$XPEX_OPS_ORG_SLUG" \
+                    --user-uuid "$XPEX_OPS_USER_UUID" \
+                    --execute
+            else
+                PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
+                    --first-name "$XPEX_OPS_FIRST_NAME" \
+                    --last-name "$XPEX_OPS_LAST_NAME" \
+                    --org-slug "$XPEX_OPS_ORG_SLUG" \
+                    --execute
+            fi
         ) || echo "XPEX_OPS bootstrap blocked; application startup will continue"
     fi
 fi
 
-# Start the services
-# Use server-wrapper.js for runtime environment variable injection
 PORT="$WEB_PORT" pm2 start server-wrapper.js --cwd /app/web --name learnhouse-web > /dev/null 2>&1
 pm2 start uv --cwd /app/api --name learnhouse-api -- run app.py
 pm2 start node --cwd /app/collab --name learnhouse-collab -- dist/index.js
 
-# Check if the services are running and log the status
 pm2 status
-
-# Start Nginx in the background
 nginx -g 'daemon off;' &
-
-# Tail PM2 logs with proper formatting
 pm2 logs --raw
