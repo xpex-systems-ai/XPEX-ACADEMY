@@ -45,12 +45,11 @@ const labModules = [
   },
   {
     title: 'Projetos colaborativos',
-    description: 'Organize projetos, ideias e entregas usando Boards já existentes no LearnHouse.',
+    description: 'Estruture projetos com templates XPeX e use Boards + Library nativos como infraestrutura real de trabalho e evidência.',
     icon: FolderKanban,
-    href: 'boards',
-    action: 'Abrir Boards',
-    status: 'Core LearnHouse',
-    orgRoute: true,
+    href: '/xpex/ai-lab/projects',
+    action: 'Abrir workspace',
+    status: 'LAB-002',
   },
   {
     title: 'Biblioteca de recursos',
@@ -120,6 +119,7 @@ export default async function XpexAiLabPage() {
               <p className="mt-4 max-w-2xl text-slate-300">Use o GX como tutor, conecte a prática aos seus cursos, organize projetos no domínio nativo do LearnHouse e avance por trilhas profissionais sem criar um segundo LMS dentro da Academy.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <a href="#gx-copilot" className="xpex-primary"><Bot size={18}/> Entrar no laboratório</a>
+                <Link href="/xpex/ai-lab/projects" className="xpex-secondary"><FolderKanban size={17}/> Projetos GX</Link>
                 <Link href="/xpex/trails" className="xpex-secondary">Explorar trilhas <ArrowRight size={17}/></Link>
               </div>
             </div>
@@ -168,7 +168,7 @@ export default async function XpexAiLabPage() {
               {[
                 ['1', 'Aprenda', 'Use cursos e trilhas autorizados como base técnica.'],
                 ['2', 'Pratique', 'Abra o GX e trabalhe sobre atividades reais do curso.'],
-                ['3', 'Construa', 'Organize projetos e entregas usando Boards e recursos da Library.'],
+                ['3', 'Construa', 'Use o Workspace de Projetos GX com Boards e recursos da Library.'],
                 ['4', 'Evolua', 'Volte ao curso, conclua atividades e mantenha o progresso persistido.'],
               ].map(([step, title, copy]) => <div key={step} className="rounded-2xl border border-white/10 bg-black/15 p-4"><span className="text-xs font-black text-orange-400">0{step}</span><h3 className="mt-1 font-black">{title}</h3><p className="mt-1 text-sm text-slate-400">{copy}</p></div>)}
             </div>
@@ -177,7 +177,7 @@ export default async function XpexAiLabPage() {
             <p className="xpex-label">Regra de engenharia</p>
             <h2 className="mt-2 text-2xl font-black">Sem laboratório fictício.</h2>
             <p className="mt-3 text-slate-300">Notebooks, datasets privados, execução de código, modelos e APIs só serão marcados como ativos quando existirem isolamento, persistência, autorização, quota e observabilidade reais.</p>
-            <Link href="/xpex/activities" className="xpex-secondary mt-5">Ver práticas disponíveis <ArrowRight size={16}/></Link>
+            <Link href="/xpex/ai-lab/projects" className="xpex-secondary mt-5">Abrir projetos reais <ArrowRight size={16}/></Link>
           </article>
         </section>
 
