@@ -11,11 +11,10 @@ import os
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from config.config import get_learnhouse_config
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from config.config import get_learnhouse_config
 from src.db.courses.activities import (
     Activity,
     ActivityLockType,
@@ -287,7 +286,7 @@ async def _ensure_module(
         activity.details = {"xpex_module": order}
         activity.published = True
         activity.lock_type = ActivityLockType.AUTHENTICATED
-        activity.last_modified_by_id = author_id_for_activity(course)
+        activity.last_modified_by_id = None
         activity.update_date = now
         session.add(activity)
     else:
@@ -335,11 +334,6 @@ async def _ensure_module(
         session.add(chapter_activity)
 
 
-def author_id_for_activity(course: Course) -> int | None:
-    """Keep repair updates neutral; author provenance lives on ResourceAuthor."""
-    return None
-
-
 async def run(org_slug: str, execute: bool, author_uuid: str | None) -> int:
     config = get_learnhouse_config()
     sql_url = config.database_config.sql_connection_string  # type: ignore[attr-defined]
@@ -379,7 +373,7 @@ async def run(org_slug: str, execute: bool, author_uuid: str | None) -> int:
                         session, org, course, order, module_name, markdown_file
                     )
                 await session.commit()
-            except Exception as exc:
+            except RuntimeError as exc:
                 await session.rollback()
                 print(f"BLOCKED course_bootstrap_failed type={type(exc).__name__}")
                 return 5
