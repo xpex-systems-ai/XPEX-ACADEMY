@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowRight, Bot, BrainCircuit, Cloud, Code2, Layers3, Route, Sparkles, Workflow } from 'lucide-react'
+import { ArrowRight, Bot, BrainCircuit, Cloud, Code2, ExternalLink, Layers3, Route, Sparkles, Workflow } from 'lucide-react'
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
+import { xpexExternalLearningProviders } from '@/lib/xpex/external-learning-providers'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
 
 const futureTracks = [
@@ -26,7 +27,7 @@ export default async function TrailsPage() {
         <header>
           <p className="xpex-label">Jornadas de evolução</p>
           <h1>Trilhas XPeX</h1>
-          <p>Organize sua evolução por jornadas progressivas. Seus números abaixo vêm apenas de cursos e atividades autorizados para sua conta.</p>
+          <p>Organize sua evolução por jornadas progressivas. O progresso XPeX abaixo vem apenas de cursos e atividades autorizados para sua conta.</p>
         </header>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -39,12 +40,12 @@ export default async function TrailsPage() {
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-orange-400"><Sparkles size={15}/> Painel de trilhas</span>
             <h2 className="mt-4 text-3xl font-black md:text-5xl">Escolha sua direção. Evolua com evidência.</h2>
-            <p className="mt-4 max-w-2xl text-slate-300">Cada trilha conecta conteúdo, prática e progresso. A XPeX só marca como ativa uma jornada que já possui conteúdo publicado e acesso autorizado.</p>
+            <p className="mt-4 max-w-2xl text-slate-300">A XPeX combina sua jornada interna com portas de entrada para academias oficiais do mercado. Conteúdo externo abre na plataforma original; progresso externo não é inventado nem misturado ao seu progresso XPeX.</p>
           </div>
         </div>
 
         <section className="mt-8">
-          <div className="mb-4 flex items-end justify-between gap-4"><div><p className="xpex-label">Em andamento</p><h2 className="text-2xl font-black">Suas trilhas</h2></div><Link href="/xpex/courses" className="text-sm font-bold text-cyan-400">Ver cursos</Link></div>
+          <div className="mb-4 flex items-end justify-between gap-4"><div><p className="xpex-label">Em andamento</p><h2 className="text-2xl font-black">Suas trilhas XPeX</h2></div><Link href="/xpex/courses" className="text-sm font-bold text-cyan-400">Ver cursos</Link></div>
           {activeCourses.length ? <div className="xpex-course-grid">{activeCourses.map(course => {
             const courseId = course.course_id.replace('course_', '')
             return <article className="xpex-card xpex-learning-card" key={course.course_id}>
@@ -58,8 +59,29 @@ export default async function TrailsPage() {
           })}</div> : <div className="xpex-card xpex-empty"><h2>Nenhuma trilha ativa</h2><p>Quando um curso publicado for liberado para sua conta, ele aparecerá aqui como jornada ativa.</p></div>}
         </section>
 
+        <section className="mt-10" aria-labelledby="external-learning-title">
+          <div className="mb-4">
+            <p className="xpex-label">Ecossistema conectado</p>
+            <h2 id="external-learning-title" className="text-2xl font-black">Academias oficiais e cursos livres</h2>
+            <p className="mt-2 max-w-4xl text-slate-400">Acesse diretamente plataformas oficiais para complementar sua formação. A XPeX funciona como navegador de aprendizagem: não copia conteúdo, não simula matrícula externa e não marca conclusão sem integração oficial de progresso.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {xpexExternalLearningProviders.map(provider => <article key={provider.id} className="xpex-card flex min-h-[270px] flex-col">
+              <div className="flex items-start justify-between gap-3"><span className="xpex-badge">Plataforma oficial</span><ExternalLink size={20} className="text-cyan-400" aria-hidden="true"/></div>
+              <h3 className="mt-4 text-xl font-black">{provider.name}</h3>
+              <p className="mt-1 text-sm font-bold text-orange-300">{provider.area}</p>
+              <p className="mt-3 text-sm text-slate-300">{provider.description}</p>
+              <div className="mt-4 space-y-1 text-xs text-slate-400"><p>{provider.highlight}</p><p>{provider.access}</p><p>{provider.language}</p></div>
+              <a className="xpex-primary mt-auto pt-5" href={provider.url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${provider.name} em uma nova aba`}>Abrir plataforma <ExternalLink size={16}/></a>
+            </article>)}
+          </div>
+          <div className="xpex-card mt-4 border border-cyan-400/20">
+            <p className="text-sm text-slate-300"><strong className="text-white">Modo Trilha Real:</strong> seu progresso, certificados e conclusões só entram nos indicadores XPeX quando vierem do domínio XPeX ou de uma integração autenticada de provedor. Links externos permanecem independentes até que cada plataforma ofereça uma API/OAuth compatível e autorizada.</p>
+          </div>
+        </section>
+
         <section className="mt-10">
-          <div className="mb-4"><p className="xpex-label">Mapa de evolução</p><h2 className="text-2xl font-black">Próximas trilhas planejadas</h2><p className="mt-2 text-slate-400">Estas categorias mostram a direção do catálogo. Elas não exibem métricas, matrícula ou progresso enquanto não houver conteúdo real publicado.</p></div>
+          <div className="mb-4"><p className="xpex-label">Mapa de evolução</p><h2 className="text-2xl font-black">Próximas trilhas XPeX planejadas</h2><p className="mt-2 text-slate-400">Estas categorias mostram a direção do catálogo próprio. Elas não exibem métricas, matrícula ou progresso enquanto não houver conteúdo XPeX real publicado.</p></div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{futureTracks.map(({ title, description, icon: Icon }) => <article key={title} className="xpex-card">
             <div className="flex items-center justify-between"><span className="xpex-badge">Em breve</span><Icon size={22} className="text-cyan-400"/></div>
             <h3 className="mt-4 text-xl font-black">{title}</h3><p>{description}</p>
@@ -67,7 +89,7 @@ export default async function TrailsPage() {
         </section>
 
         <div className="xpex-card mt-8 flex flex-col gap-4 border border-cyan-400/20 md:flex-row md:items-center md:justify-between">
-          <div><p className="xpex-label">GX + trilhas</p><h2 className="text-xl font-black">Use o GX para construir seu plano de estudos</h2><p>Peça uma sequência de estudo com base no curso liberado e nas atividades que você ainda não concluiu.</p></div>
+          <div><p className="xpex-label">GX + trilhas</p><h2 className="text-xl font-black">Use o GX para construir seu plano de estudos</h2><p>Peça uma sequência de estudo combinando seu curso XPeX, atividades pendentes e as academias oficiais acima — sempre distinguindo conteúdo interno de conteúdo externo.</p></div>
           <Link href="/xpex/ai-lab" className="xpex-primary"><Bot size={18}/> Abrir GX</Link>
         </div>
       </section>
