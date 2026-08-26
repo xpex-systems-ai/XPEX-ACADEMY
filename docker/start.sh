@@ -27,7 +27,27 @@ if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
     fi
 fi
 
-# Optional guarded one-shot XPeX bootstrap. Disabled by default. The underlying
+# Optional guarded first-course bootstrap. Disabled by default. It is idempotent,
+# refuses ambiguous organization/course/author scope, and keeps startup alive if
+# the operation is blocked. Run it before enrollment so the course exists first.
+if [ "${XPEX_LAUNCH_COURSE_ON_START:-0}" = "1" ]; then
+    echo "XPEX_LAUNCH course bootstrap requested"
+    (
+        cd /app/api || exit 89
+        if [ -n "${XPEX_LAUNCH_AUTHOR_UUID:-}" ]; then
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_launch_course.py \
+                --org-slug "${XPEX_LAUNCH_ORG_SLUG:-default}" \
+                --author-uuid "$XPEX_LAUNCH_AUTHOR_UUID" \
+                --execute
+        else
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_launch_course.py \
+                --org-slug "${XPEX_LAUNCH_ORG_SLUG:-default}" \
+                --execute
+        fi
+    ) || echo "XPEX_LAUNCH course bootstrap blocked; application startup will continue"
+fi
+
+# Optional guarded one-shot XPeX enrollment bootstrap. Disabled by default. The
 # command blocks on ambiguous org/student/course scope and is idempotent when a
 # valid enrollment already exists. Keep startup alive on a blocked operation so
 # an ops repair can never take the Academy offline.
