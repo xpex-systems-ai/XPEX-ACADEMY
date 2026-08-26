@@ -39,9 +39,9 @@ function StudentNavigation({ onNavigate }: { organizationSlug: string; onNavigat
     { label: 'Início', icon: LayoutDashboard, href: '/xpex/aluno' },
     { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' },
     { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
-    { label: 'Laboratório de IA', icon: Bot, href: '/copilot' },
-    { label: 'Comunidade', icon: Users, href: '/communities' },
-    { label: 'Certificados', icon: Award, href: '/certificates' },
+    { label: 'Laboratório de IA', icon: Bot, href: '/xpex/ai-lab' },
+    { label: 'Comunidade', icon: Users, href: '/xpex/community' },
+    { label: 'Certificados', icon: Award, href: '/xpex/certificates' },
   ]
   return <nav className="xpex-role-nav" aria-label="Navegação da área Aluno">
     {items.map(({ label, icon: Icon, href }) => {
@@ -57,18 +57,12 @@ export function XpexRoleNavigation({ role, organizationSlug, onNavigate }: { rol
   const pathname = usePathname()
   if (role === 'aluno') return <StudentNavigation organizationSlug={organizationSlug} onNavigate={onNavigate}/>
   return <nav className="xpex-role-nav" aria-label={`Navegação da área ${roleLabels[role]}`}>
-    {xpexAuthenticatedNavigation[role].map(({ label, icon: Icon, href }, index) => {
-      const isFunctional = index === 0
-      if (isFunctional) {
-        const destination = `/xpex/${role}`
-        const isCurrent = pathname === '/xpex' || pathname === destination
-        return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}>
-          <Icon aria-hidden="true" size={18}/><span>{label}</span>
-        </Link>
-      }
-      return <span key={label} className="xpex-nav-item xpex-nav-disabled" aria-disabled="true" title="Em breve">
-        <Icon aria-hidden="true" size={18}/><span>{label}</span><small>Em breve</small>
-      </span>
+    {xpexAuthenticatedNavigation[role].map(({ label, icon: Icon }, index) => {
+      const destination = index === 0 ? `/xpex/${role}` : `/xpex/${role}?section=${index}`
+      const isCurrent = index === 0 && (pathname === '/xpex' || pathname === `/xpex/${role}`)
+      return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}>
+        <Icon aria-hidden="true" size={18}/><span>{label}</span>
+      </Link>
     })}
   </nav>
 }
@@ -89,12 +83,12 @@ export function XpexTopbar({ role, displayName, organizationSlug, openMenu, menu
   const submitSearch = (event: FormEvent) => {
     event.preventDefault()
     const value = query.trim()
-    router.push(value ? `/search?q=${encodeURIComponent(value)}` : '/search')
+    router.push(value ? `/xpex/search?q=${encodeURIComponent(value)}` : '/xpex/search')
   }
   return <header className="xpex-topbar">
     <button ref={menuButtonRef} className="xpex-icon-button xpex-mobile-only" onClick={openMenu} aria-label="Abrir menu" aria-controls="xpex-sidebar" aria-expanded={menuOpen}><Menu aria-hidden="true" size={20}/></button>
     <form className="xpex-search" onSubmit={submitSearch}><Search aria-hidden="true" size={18}/><span className="sr-only">Buscar na XpeX Academy</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar cursos, aulas, conteúdos..."/><button className="sr-only" type="submit">Buscar</button></form>
-    <div className="xpex-top-actions"><button className="xpex-icon-button" disabled aria-label="Notificações — integração ainda não disponível"><Bell size={18}/></button><Link href="/copilot" className="xpex-icon-button xpex-hide-small" aria-label="Abrir assistente GX"><MessageCircle size={18}/></Link>
+    <div className="xpex-top-actions"><Link href="/xpex/notifications" className="xpex-icon-button" aria-label="Notificações"><Bell size={18}/></Link><Link href="/xpex/ai-lab" className="xpex-icon-button xpex-hide-small" aria-label="Abrir assistente GX"><MessageCircle size={18}/></Link>
       <div className="xpex-profile" aria-label={`Usuário: ${displayName}, papel: ${roleLabels[role]}`}><span className="xpex-avatar">{initials}</span><span><strong>{displayName}</strong><small>{roleLabels[role]}</small></span></div>
       <button type="button" onClick={() => signOut({ redirect: true, callbackUrl: '/login' })} className="xpex-icon-button" aria-label="Sair da XpeX Academy"><LogOut size={18}/></button>
     </div>
