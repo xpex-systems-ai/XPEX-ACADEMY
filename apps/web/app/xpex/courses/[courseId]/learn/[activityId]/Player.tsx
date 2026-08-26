@@ -3,6 +3,8 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useTransition } from 'react'
 import type { XpexLearningActivity } from '@/lib/xpex/learning-dashboard'
+import { getXpexModuleGuide } from '@/lib/xpex/module-guides'
+import { GXModuleGuide } from '@components/Xpex/GXModuleGuide'
 import { completeXpexActivity } from './actions'
 
 const VideoActivity = dynamic(() => import('@components/Objects/Activities/Video/Video'), { ssr: false })
@@ -30,12 +32,15 @@ export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activ
   const [pending, startTransition] = useTransition()
   const path = (item: XpexLearningActivity) => `/xpex/courses/${courseId}/learn/${item.activity_uuid.replace('activity_', '')}`
   const canComplete = activity.content?.paid_access !== false && activity.activity_type !== 'TYPE_ASSIGNMENT' && ['TYPE_VIDEO', 'TYPE_DOCUMENT', 'TYPE_DYNAMIC'].includes(activity.activity_type)
+  const guide = getXpexModuleGuide(activityMeta.chapter_name, activity.name)
+
   return <article className="xpex-player">
     <header>
       <div><small>{activityMeta.chapter_name}</small><h1>{activity.name}</h1><p className="mt-1 text-xs uppercase tracking-wider text-slate-500">{activity.activity_type.replace('TYPE_', '')}</p></div>
       <Link href={`/xpex/courses/${courseId}`}>Voltar ao curso</Link>
     </header>
     <div className="xpex-player-stage"><ActivityRenderer activity={activity} courseUuid={courseUuid} orgUuid={orgUuid} orgSlug={orgSlug} /></div>
+    {guide ? <GXModuleGuide guide={guide} /> : null}
     <footer>
       {previous ? <Link href={path(previous)}>← Anterior</Link> : <span />}
       <div className="flex items-center gap-3">

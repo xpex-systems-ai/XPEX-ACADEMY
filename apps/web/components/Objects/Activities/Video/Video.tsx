@@ -49,6 +49,19 @@ interface VideoActivityProps {
   orgUuid?: string
 }
 
+function MissingVideo({ reason }: { reason: string }) {
+  return (
+    <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-none bg-[radial-gradient(circle_at_50%_20%,rgba(0,208,255,.16),transparent_34%),linear-gradient(145deg,#020711,#07111d)] sm:rounded-xl">
+      <div className="max-w-xl px-6 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-2xl text-cyan-200">▶</div>
+        <h2 className="mt-5 text-xl font-black text-white">Player de vídeo pronto</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{reason}</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">Nenhum vídeo fictício é exibido. Assim que uma fonte hospedada ou URL do YouTube for configurada nesta atividade, o player LearnHouse abre automaticamente aqui.</p>
+      </div>
+    </div>
+  )
+}
+
 function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
   const org = useOrg() as any
   const resolvedOrgUuid = orgUuid || org?.org_uuid
@@ -57,12 +70,12 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
   React.useEffect(() => {
     if (activity?.content?.uri) {
       var getYouTubeID = require('get-youtube-id')
-      setVideoId(getYouTubeID(activity.content.uri))
+      setVideoId(getYouTubeID(activity.content.uri) || '')
+    } else {
+      setVideoId('')
     }
   }, [activity, org])
 
-  // Prefer adaptive HLS once transcoding is ready; otherwise fall back to the
-  // (optimized) progressive MP4 so playback always works.
   const hlsReady = isActivityHlsReady(activity)
 
   const getVideoSource = () =>
@@ -74,86 +87,82 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
       filename: activity.content?.filename,
     })
 
-  return (
-    <div className="w-full max-w-full px-0 sm:px-4">
-      {activity && (
-        <>
-          {activity.activity_sub_type === 'SUBTYPE_VIDEO_HOSTED' && (
-            <div className="my-0 sm:my-3 md:my-5 w-full">
-              <div className="relative w-full aspect-video sm:rounded-lg overflow-hidden ring-0 sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20 shadow-none">
-                {(() => {
-                  const { src, isHls } = getVideoSource()
-                  const thumbnails = isHls
-                    ? resolveHlsThumbnails(activity, {
-                        orgUuid: resolvedOrgUuid,
-                        courseUuid: course?.course_uuid,
-                        activityUuid: activity.activity_uuid,
-                      })
-                    : null
-                  // Always compute the progressive MP4 URL so the player can fall
-                  // back to it if the HLS source errors (partial/broken transcode).
-                  const fallbackSrc = isHls
-                    ? resolveActivityVideoSource({
-                        hlsReady: false,
-                        orgUuid: resolvedOrgUuid,
-                        courseUuid: course?.course_uuid,
-                        activityUuid: activity.activity_uuid,
-                        filename: activity.content?.filename,
-                      }).src
-                    : undefined
-                  // Ready AI caption tracks attach to either source (HLS or MP4).
-                  const captions = resolveActivityCaptions(activity, {
-                    orgUuid: resolvedOrgUuid,
-                    courseUuid: course?.course_uuid,
-                    activityUuid: activity.activity_uuid,
-                  })
-                  return src ? (
-                    <LearnHousePlayer
-                      key={src}
-                      src={src}
-                      isHls={isHls}
-                      fallbackSrc={fallbackSrc}
-                      details={activity.details}
-                      thumbnails={thumbnails}
-                      captions={captions}
-                    />
-                  ) : null
-                })()}
-              </div>
-            </div>
-          )}
-          {activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE' && (
-            <div className="my-0 sm:my-3 md:my-5 w-full">
-              <div className="relative w-full aspect-video sm:rounded-lg overflow-hidden ring-0 sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20 shadow-none">
-                <YouTube
-                  className="w-full h-full"
-                  opts={{
-                    width: '100%',
-                    height: '100%',
-                    playerVars: {
-                      autoplay: activity.details?.autoplay ? 1 : 0,
-                      mute: activity.details?.muted ? 1 : 0,
-                      start: activity.details?.startTime || 0,
-                      end: activity.details?.endTime || undefined,
-                      controls: 1,
-                      modestbranding: 1,
-                      rel: 0
-                    },
-                  }}
-                  videoId={videoId}
-                  onReady={(event) => {
-                    if (activity.details?.startTime) {
-                      event.target.seekTo(activity.details.startTime, true)
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
+  if (activity.activity_sub_type === 'SUBTYPE_VIDEO_HOSTED') {
+    const { src, isHls } = getVideoSource()
+    if (!src) return <MissingVideo reason="A atividade está marcada como vídeo hospedado, mas ainda não possui arquivo de mídia publicado." />
+    const thumbnails = isHls
+      ? resolveHlsThumbnails(activity, {
+          orgUuid: resolvedOrgUuid,
+          courseUuid: course?.course_uuid,
+          activityUuid: activity.activity_uuid,
+        })
+      : null
+    const fallbackSrc = isHls
+      ? resolveActivityVideoSource({
+          hlsReady: false,
+          orgUuid: resolvedOrgUuid,
+          courseUuid: course?.course_uuid,
+          activityUuid: activity.activity_uuid,
+          filename: activity.content?.filename,
+        }).src
+      : undefined
+    const captions = resolveActivityCaptions(activity, {
+      orgUuid: resolvedOrgUuid,
+      courseUuid: course?.course_uuid,
+      activityUuid: activity.activity_uuid,
+    })
+    return (
+      <div className="w-full max-w-full px-0 sm:px-4">
+        <div className="my-0 w-full sm:my-3 md:my-5">
+          <div className="relative aspect-video w-full overflow-hidden shadow-none ring-0 sm:rounded-lg sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20">
+            <LearnHousePlayer
+              key={src}
+              src={src}
+              isHls={isHls}
+              fallbackSrc={fallbackSrc}
+              details={activity.details}
+              thumbnails={thumbnails}
+              captions={captions}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (activity.activity_sub_type === 'SUBTYPE_VIDEO_YOUTUBE') {
+    if (!videoId) return <MissingVideo reason="A atividade está marcada como vídeo do YouTube, mas o link ainda não foi configurado ou não é válido." />
+    return (
+      <div className="w-full max-w-full px-0 sm:px-4">
+        <div className="my-0 w-full sm:my-3 md:my-5">
+          <div className="relative aspect-video w-full overflow-hidden shadow-none ring-0 sm:rounded-lg sm:ring-1 sm:ring-gray-200/10 sm:dark:ring-gray-700/20">
+            <YouTube
+              className="h-full w-full"
+              opts={{
+                width: '100%',
+                height: '100%',
+                playerVars: {
+                  autoplay: activity.details?.autoplay ? 1 : 0,
+                  mute: activity.details?.muted ? 1 : 0,
+                  start: activity.details?.startTime || 0,
+                  end: activity.details?.endTime || undefined,
+                  controls: 1,
+                  modestbranding: 1,
+                  rel: 0,
+                },
+              }}
+              videoId={videoId}
+              onReady={(event) => {
+                if (activity.details?.startTime) event.target.seekTo(activity.details.startTime, true)
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <MissingVideo reason="Esta atividade é do tipo vídeo, mas o subtipo de mídia ainda não foi configurado." />
 }
 
 export default VideoActivity
