@@ -67,7 +67,13 @@ async def _verify_dashboard(
     return True
 
 
-async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> int:
+async def run(
+    first_name: str,
+    last_name: str,
+    org_slug: str,
+    execute: bool,
+    user_uuid: str | None = None,
+) -> int:
     config = get_learnhouse_config()
     sql_url = config.database_config.sql_connection_string  # type: ignore[attr-defined]
     engine = create_async_engine(_to_async_url(sql_url), pool_pre_ping=True)
@@ -82,24 +88,25 @@ async def run(first_name: str, last_name: str, org_slug: str, execute: bool) -> 
                 print(f"BLOCKED organization_not_found slug={org_slug}")
                 return 2
 
-            candidates = list(
-                (
-                    await session.execute(
-                        select(User, UserOrganization, Role)
-                        .join(UserOrganization, UserOrganization.user_id == User.id)
-                        .join(Role, Role.id == UserOrganization.role_id)
-                        .where(
-                            UserOrganization.org_id == org.id,
-                            func.lower(User.first_name) == first_name.strip().lower(),
-                            func.lower(User.last_name) == last_name.strip().lower(),
-                        )
-                    )
-                ).all()
+            student_query = (
+                select(User, UserOrganization, Role)
+                .join(UserOrganization, UserOrganization.user_id == User.id)
+                .join(Role, Role.id == UserOrganization.role_id)
+                .where(
+                    UserOrganization.org_id == org.id,
+                    func.lower(User.first_name) == first_name.strip().lower(),
+                    func.lower(User.last_name) == last_name.strip().lower(),
+                )
             )
+            if user_uuid:
+                student_query = student_query.where(User.user_uuid == user_uuid.strip())
+
+            candidates = list((await session.execute(student_query)).all())
             if len(candidates) != 1:
                 print(
                     f"BLOCKED student_match_count={len(candidates)} "
-                    f"org_id={org.id} org_slug={org.slug}"
+                    f"org_id={org.id} org_slug={org.slug} "
+                    f"exact_uuid_filter={bool(user_uuid)}"
                 )
                 return 3
 
@@ -229,10 +236,19 @@ def main() -> None:
     parser.add_argument("--first-name", required=True)
     parser.add_argument("--last-name", required=True)
     parser.add_argument("--org-slug", required=True)
+    parser.add_argument("--user-uuid")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
     raise SystemExit(
-        asyncio.run(run(args.first_name, args.last_name, args.org_slug, args.execute))
+        asyncio.run(
+            run(
+                args.first_name,
+                args.last_name,
+                args.org_slug,
+                args.execute,
+                args.user_uuid,
+            )
+        )
     )
 
 
