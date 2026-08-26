@@ -38,7 +38,7 @@ if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
     else
         (
             cd /app/api || exit 90
-            .venv/bin/python scripts/xpex_ops_enroll.py \
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_ops_enroll.py \
                 --first-name "$XPEX_OPS_FIRST_NAME" \
                 --last-name "$XPEX_OPS_LAST_NAME" \
                 --org-slug "$XPEX_OPS_ORG_SLUG" \
