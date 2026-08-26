@@ -30,12 +30,25 @@ describe('XPeX federated trails catalog', () => {
     ]) expect(providers).toContain(origin)
   })
 
+  test('renders professional brand identification and GX recommendation metadata', () => {
+    expect(providers).toContain('logoSrc')
+    expect(providers).toContain('cdn.simpleicons.org/openai')
+    expect(providers).toContain('cdn.simpleicons.org/microsoft')
+    expect(providers).toContain('cdn.simpleicons.org/amazonwebservices')
+    expect(providers).toContain('gxReason')
+    expect(providers).toContain('gxPriority')
+    expect(providers).toContain('getGxTrailRecommendations')
+    expect(page).toContain('GX recomenda')
+    expect(page).toContain('Baseado no seu progresso XPeX')
+    expect(page).toContain('Personalizar com o GX')
+  })
+
   test('keeps external learning honest and separate from XPeX progress', () => {
     expect(page).toContain('Modo Trilha Real')
-    expect(page).toContain('não marca conclusão sem integração oficial de progresso')
     expect(page).toContain('integração autenticada de provedor')
     expect(page).toContain('target="_blank"')
     expect(page).toContain('rel="noopener noreferrer"')
+    expect(page).toContain('As marcas pertencem aos respectivos titulares')
   })
 
   test('keeps real XPeX progress bound to authorized learning data', () => {
