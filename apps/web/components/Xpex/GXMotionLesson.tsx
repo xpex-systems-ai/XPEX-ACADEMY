@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { XpexModuleGuide } from '@/lib/xpex/module-guides'
 
 type Scene = {
@@ -18,26 +18,10 @@ function splitExplanation(text: string) {
 function buildScenes(guide: XpexModuleGuide): Scene[] {
   const [concept, application] = splitExplanation(guide.explanation)
   return [
-    {
-      kicker: `Módulo ${guide.module} · Abertura`,
-      title: guide.title,
-      body: guide.objective,
-    },
-    {
-      kicker: 'Conceito central',
-      title: 'Entenda antes de aplicar',
-      body: concept,
-    },
-    {
-      kicker: 'Aplicação profissional',
-      title: 'Transforme conceito em decisão',
-      body: application,
-    },
-    {
-      kicker: 'Laboratório',
-      title: 'Agora pratique',
-      body: guide.practice,
-    },
+    { kicker: `Módulo ${guide.module} · Abertura`, title: guide.title, body: guide.objective },
+    { kicker: 'Conceito central', title: 'Entenda antes de aplicar', body: concept },
+    { kicker: 'Aplicação profissional', title: 'Transforme conceito em decisão', body: application },
+    { kicker: 'Laboratório', title: 'Agora pratique', body: guide.practice },
     {
       kicker: 'Fechamento GX',
       title: 'Aprenda → pratique → construa → comprove',
@@ -52,7 +36,6 @@ export function GXMotionLesson({ guide }: { guide: XpexModuleGuide }) {
   const [playing, setPlaying] = useState(false)
   const [supported, setSupported] = useState(false)
   const [rate, setRate] = useState(1)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const scene = scenes[sceneIndex]
 
   useEffect(() => {
@@ -80,7 +63,6 @@ export function GXMotionLesson({ guide }: { guide: XpexModuleGuide }) {
       }
     }
     utterance.onerror = () => setPlaying(false)
-    utteranceRef.current = utterance
     setSceneIndex(index)
     setPlaying(true)
     window.speechSynthesis.speak(utterance)
