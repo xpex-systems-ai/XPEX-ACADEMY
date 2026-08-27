@@ -6,6 +6,7 @@ from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.xpex.dashboard import get_student_dashboard
+from src.services.xpex.editorial_listing import list_editorial_drafts_page
 from src.services.xpex.editorial_studio import (
     EditorialDraftResponse,
     EditorialEditRequest,
@@ -16,7 +17,6 @@ from src.services.xpex.editorial_studio import (
     edit_editorial_draft,
     generate_editorial_draft,
     get_editorial_draft,
-    list_editorial_drafts,
     publish_editorial_draft,
     review_editorial_draft,
 )
@@ -80,8 +80,15 @@ async def course_studio_list(
     current_user: Annotated[PublicUser, Depends(get_current_user)],
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
     limit: int = 25,
+    offset: int = 0,
 ):
-    return await list_editorial_drafts(organization_slug, current_user, db_session, limit)
+    return await list_editorial_drafts_page(
+        organization_slug,
+        current_user,
+        db_session,
+        limit,
+        offset,
+    )
 
 
 @router.get("/course-studio/drafts/{draft_id}", response_model=EditorialDraftResponse)
