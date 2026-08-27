@@ -2,7 +2,7 @@
   "mission_id": "XPEX-CONTENT-003",
   "title": "AI Video Lesson Factory",
   "owner": "GX",
-  "status": "IMPLEMENTATION_STARTED",
+  "status": "IMPLEMENTATION_IN_PROGRESS",
   "objective": "Generate a resumable audiovisual package for approved course lessons without ever publishing AI-generated video automatically.",
   "pipeline": [
     "COURSE_APPROVED",
@@ -44,6 +44,25 @@
     "XPEX_HF_STT_MODEL",
     "XPEX_HF_MULTIMODAL_REVIEW_MODEL"
   ],
+  "implemented_provider_adapters": [
+    "HF_IMAGE",
+    "HF_TTS",
+    "HF_VIDEO_CLIP",
+    "HF_STT",
+    "HF_MULTIMODAL_REVIEW"
+  ],
+  "transactional_worker": {
+    "claim_strategy": "FOR UPDATE SKIP LOCKED",
+    "lease_seconds_default": 300,
+    "max_attempts_default": 5,
+    "checkpoint_after_each_stage": true,
+    "resume_from_last_durable_stage": true,
+    "provider_body_persisted_on_error": false,
+    "worker_terminal_boundary": "AWAITING_HUMAN_APPROVAL",
+    "worker_can_approve": false,
+    "worker_can_attach": false,
+    "worker_can_publish": false
+  },
   "hard_gates": {
     "provider_secrets_browser_exposed": false,
     "automatic_video_approval": false,
@@ -59,8 +78,9 @@
   "learnhouse_contract": {
     "activity_type": "TYPE_VIDEO",
     "preferred_subtype": "SUBTYPE_VIDEO_HOSTED",
+    "required_content_field": "filename",
     "published_on_attachment": false,
-    "exact_hosted_payload_must_be_audited_before_provider_attachment": true
+    "hosted_payload_audited": true
   },
   "programming_lessons": {
     "deterministic_code_capture_required": true,
@@ -78,6 +98,16 @@
     "minimum media quality",
     "asset and model license compatibility",
     "no credentials, secrets or private data in frames/audio"
+  ],
+  "remaining_gates": [
+    "select and validate production Hugging Face model ids",
+    "real Hugging Face provider smoke test",
+    "storage upload adapter",
+    "render composition pipeline",
+    "caption artifact production",
+    "native LearnHouse media upload",
+    "batch progress review approval UI",
+    "first real lesson end-to-end smoke"
   ],
   "definition_of_done": [
     "persistent resumable batch jobs",
