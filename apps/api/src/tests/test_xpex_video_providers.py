@@ -1,10 +1,11 @@
 import json
+from typing import ClassVar
 
 import httpx
 import pytest
-
 from src.services.xpex.video_factory import ReviewSeverity, VideoModelRegistry
 from src.services.xpex.video_providers import (
+    ProviderBinary,
     VideoProviderError,
     VideoProviderNotConfigured,
     generate_image,
@@ -39,7 +40,7 @@ class FakeResponse:
 
 class FakeClient:
     response = FakeResponse()
-    calls = []
+    calls: ClassVar[list[tuple[str, dict]]] = []
 
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -149,8 +150,6 @@ async def test_multimodal_review_normalizes_blocker_and_embeds_frame():
             ]
         },
     )
-
-    from src.services.xpex.video_providers import ProviderBinary
 
     review = await review_multimodal_draft(
         registry=REGISTRY,
