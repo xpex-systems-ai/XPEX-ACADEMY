@@ -37,9 +37,9 @@ jobs:
         run: uv sync
         working-directory: apps/api
 
-      - name: Compile full Alembic upgrade chain offline
+      - name: Compile CONTENT-002 Alembic revision offline
         run: |
-          uv run alembic upgrade head --sql > /tmp/xpex-migration.sql
+          uv run alembic upgrade r5s6t7u8v9w0:head --sql > /tmp/xpex-migration.sql
           test -s /tmp/xpex-migration.sql
           grep -q "xpex_editorial_draft" /tmp/xpex-migration.sql
         working-directory: apps/api
