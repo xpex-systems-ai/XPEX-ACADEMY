@@ -7,6 +7,7 @@ export interface LearnHouseMembership {
 
 const CANONICAL_ROLE_UUIDS: Record<string, XpexExperienceRole> = {
   role_global_admin: 'polo',
+  role_global_maintainer: 'polo',
   role_global_instructor: 'professora',
   role_global_user: 'aluno',
 }
