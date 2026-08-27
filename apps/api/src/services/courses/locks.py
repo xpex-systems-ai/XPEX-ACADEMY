@@ -11,11 +11,12 @@ Batch helpers are provided for TOC-style reads where many resources need
 to be checked at once without N+1 queries.
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
+from pydantic import ValidationError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
+from src.db.roles import Rights, Role, RoleTypeEnum
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
@@ -24,15 +25,52 @@ from src.security.auth import resolve_acting_user_id
 from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
 
 
+def _role_has_editor_access(role: Role | None, org_id: int) -> bool:
+    """Recognize only organization-scoped custom roles as editor-equivalent.
+
+    Global roles such as Instructor must never become organization-admin bypasses
+    merely because their capabilities include dashboard access and course creation.
+    Capability-based elevation is accepted only when the Role row is explicitly
+    scoped to the requested organization. Malformed/incomplete rights fail closed.
+    """
+    if (
+        role is None
+        or role.role_type != RoleTypeEnum.TYPE_ORGANIZATION
+        or role.org_id != org_id
+        or not role.rights
+    ):
+        return False
+    try:
+        rights = role.rights if isinstance(role.rights, Rights) else Rights.model_validate(role.rights)
+    except ValidationError:
+        return False
+    return bool(rights.dashboard.action_access and rights.courses.action_create)
+
+
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True if user is admin/maintainer on this org (bypasses all locks)."""
-    uo = (await db_session.execute(
-        select(UserOrganization).where(
-            UserOrganization.user_id == user_id,
-            UserOrganization.org_id == org_id,
+    """True for seeded admin/maintainer or an org-scoped custom editor role.
+
+    Seeded role recognition remains ID-based for backward compatibility. Any
+    capability-based elevation is constrained to a Role whose role_type is
+    TYPE_ORGANIZATION and whose org_id exactly matches the requested org.
+    """
+    uo = (
+        await db_session.execute(
+            select(UserOrganization).where(
+                UserOrganization.user_id == user_id,
+                UserOrganization.org_id == org_id,
+            )
         )
-    )).scalars().first()
-    return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
+    ).scalars().first()
+    if not uo:
+        return False
+    if uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS:
+        return True
+
+    role = (
+        await db_session.execute(select(Role).where(Role.id == uo.role_id))
+    ).scalars().first()
+    return _role_has_editor_access(role if isinstance(role, Role) else None, org_id)
 
 
 async def batch_accessible_restricted_uuids(
