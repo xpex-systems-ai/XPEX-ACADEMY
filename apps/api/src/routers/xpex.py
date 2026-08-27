@@ -21,6 +21,16 @@ from src.services.xpex.editorial_studio import (
     review_editorial_draft,
 )
 from src.services.xpex.teacher_dashboard import get_teacher_dashboard
+from src.services.xpex.video_studio import (
+    VideoBatchResponse,
+    VideoJobResponse,
+    approve_video_job,
+    attach_video_job,
+    create_video_batch,
+    list_video_jobs,
+    process_video_job,
+    publish_video_job,
+)
 
 router = APIRouter()
 
@@ -122,3 +132,59 @@ async def course_studio_publish(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     return await publish_editorial_draft(request, draft_id, payload, current_user, db_session)
+
+
+@router.post("/course-studio/drafts/{draft_id}/videos", response_model=VideoBatchResponse)
+async def video_studio_create_batch(
+    draft_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await create_video_batch(draft_id, current_user, db_session)
+
+
+@router.get("/course-studio/drafts/{draft_id}/videos", response_model=list[VideoJobResponse])
+async def video_studio_list_jobs(
+    draft_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await list_video_jobs(draft_id, current_user, db_session)
+
+
+@router.post("/video-studio/jobs/{job_id}/process", response_model=VideoJobResponse)
+async def video_studio_process_job(
+    job_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await process_video_job(job_id, current_user, db_session)
+
+
+@router.post("/video-studio/jobs/{job_id}/approve", response_model=VideoJobResponse)
+async def video_studio_approve_job(
+    job_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await approve_video_job(job_id, current_user, db_session)
+
+
+@router.post("/video-studio/jobs/{job_id}/attach", response_model=VideoJobResponse)
+async def video_studio_attach_job(
+    request: Request,
+    job_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await attach_video_job(request, job_id, current_user, db_session)
+
+
+@router.post("/video-studio/jobs/{job_id}/publish", response_model=VideoJobResponse)
+async def video_studio_publish_job(
+    request: Request,
+    job_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await publish_video_job(request, job_id, current_user, db_session)

@@ -12,6 +12,7 @@ import {
   publishCourseStudioDraft,
   reviewCourseStudioDraft,
 } from '@services/xpex/courseStudio'
+import VideoStudioPanel from './video-studio-panel'
 
 const badgeClass: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-700',
@@ -129,7 +130,7 @@ export default function CourseStudio({ orgslug }: { orgslug: string }) {
         <span className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-600">XPeX AI Course Studio</span>
         <h1 className="text-3xl font-bold text-slate-950">IA editorial com aprovação humana e publicação nativa</h1>
         <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          OpenRouter gera, Hugging Face revisa e o LearnHouse só recebe o conteúdo após duas ações humanas distintas: Aprovar e Publicar.
+          OpenRouter gera, Hugging Face revisa e o LearnHouse só recebe o conteúdo após ações humanas explícitas. Cursos publicados podem seguir para a fábrica de vídeo-aulas.
         </p>
       </header>
 
@@ -241,6 +242,10 @@ export default function CourseStudio({ orgslug }: { orgslug: string }) {
                 </section>
               )}
 
+              {selected.status === 'PUBLISHED' && accessToken && (
+                <VideoStudioPanel draftId={selected.draft_id} accessToken={accessToken} />
+              )}
+
               <section>
                 <h3 className="mb-3 font-semibold">Estrutura do curso</h3>
                 <div className="space-y-4">
@@ -263,7 +268,7 @@ export default function CourseStudio({ orgslug }: { orgslug: string }) {
               </section>
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
-                Segurança editorial: Gerar, Revisar, Editar e Aprovar não criam curso nativo. Somente Publicar cruza a fronteira editorial, com autorização, revisão e hash revalidados no servidor.
+                Segurança editorial: conteúdo e vídeo só cruzam fronteiras nativas por ações humanas explícitas. A fábrica de vídeos nunca aprova nem publica automaticamente.
               </div>
             </div>
           )}
