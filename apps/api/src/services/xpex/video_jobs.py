@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.db.xpex_video import XPeXVideoJob
 from src.services.xpex.video_factory import (
     LessonVideoManifest,
