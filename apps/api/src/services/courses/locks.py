@@ -16,6 +16,7 @@ from typing import Iterable
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.roles import Role, Rights
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
@@ -24,15 +25,42 @@ from src.security.auth import resolve_acting_user_id
 from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
 
 
+def _role_has_editor_access(role: Role | None) -> bool:
+    """Recognize custom org roles that are operationally equivalent to editors.
+
+    LearnHouse supports organization-scoped custom roles, so relying only on the
+    seeded role IDs (1/2) incorrectly rejects legitimate dashboard editors.
+    Course Studio and restricted-content bypasses need the same capability view:
+    dashboard access plus permission to create courses. Malformed or incomplete
+    rights fail closed.
+    """
+    if role is None or not role.rights:
+        return False
+    try:
+        rights = role.rights if isinstance(role.rights, Rights) else Rights.model_validate(role.rights)
+    except Exception:
+        return False
+    return bool(rights.dashboard.action_access and rights.courses.action_create)
+
+
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True if user is admin/maintainer on this org (bypasses all locks)."""
-    uo = (await db_session.execute(
-        select(UserOrganization).where(
-            UserOrganization.user_id == user_id,
-            UserOrganization.org_id == org_id,
+    """True for seeded admin/maintainer roles or an equivalent custom editor role."""
+    result = (
+        await db_session.execute(
+            select(UserOrganization, Role)
+            .join(Role, Role.id == UserOrganization.role_id)
+            .where(
+                UserOrganization.user_id == user_id,
+                UserOrganization.org_id == org_id,
+            )
         )
-    )).scalars().first()
-    return bool(uo and uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS)
+    ).first()
+    if not result:
+        return False
+    uo, role = result
+    if uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS:
+        return True
+    return _role_has_editor_access(role)
 
 
 async def batch_accessible_restricted_uuids(
