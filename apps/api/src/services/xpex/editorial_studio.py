@@ -1,9 +1,7 @@
 """Durable editorial AI workflow and explicit LearnHouse publisher for XPeX.
 
-The editorial boundary is intentionally separate from native Course/Chapter/Activity
-records. Generate, Review, Edit and Approve never create LMS records. Only the
-explicit Publish operation crosses that boundary after server-side authorization,
-revision/hash validation and blocker checks.
+Generate, Review, Edit and Approve only touch editorial staging. Native LearnHouse
+Course/Chapter/Activity rows are created only by an explicit authorized Publish.
 """
 
 from __future__ import annotations
@@ -11,14 +9,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.activities import (
     ActivityCreate,
     ActivitySubTypeEnum,
@@ -98,7 +95,7 @@ class PublishResult(BaseModel):
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def draft_content_hash(draft: CourseDraft) -> str:
@@ -148,7 +145,10 @@ async def _draft_for_actor(
     if not org or org.id is None:
         raise HTTPException(status_code=404, detail="Organization not found")
     if not await is_org_admin(current_user.id, org.id, db_session):
-        raise HTTPException(status_code=403, detail="Editorial draft is outside your authorized organization")
+        raise HTTPException(
+            status_code=403,
+            detail="Editorial draft is outside your authorized organization",
+        )
     return record, org
 
 
@@ -225,12 +225,19 @@ async def generate_editorial_draft(
     db_session.add(record)
     await db_session.commit()
     await db_session.refresh(record)
-    logger.info("XPeX editorial transition draft=%s org=%s transition=GENERATE->DRAFT actor=%s", record.draft_id, org.id, current_user.user_uuid)
+    logger.info(
+        "XPeX editorial transition draft=%s org=%s transition=GENERATE->DRAFT actor=%s",
+        record.draft_id,
+        org.id,
+        current_user.user_uuid,
+    )
     return _as_response(record, org)
 
 
 async def get_editorial_draft(
-    draft_id: str, current_user: PublicUser, db_session: AsyncSession
+    draft_id: str,
+    current_user: PublicUser,
+    db_session: AsyncSession,
 ) -> EditorialDraftResponse:
     record, org = await _draft_for_actor(draft_id, current_user, db_session)
     return _as_response(record, org)
@@ -309,7 +316,11 @@ async def review_editorial_draft(
     db_session.add(record)
     await db_session.commit()
     await db_session.refresh(record)
-    logger.info("XPeX editorial transition draft=%s transition=DRAFT->REVIEWED actor=%s", record.draft_id, current_user.user_uuid)
+    logger.info(
+        "XPeX editorial transition draft=%s transition=DRAFT->REVIEWED actor=%s",
+        record.draft_id,
+        current_user.user_uuid,
+    )
     return _as_response(record, org)
 
 
@@ -328,7 +339,10 @@ async def approve_editorial_draft(
         raise HTTPException(status_code=409, detail="Review evidence is stale")
     review = CourseDraftReview.model_validate(record.review_json) if record.review_json else None
     if review_has_blocker(review):
-        raise HTTPException(status_code=409, detail="Unresolved BLOCKER review notes prevent approval")
+        raise HTTPException(
+            status_code=409,
+            detail="Unresolved BLOCKER review notes prevent approval",
+        )
     record.approved_by_user_id = current_user.id
     record.approved_revision = record.revision
     record.approved_content_hash = record.content_hash
@@ -338,13 +352,15 @@ async def approve_editorial_draft(
     db_session.add(record)
     await db_session.commit()
     await db_session.refresh(record)
-    logger.info("XPeX editorial transition draft=%s transition=REVIEWED->APPROVED actor=%s", record.draft_id, current_user.user_uuid)
+    logger.info(
+        "XPeX editorial transition draft=%s transition=REVIEWED->APPROVED actor=%s",
+        record.draft_id,
+        current_user.user_uuid,
+    )
     return _as_response(record, org)
 
 
 def _lesson_document(lesson: object) -> dict:
-    # Native dynamic-page content uses a ProseMirror/Tiptap document. Keep the
-    # generated text as data; no HTML is interpreted here.
     data = lesson.model_dump()  # type: ignore[attr-defined]
     blocks: list[dict] = []
     for heading, text in (
@@ -353,13 +369,51 @@ def _lesson_document(lesson: object) -> dict:
         ("Prática", data["practice"]),
         ("Avaliação", data["assessment"]),
     ):
-        blocks.append({"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": heading}]})
+        blocks.append(
+            {
+                "type": "heading",
+                "attrs": {"level": 2},
+                "content": [{"type": "text", "text": heading}],
+            }
+        )
         blocks.append({"type": "paragraph", "content": [{"type": "text", "text": text}]})
     if data.get("resource_suggestions"):
-        blocks.append({"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Recursos sugeridos"}]})
+        blocks.append(
+            {
+                "type": "heading",
+                "attrs": {"level": 2},
+                "content": [{"type": "text", "text": "Recursos sugeridos"}],
+            }
+        )
         for item in data["resource_suggestions"]:
-            blocks.append({"type": "paragraph", "content": [{"type": "text", "text": f"• {item}"}]})
+            blocks.append(
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": f"• {item}"}],
+                }
+            )
     return {"type": "doc", "content": blocks}
+
+
+async def _compensate_failed_publish(
+    request: Request,
+    record: XPeXEditorialDraft,
+    course_uuid: str | None,
+    current_user: PublicUser,
+    db_session: AsyncSession,
+) -> None:
+    if course_uuid:
+        try:
+            await delete_course(request, course_uuid, current_user, db_session)
+        except Exception:
+            logger.exception("XPeX editorial compensation failed draft=%s", record.draft_id)
+    record.native_course_id = None
+    record.native_course_uuid = None
+    record.native_mapping = None
+    record.publication_state = "FAILED"
+    record.updated_at = _now()
+    db_session.add(record)
+    await db_session.commit()
 
 
 async def publish_editorial_draft(
@@ -381,16 +435,19 @@ async def publish_editorial_draft(
     if record.revision != payload.expected_revision:
         raise HTTPException(status_code=409, detail="Stale editorial revision")
     if record.status != "APPROVED":
-        raise HTTPException(status_code=409, detail="Explicit approval is required before publication")
+        raise HTTPException(
+            status_code=409,
+            detail="Explicit approval is required before publication",
+        )
     if record.approved_revision != record.revision or record.approved_content_hash != record.content_hash:
         raise HTTPException(status_code=409, detail="Approval evidence is stale")
     if record.publication_state == "PUBLISHING":
         raise HTTPException(status_code=409, detail="Publication is already in progress")
 
-    draft = CourseDraft.model_validate(record.draft_json)
     review = CourseDraftReview.model_validate(record.review_json) if record.review_json else None
     if review_has_blocker(review):
         raise HTTPException(status_code=409, detail="BLOCKER review notes prevent publication")
+    draft = CourseDraft.model_validate(record.draft_json)
 
     record.publication_state = "PUBLISHING"
     record.publication_error = None
@@ -398,9 +455,16 @@ async def publish_editorial_draft(
     db_session.add(record)
     await db_session.commit()
 
-    course = None
+    course_id: int | None = None
+    course_uuid: str | None = None
     activity_uuids: list[str] = []
-    mapping: dict = {"draft_id": record.draft_id, "revision": record.revision, "content_hash": record.content_hash, "chapters": []}
+    mapping: dict = {
+        "draft_id": record.draft_id,
+        "revision": record.revision,
+        "content_hash": record.content_hash,
+        "chapters": [],
+    }
+
     try:
         course = await create_course(
             request,
@@ -426,9 +490,15 @@ async def publish_editorial_draft(
         )
         if course.id is None:
             raise RuntimeError("Native course creation returned no id")
-        record.native_course_id = course.id
-        record.native_course_uuid = course.course_uuid
-        record.native_mapping = {**mapping, "course_id": course.id, "course_uuid": course.course_uuid, "chapters": []}
+        course_id = course.id
+        course_uuid = course.course_uuid
+        record.native_course_id = course_id
+        record.native_course_uuid = course_uuid
+        record.native_mapping = {
+            **mapping,
+            "course_id": course_id,
+            "course_uuid": course_uuid,
+        }
         db_session.add(record)
         await db_session.commit()
 
@@ -441,13 +511,17 @@ async def publish_editorial_draft(
                     thumbnail_image="",
                     lock_type=LockType.AUTHENTICATED,
                     org_id=int(org.id),
-                    course_id=course.id,
+                    course_id=course_id,
                     extra_metadata={"xpex_editorial_draft_id": record.draft_id},
                 ),
                 current_user,
                 db_session,
             )
-            chapter_map = {"chapter_id": chapter.id, "chapter_uuid": chapter.chapter_uuid, "activities": []}
+            chapter_map = {
+                "chapter_id": chapter.id,
+                "chapter_uuid": chapter.chapter_uuid,
+                "activities": [],
+            }
             for lesson in module.lessons:
                 activity = await create_activity(
                     request,
@@ -465,14 +539,21 @@ async def publish_editorial_draft(
                     db_session,
                 )
                 activity_uuids.append(activity.activity_uuid)
-                chapter_map["activities"].append({"activity_id": activity.id, "activity_uuid": activity.activity_uuid})
+                chapter_map["activities"].append(
+                    {
+                        "activity_id": activity.id,
+                        "activity_uuid": activity.activity_uuid,
+                    }
+                )
             mapping["chapters"].append(chapter_map)
-            record.native_mapping = {**mapping, "course_id": course.id, "course_uuid": course.course_uuid}
+            record.native_mapping = {
+                **mapping,
+                "course_id": course_id,
+                "course_uuid": course_uuid,
+            }
             db_session.add(record)
             await db_session.commit()
 
-        # Make children visible before the course itself. The course remains
-        # public=false/published=false throughout assembly, preventing exposure.
         for activity_uuid in activity_uuids:
             await update_activity(
                 request,
@@ -485,41 +566,46 @@ async def publish_editorial_draft(
         await update_course(
             request,
             CourseUpdate(public=True, published=True),
-            course.course_uuid,
+            course_uuid,
             current_user,
             db_session,
         )
 
         record.status = "PUBLISHED"
         record.publication_state = "SUCCEEDED"
-        record.native_mapping = {**mapping, "course_id": course.id, "course_uuid": course.course_uuid}
+        record.native_mapping = {
+            **mapping,
+            "course_id": course_id,
+            "course_uuid": course_uuid,
+        }
         record.published_at = _now()
         record.updated_at = _now()
         db_session.add(record)
         await db_session.commit()
         await db_session.refresh(record)
-        logger.info("XPeX editorial publish success draft=%s actor=%s course=%s", record.draft_id, current_user.user_uuid, course.course_uuid)
+        logger.info(
+            "XPeX editorial publish success draft=%s actor=%s course=%s",
+            record.draft_id,
+            current_user.user_uuid,
+            course_uuid,
+        )
         return PublishResult(
             draft=_as_response(record, org),
-            course_id=course.id,
-            course_uuid=course.course_uuid,
-            canonical_path=f"/orgs/{org.slug}/course/{course.course_uuid}",
+            course_id=course_id,
+            course_uuid=course_uuid,
+            canonical_path=f"/orgs/{org.slug}/course/{course_uuid}",
         )
-    except HTTPException:
-        raise
     except Exception as exc:
         logger.exception("XPeX editorial publish failed draft=%s", record.draft_id)
-        if course is not None:
-            try:
-                await delete_course(request, course.course_uuid, current_user, db_session)
-            except Exception:
-                logger.exception("XPeX editorial compensation failed draft=%s", record.draft_id)
-        record.native_course_id = None
-        record.native_course_uuid = None
-        record.native_mapping = None
-        record.publication_state = "FAILED"
         record.publication_error = type(exc).__name__
-        record.updated_at = _now()
-        db_session.add(record)
-        await db_session.commit()
-        raise HTTPException(status_code=500, detail="Native publication failed safely; course was not published") from None
+        await _compensate_failed_publish(
+            request,
+            record,
+            course_uuid,
+            current_user,
+            db_session,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Native publication failed safely; course was not published",
+        ) from None
