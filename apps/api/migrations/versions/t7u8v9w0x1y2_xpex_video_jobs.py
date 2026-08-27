@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.Column("native_course_uuid", sa.String(length=100), nullable=True),
         sa.Column("native_activity_uuid", sa.String(length=100), nullable=True),
         sa.Column("state", sa.String(length=40), nullable=False, server_default="QUEUED"),
+        sa.Column("resume_state", sa.String(length=40), nullable=True),
         sa.Column("revision", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("content_hash", sa.String(length=64), nullable=False, server_default=""),
         sa.Column("manifest_json", sa.JSON(), nullable=False),
