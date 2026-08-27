@@ -12,6 +12,7 @@ import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
 import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 import { getXpexTeacherDashboard } from '@/lib/xpex/teacher-dashboard'
+import { listCourseStudioDrafts } from '@services/xpex/courseStudio'
 
 function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
@@ -46,7 +47,14 @@ export async function AuthenticatedXpexExperience({
   let learningDataFailed = false
   let teacherData = null
   let teacherDataFailed = false
+  let adminAccess = false
   if (session.tokens?.access_token) {
+    try {
+      await listCourseStudioDrafts(organizationSlug, session.tokens.access_token)
+      adminAccess = true
+    } catch {
+      adminAccess = false
+    }
     if (role === 'aluno') {
       try {
         learningData = await getXpexLearningDashboard(
@@ -70,7 +78,7 @@ export async function AuthenticatedXpexExperience({
   }
   const organizationName = organization?.name
   return (
-    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug}>
+    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug} adminAccess={adminAccess}>
       {role === 'aluno' ? (
         <FuturisticStudentDashboard
           displayName={displayName}
