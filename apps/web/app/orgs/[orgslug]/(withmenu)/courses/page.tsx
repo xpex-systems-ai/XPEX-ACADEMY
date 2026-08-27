@@ -1,5 +1,6 @@
 import React from 'react'
 import Courses from './courses'
+import CourseStudioCta from './course-studio-cta'
 import { Metadata } from 'next'
 import { getOrganizationContextInfo } from '@services/organizations/orgs'
 import { getOrgThumbnailMediaDirectory, getOrgOgImageMediaDirectory } from '@services/media/media'
@@ -69,7 +70,12 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
 
 const CoursesPage = async (params: any) => {
   const orgslug = (await params.params).orgslug
-  return <Courses orgslug={orgslug} />
+  return (
+    <>
+      <CourseStudioCta orgslug={orgslug} />
+      <Courses orgslug={orgslug} />
+    </>
+  )
 }
 
 export default CoursesPage
