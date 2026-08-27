@@ -1,5 +1,4 @@
 import pytest
-
 from src.services.xpex.video_factory import (
     CaptionAsset,
     LessonVideoManifest,
@@ -14,7 +13,6 @@ from src.services.xpex.video_factory import (
     VideoReviewNote,
     VideoScript,
 )
-
 
 SHA = "a" * 64
 
