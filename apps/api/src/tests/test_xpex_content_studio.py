@@ -1,7 +1,5 @@
-import json
-
-import httpx
 import pytest
+from pydantic import ValidationError
 
 from src.services.xpex.content_studio import (
     CourseDraft,
@@ -69,7 +67,7 @@ def test_course_draft_is_preview_only():
 def test_course_draft_rejects_invalid_empty_content():
     bad = dict(SAMPLE_DRAFT)
     bad["modules"] = []
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CourseDraft.model_validate(bad)
 
 
