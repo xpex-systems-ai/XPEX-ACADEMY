@@ -11,12 +11,13 @@ Batch helpers are provided for TOC-style reads where many resources need
 to be checked at once without N+1 queries.
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
+from pydantic import ValidationError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.roles import Role, Rights
+from src.db.roles import Rights, Role
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
@@ -38,7 +39,7 @@ def _role_has_editor_access(role: Role | None) -> bool:
         return False
     try:
         rights = role.rights if isinstance(role.rights, Rights) else Rights.model_validate(role.rights)
-    except Exception:
+    except ValidationError:
         return False
     return bool(rights.dashboard.action_access and rights.courses.action_create)
 
