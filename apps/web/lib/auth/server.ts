@@ -45,10 +45,15 @@ async function readSessionFromBackend(backendUrl: string, accessToken: string) {
   const sessionData = await sessionResponse.json()
   if (profileResponse.ok) {
     const liveProfile = await profileResponse.json()
+    // /users/session is rebuilt from the canonical database user row, while
+    // /users/profile can reflect the identity embedded in an older access token.
+    // Never allow token-derived profile data to downgrade a database-confirmed
+    // superadmin. Keep the session payload authoritative for overlapping fields.
     sessionData.user = {
-      ...sessionData.user,
       ...liveProfile,
-      is_superadmin: liveProfile.is_superadmin === true,
+      ...sessionData.user,
+      is_superadmin:
+        sessionData.user?.is_superadmin === true || liveProfile.is_superadmin === true,
     }
   }
 
