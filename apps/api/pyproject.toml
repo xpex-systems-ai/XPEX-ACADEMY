@@ -58,6 +58,8 @@ lint.ignore = ["E501", "E712"]
 # Keep this file's existing behavior stable while the broader lint backlog is
 # handled separately; new Brevo code remains covered by the default Ruff rules.
 "apps/api/config/config.py" = ["I001", "UP045", "UP032", "BLE001", "SIM102"]
+# The launch runner groups its provider/domain imports by responsibility for auditability.
+"apps/api/src/services/xpex/launch002.py" = ["I001"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -7,6 +7,7 @@ LearnHouse activity, approves a video, or publishes student-visible content.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import tempfile
 from dataclasses import dataclass
@@ -145,14 +146,14 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         )
         with tempfile.TemporaryDirectory(prefix="xpex-narration-") as directory:
             local_audio = _write_provider_binary(audio, directory, "narration", ".wav")
-            duration = probe_duration_seconds(local_audio)
+            duration = await asyncio.to_thread(probe_duration_seconds, local_audio)
             key = draft_artifact_key(
                 batch_id=source.batch_id,
                 lesson_id=manifest.lesson_id,
                 revision=manifest.revision,
                 filename=Path(local_audio).name,
             )
-            stored = persist_local_or_s3(local_audio, key)
+            stored = await asyncio.to_thread(persist_local_or_s3, local_audio, key)
         manifest.narration = NarrationAsset(
             uri=stored.key,
             checksum_sha256=stored.checksum_sha256,
@@ -180,7 +181,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 revision=manifest.revision,
                 filename=Path(local_image).name,
             )
-            ref = _stored_ref(local_image, key)
+            ref = await asyncio.to_thread(_stored_ref, local_image, key)
         manifest.thumbnails = [ref]
         manifest.assets = [ref]
         return manifest
@@ -189,17 +190,20 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         if manifest.narration is None or not manifest.assets:
             raise ValueError("narration and visual asset are required before rendering")
         with tempfile.TemporaryDirectory(prefix="xpex-render-") as directory:
-            image_path = materialize_storage_key(
+            image_path = await asyncio.to_thread(
+                materialize_storage_key,
                 manifest.assets[0].uri,
                 str(Path(directory) / "visual.png"),
             )
             narration_suffix = _extension(manifest.narration.mime_type, ".wav")
-            narration_path = materialize_storage_key(
+            narration_path = await asyncio.to_thread(
+                materialize_storage_key,
                 manifest.narration.uri,
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             output_path = str(Path(directory) / "lesson-draft.mp4")
-            rendered = compose_lesson_video(
+            rendered = await asyncio.to_thread(
+                compose_lesson_video,
                 image_path=image_path,
                 narration_path=narration_path,
                 output_path=output_path,
@@ -210,7 +214,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 revision=manifest.revision,
                 filename="lesson-draft.mp4",
             )
-            stored = persist_local_or_s3(rendered.uri, key)
+            stored = await asyncio.to_thread(persist_local_or_s3, rendered.uri, key)
         rendered.uri = stored.key
         rendered.checksum_sha256 = stored.checksum_sha256
         manifest.video_draft = rendered
@@ -221,7 +225,8 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
             raise ValueError("script, narration and video draft are required before review")
         with tempfile.TemporaryDirectory(prefix="xpex-review-") as directory:
             narration_suffix = _extension(manifest.narration.mime_type, ".wav")
-            narration_path = materialize_storage_key(
+            narration_path = await asyncio.to_thread(
+                materialize_storage_key,
                 manifest.narration.uri,
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
@@ -231,11 +236,16 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 manifest.narration.mime_type,
                 source.registry,
             )
-            video_path = materialize_storage_key(
+            video_path = await asyncio.to_thread(
+                materialize_storage_key,
                 manifest.video_draft.uri,
                 str(Path(directory) / "lesson-draft.mp4"),
             )
-            frame = extract_review_frame(video_path, str(Path(directory) / "review-frame.png"))
+            frame = await asyncio.to_thread(
+                extract_review_frame,
+                video_path,
+                str(Path(directory) / "review-frame.png"),
+            )
             frame_bytes = Path(frame.uri).read_bytes()
             review = await review_multimodal_draft(
                 registry=source.registry,
@@ -246,7 +256,8 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 frame_samples=[ProviderBinary(frame_bytes, frame.mime_type, "ffmpeg-frame")],
             )
             caption_path = str(Path(directory) / "captions.pt-BR.vtt")
-            caption = write_caption_artifact(
+            caption = await asyncio.to_thread(
+                write_caption_artifact,
                 transcript=transcript.text,
                 duration_seconds=manifest.video_draft.duration_seconds,
                 output_path=caption_path,
@@ -257,7 +268,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 revision=manifest.revision,
                 filename="captions.pt-BR.vtt",
             )
-            stored_caption = persist_local_or_s3(caption.uri, caption_key)
+            stored_caption = await asyncio.to_thread(persist_local_or_s3, caption.uri, caption_key)
         caption.uri = stored_caption.key
         caption.checksum_sha256 = stored_caption.checksum_sha256
         manifest.captions = [caption]

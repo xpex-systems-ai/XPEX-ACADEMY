@@ -1,27 +1,32 @@
 import asyncio
 import logging
-from typing import Callable
-from fastapi import FastAPI
+from collections.abc import Callable
+
 from config.config import LearnHouseConfig, get_learnhouse_config
+from fastapi import FastAPI
+from src.core.ee_hooks import run_ee_startup
 from src.core.events.autoinstall import auto_install
 from src.core.events.content import check_content_directory
 from src.core.events.database import close_database, connect_to_db
 from src.core.events.logs import create_logs_dir
-from src.core.ee_hooks import run_ee_startup
 
 logger = logging.getLogger(__name__)
 
 _cleanup_task = None
+_xpex_launch002_task = None
 
 
 async def _periodic_migration_cleanup():
     """Run migration temp cleanup every 10 minutes."""
-    from src.services.courses.migration.migration_service import cleanup_old_temp_migrations
+    from src.services.courses.migration.migration_service import (
+        cleanup_old_temp_migrations,
+    )
+
     while True:
         await asyncio.sleep(600)  # 10 minutes
         try:
             cleanup_old_temp_migrations()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Periodic migration cleanup failed: %s", e)
 
 
@@ -30,51 +35,47 @@ async def _reconcile_packs():
     try:
         from src.core.events.database import _async_session_factory
         from src.services.packs.packs import reconcile_pack_credits
+
         async with _async_session_factory() as db_session:
             result = await reconcile_pack_credits(db_session)
             logger.info("Pack reconciliation on startup: %s", result)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Pack reconciliation skipped (non-fatal): %s", e)
 
 
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
-        # Get LearnHouse Config
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
         app.learnhouse_config = learnhouse_config  # type: ignore
-
-        # Connect to database
         await connect_to_db(app)
-
-        # Create logs directory
         await create_logs_dir()
-
-        # Create content directory
         await check_content_directory()
-
-        # Check if auto-installation is needed
         await auto_install()
-
-        # Reconcile pack credits (Redis ↔ DB)
         await _reconcile_packs()
 
-        # Clean up stale migration temp directories (on startup + every 10 min)
-        from src.services.courses.migration.migration_service import cleanup_old_temp_migrations
+        from src.services.courses.migration.migration_service import (
+            cleanup_old_temp_migrations,
+        )
+
         cleanup_old_temp_migrations()
         global _cleanup_task
         _cleanup_task = asyncio.create_task(_periodic_migration_cleanup())
 
-        # Start the in-app HLS transcoding consumer (drains the Redis queue as a
-        # background task; no separate worker). No-op unless LEARNHOUSE_HLS_ENABLED.
         from src.services.utils.hls_jobs import start_consumer
+
         start_consumer()
 
-        # Start the in-app AI captions consumer (no-op without Redis; idle until an
-        # instructor enables captions on a video).
-        from src.services.utils.caption_jobs import start_consumer as start_captions_consumer
+        from src.services.utils.caption_jobs import (
+            start_consumer as start_captions_consumer,
+        )
+
         start_captions_consumer()
 
-        # Start Enterprise Edition Startup tasks if available
+        from src.services.xpex.launch002_v2 import start_launch002_v2
+
+        global _xpex_launch002_task
+        _xpex_launch002_task = start_launch002_v2()
+
         run_ee_startup(app)
 
     return start_app
@@ -82,20 +83,32 @@ def startup_app(app: FastAPI) -> Callable:
 
 def shutdown_app(app: FastAPI) -> Callable:
     async def close_app() -> None:
+        if _xpex_launch002_task:
+            _xpex_launch002_task.cancel()
+            try:
+                await _xpex_launch002_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                logger.exception("XPEX-LAUNCH-002 task failed before shutdown; continuing cleanup")
         if _cleanup_task:
             _cleanup_task.cancel()
             try:
                 await _cleanup_task
             except asyncio.CancelledError:
                 pass
-        # Stop the in-app HLS consumer and wait for in-flight transcodes.
+
         from src.services.utils.hls_jobs import stop_consumer
+
         await stop_consumer()
-        # Stop the in-app captions consumer.
-        from src.services.utils.caption_jobs import stop_consumer as stop_captions_consumer
+        from src.services.utils.caption_jobs import (
+            stop_consumer as stop_captions_consumer,
+        )
+
         await stop_captions_consumer()
-        # Wait for in-flight webhook deliveries before closing the HTTP client
-        from src.services.webhooks.dispatch import close_webhook_client, _background_tasks as _webhook_tasks
+        from src.services.webhooks.dispatch import _background_tasks as _webhook_tasks
+        from src.services.webhooks.dispatch import close_webhook_client
+
         if _webhook_tasks:  # pragma: no cover
             await asyncio.gather(*list(_webhook_tasks), return_exceptions=True)
         await close_webhook_client()
