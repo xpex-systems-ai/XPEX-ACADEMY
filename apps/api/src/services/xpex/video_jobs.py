@@ -75,6 +75,7 @@ async def ensure_batch_jobs(
             editorial_draft_id=editorial_draft_id,
             native_course_uuid=native_course_uuid,
             state=VideoJobState.QUEUED.value,
+            resume_state=VideoJobState.SCRIPTING.value,
             revision=manifest.revision,
             content_hash=manifest.content_hash(),
             manifest_json=manifest.model_dump(mode="json"),
@@ -99,8 +100,7 @@ async def claim_next_job(
     """Atomically claim one queued/retryable job for a worker replica.
 
     ``SKIP LOCKED`` is the duplicate-execution guard across concurrent workers.
-    Failed jobs are retryable only below ``max_attempts``. A fresh claim always
-    restarts from the durable manifest and moves to SCRIPTING.
+    Failed jobs resume from their last durable stage instead of starting over.
     """
     lease_seconds = max(30, min(lease_seconds, 3600))
     statement = (
@@ -122,7 +122,14 @@ async def claim_next_job(
         return None
 
     manifest = LessonVideoManifest.model_validate(row.manifest_json)
-    manifest.state = VideoJobState.SCRIPTING
+    try:
+        resume_state = VideoJobState(row.resume_state or VideoJobState.SCRIPTING.value)
+    except ValueError:
+        resume_state = VideoJobState.SCRIPTING
+    if resume_state not in ACTIVE_STATES:
+        resume_state = VideoJobState.SCRIPTING
+    manifest.state = resume_state
+
     lease_id = f"{worker_id}:{uuid4()}"
     now = _now()
     row.state = manifest.state.value
@@ -163,11 +170,7 @@ async def save_worker_checkpoint(
     """Persist one resumable stage checkpoint under the worker lease."""
     if next_state in {VideoJobState.APPROVED, VideoJobState.ATTACHED, VideoJobState.PUBLISHED}:
         raise ValueError("worker cannot cross a human approval/publication gate")
-    statement = (
-        select(XPeXVideoJob)
-        .where(XPeXVideoJob.job_id == job_id)
-        .with_for_update()
-    )
+    statement = select(XPeXVideoJob).where(XPeXVideoJob.job_id == job_id).with_for_update()
     row = (await db_session.execute(statement)).scalars().first()
     if row is None:
         raise ValueError("video job not found")
@@ -175,6 +178,7 @@ async def save_worker_checkpoint(
 
     manifest.state = next_state
     row.state = next_state.value
+    row.resume_state = next_state.value if next_state in ACTIVE_STATES else None
     row.revision = manifest.revision
     row.content_hash = manifest.content_hash()
     row.manifest_json = manifest.model_dump(mode="json")
@@ -200,7 +204,7 @@ async def mark_job_failed(
     lease_id: str,
     safe_error: str,
 ) -> XPeXVideoJob:
-    """Release a failed job for bounded retry without persisting provider bodies."""
+    """Release a failed job for bounded retry at its last durable stage."""
     row = (
         await db_session.execute(
             select(XPeXVideoJob).where(XPeXVideoJob.job_id == job_id).with_for_update()
@@ -209,6 +213,13 @@ async def mark_job_failed(
     if row is None:
         raise ValueError("video job not found")
     _require_live_lease(row, lease_id)
+
+    try:
+        current = VideoJobState(row.state)
+    except ValueError:
+        current = VideoJobState.SCRIPTING
+    row.resume_state = current.value if current in ACTIVE_STATES else VideoJobState.SCRIPTING.value
+
     manifest = LessonVideoManifest.model_validate(row.manifest_json)
     manifest.state = VideoJobState.FAILED
     row.state = VideoJobState.FAILED.value
