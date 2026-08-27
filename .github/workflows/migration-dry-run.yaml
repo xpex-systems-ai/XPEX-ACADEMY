@@ -45,7 +45,7 @@ jobs:
         working-directory: apps/api
         env:
           LEARNHOUSE_SQL_CONNECTION_STRING: postgresql://learnhouse:learnhouse@localhost:5432/learnhouse
-          LEARNHOUSE_AUTH_JWT_SECRET_KEY: migration-dry-run-only
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY: migration-dry-run-only-0000000000000000
           LEARNHOUSE_TENANCY: "false"
 
       - name: Validate single Alembic head
@@ -55,5 +55,5 @@ jobs:
         working-directory: apps/api
         env:
           LEARNHOUSE_SQL_CONNECTION_STRING: postgresql://learnhouse:learnhouse@localhost:5432/learnhouse
-          LEARNHOUSE_AUTH_JWT_SECRET_KEY: migration-dry-run-only
+          LEARNHOUSE_AUTH_JWT_SECRET_KEY: migration-dry-run-only-0000000000000000
           LEARNHOUSE_TENANCY: "false"
