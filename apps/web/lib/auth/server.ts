@@ -7,16 +7,15 @@ function getAuthBackendUrl(): string {
   return backendUrl === 'http://localhost' ? 'http://localhost:1338' : backendUrl
 }
 
-// Cookie names (must match the API routes)
 const ACCESS_TOKEN_COOKIE = 'LH_access'
 const REFRESH_TOKEN_COOKIE = 'LH_refresh'
 
-// Types matching the client-side session structure
 export interface Session {
   user: {
     username?: string
     first_name?: string
     last_name?: string
+    is_superadmin?: boolean
     [key: string]: unknown
   } | undefined
   roles?: LearnHouseMembership[] | undefined
@@ -27,58 +26,59 @@ export interface Session {
   } | undefined
 }
 
-/**
- * Get server-side session by reading tokens from cookies.
- *
- * Since cookies are now set by Next.js API routes (same origin),
- * they are reliably readable by the Next.js server.
- */
+async function readSessionFromBackend(backendUrl: string, accessToken: string) {
+  const [sessionResponse, profileResponse] = await Promise.all([
+    fetch(`${backendUrl}/api/v1/users/session`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    }),
+    fetch(`${backendUrl}/api/v1/users/profile`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    }),
+  ])
+
+  if (!sessionResponse.ok) return null
+
+  const sessionData = await sessionResponse.json()
+  if (profileResponse.ok) {
+    const liveProfile = await profileResponse.json()
+    sessionData.user = {
+      ...sessionData.user,
+      ...liveProfile,
+      is_superadmin: liveProfile.is_superadmin === true,
+    }
+  }
+
+  return sessionData
+}
+
 export async function getServerSession(): Promise<Session | null> {
   try {
     const backendUrl = getAuthBackendUrl()
     const cookieStore = await cookies()
-
-    // Try to get access token directly
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)
 
     if (accessToken?.value) {
-      // Verify the token is valid by fetching session from backend
-      const sessionResponse = await fetch(`${backendUrl}/api/v1/users/session`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken.value}`,
-        },
-        cache: 'no-store',
-      })
-
-      if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json()
+      const sessionData = await readSessionFromBackend(backendUrl, accessToken.value)
+      if (sessionData) {
         return {
           user: sessionData.user,
           roles: sessionData.roles,
-          tokens: {
-            access_token: accessToken.value,
-          },
+          tokens: { access_token: accessToken.value },
         }
       }
-
-      // Access token expired or invalid, try refresh
       console.log('[SERVER_SESSION] Access token invalid, trying refresh')
     }
 
-    // Try to refresh using refresh token
     const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)
+    if (!refreshToken?.value) return null
 
-    if (!refreshToken?.value) {
-      return null
-    }
-
-    // Exchange refresh token for new access token via backend
     const refreshResponse = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
       method: 'GET',
-      headers: {
-        Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}`,
-      },
+      headers: { Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}` },
       cache: 'no-store',
     })
 
@@ -88,22 +88,10 @@ export async function getServerSession(): Promise<Session | null> {
     }
 
     const refreshData = await refreshResponse.json()
+    if (!refreshData.access_token) return null
 
-    if (!refreshData.access_token) {
-      return null
-    }
-
-    // Fetch user session with the new access token
-    const sessionResponse = await fetch(`${backendUrl}/api/v1/users/session`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${refreshData.access_token}`,
-      },
-      cache: 'no-store',
-    })
-
-    if (!sessionResponse.ok) {
-      // Return minimal session with just the token
+    const sessionData = await readSessionFromBackend(backendUrl, refreshData.access_token)
+    if (!sessionData) {
       return {
         user: undefined,
         roles: [],
@@ -113,8 +101,6 @@ export async function getServerSession(): Promise<Session | null> {
         },
       }
     }
-
-    const sessionData = await sessionResponse.json()
 
     return {
       user: sessionData.user,
@@ -130,39 +116,23 @@ export async function getServerSession(): Promise<Session | null> {
   }
 }
 
-/**
- * Get access token from cookies for server-side API calls.
- * This is a lightweight alternative when you only need the token.
- */
 export async function getServerAccessToken(): Promise<string | null> {
   try {
     const backendUrl = getAuthBackendUrl()
     const cookieStore = await cookies()
-
-    // Try access token first
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)
-    if (accessToken?.value) {
-      return accessToken.value
-    }
+    if (accessToken?.value) return accessToken.value
 
-    // Try to refresh
     const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)
-    if (!refreshToken?.value) {
-      return null
-    }
+    if (!refreshToken?.value) return null
 
     const response = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
       method: 'GET',
-      headers: {
-        Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}`,
-      },
+      headers: { Cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken.value}` },
       cache: 'no-store',
     })
 
-    if (!response.ok) {
-      return null
-    }
-
+    if (!response.ok) return null
     const data = await response.json()
     return data.access_token || null
   } catch (error) {
