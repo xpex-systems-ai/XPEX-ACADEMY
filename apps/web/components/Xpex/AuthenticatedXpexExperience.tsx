@@ -43,17 +43,20 @@ export async function AuthenticatedXpexExperience({
 
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Pessoa participante'
+  const isSuperadmin = 'is_superadmin' in session.user && session.user.is_superadmin === true
   let learningData = null
   let learningDataFailed = false
   let teacherData = null
   let teacherDataFailed = false
-  let adminAccess = false
+  let adminAccess = isSuperadmin
   if (session.tokens?.access_token) {
-    try {
-      await listCourseStudioDrafts(organizationSlug, session.tokens.access_token)
-      adminAccess = true
-    } catch {
-      adminAccess = false
+    if (!adminAccess) {
+      try {
+        await listCourseStudioDrafts(organizationSlug, session.tokens.access_token)
+        adminAccess = true
+      } catch {
+        adminAccess = false
+      }
     }
     if (role === 'aluno') {
       try {
