@@ -9,7 +9,7 @@ API_ROOT = Path(__file__).resolve().parents[1]
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from src.services.xpex.content_studio import (  # noqa: E402
+from src.services.xpex.content_studio import (
     CourseStudioNotConfigured,
     CourseStudioProviderError,
     generate_and_review_course_draft,
