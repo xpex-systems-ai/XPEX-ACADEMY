@@ -16,7 +16,6 @@ from collections.abc import Iterable
 from pydantic import ValidationError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.roles import Rights, Role
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
@@ -144,4 +143,4 @@ async def is_locked_for_user(
     accessible = await batch_accessible_restricted_uuids(
         acting_user_id, [resource_uuid], db_session
     )
-    return resource_uuid not in accessible_restricted_uuids if accessible_restricted_uuids is not None else resource_uuid not in accessible
+    return resource_uuid not in accessible
