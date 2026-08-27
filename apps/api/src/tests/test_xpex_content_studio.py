@@ -1,6 +1,5 @@
-from pydantic import ValidationError
 import pytest
-
+from pydantic import ValidationError
 from src.services.xpex.content_studio import (
     CourseDraft,
     CourseStudioNotConfigured,
