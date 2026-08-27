@@ -68,12 +68,26 @@ async function parseResponse(response: Response) {
   return body
 }
 
-export async function listCourseStudioDrafts(orgslug: string, accessToken: string) {
+export async function listCourseStudioDrafts(
+  orgslug: string,
+  accessToken: string,
+  options: { limit?: number; offset?: number } = {},
+) {
+  const limit = options.limit ?? 25
+  const offset = options.offset ?? 0
   const response = await fetch(
-    `${getAPIUrl()}xpex/course-studio/drafts?organization_slug=${encodeURIComponent(orgslug)}`,
+    `${getAPIUrl()}xpex/course-studio/drafts?organization_slug=${encodeURIComponent(orgslug)}&limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`,
     RequestBodyWithAuthHeader('GET', null, null, accessToken)
   )
   return parseResponse(response) as Promise<CourseStudioDraft[]>
+}
+
+export async function getCourseStudioDraft(draftId: string, accessToken: string) {
+  const response = await fetch(
+    `${getAPIUrl()}xpex/course-studio/drafts/${encodeURIComponent(draftId)}`,
+    RequestBodyWithAuthHeader('GET', null, null, accessToken)
+  )
+  return parseResponse(response) as Promise<CourseStudioDraft>
 }
 
 export async function generateCourseStudioDraft(
