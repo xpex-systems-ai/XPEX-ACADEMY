@@ -19,8 +19,8 @@ export default async function XpexAdminPage() {
   const memberships: LearnHouseMembership[] | undefined = session.roles
   const organization = resolveXpexOrganization(memberships)
   const organizationSlug = organization?.slug ?? 'global'
-  const roles = organization?.slug ? resolveXpexAccess(memberships, organization.slug) : []
-  const isSuperadmin = 'is_superadmin' in session.user && session.user.is_superadmin === true
+  const membershipRoles = organization?.slug ? resolveXpexAccess(memberships, organization.slug) : []
+  const isSuperadmin = session.user.is_superadmin === true
 
   let capabilityAdmin = false
   if (!isSuperadmin && organization?.slug && session.tokens?.access_token) {
@@ -34,8 +34,18 @@ export default async function XpexAdminPage() {
 
   if (!isSuperadmin && !capabilityAdmin) redirect('/xpex?admin=forbidden')
 
-  const shellRole: XpexRole = roles.includes('polo') ? 'polo' : roles.includes('professora') ? 'professora' : 'aluno'
-  const allowedRoles: XpexRole[] = roles.length ? roles : [shellRole]
+  const shellRole: XpexRole = isSuperadmin
+    ? 'polo'
+    : membershipRoles.includes('polo')
+      ? 'polo'
+      : membershipRoles.includes('professora')
+        ? 'professora'
+        : 'aluno'
+  const allowedRoles: XpexRole[] = isSuperadmin
+    ? (['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexRole[])
+    : membershipRoles.length
+      ? membershipRoles
+      : [shellRole]
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Administrador XPeX'
   const orgPath = organization?.slug ? `/orgs/${encodeURIComponent(organization.slug)}` : null
@@ -65,32 +75,9 @@ export default async function XpexAdminPage() {
         </header>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <AdminCard
-            title="Centro de Controle"
-            description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar."
-            href="/xpex/control-center"
-            action="Abrir centro de controle"
-          />
-          {orgPath ? (
-            <AdminCard
-              title="Fábrica de Cursos IA"
-              description="Criar, revisar, aprovar e publicar cursos na organização autorizada."
-              href={`${orgPath}/course-studio`}
-              action="Abrir Course Studio"
-            />
-          ) : (
-            <AdminNotice title="Organização" description="Sua conta superadmin está ativa, mas ainda não há uma organização vinculada à sessão atual." />
-          )}
-          {orgPath ? (
-            <AdminCard
-              title="Cursos"
-              description="Abrir o catálogo administrativo de cursos e conteúdos da organização."
-              href={`${orgPath}/courses`}
-              action="Gerenciar cursos"
-            />
-          ) : (
-            <AdminNotice title="Cursos" description="Vincule uma organização para habilitar os atalhos operacionais de cursos." />
-          )}
+          <AdminCard title="Centro de Controle" description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar." href="/xpex/control-center" action="Abrir centro de controle" />
+          {orgPath ? <AdminCard title="Fábrica de Cursos IA" description="Criar, revisar, aprovar e publicar cursos na organização autorizada." href={`${orgPath}/course-studio`} action="Abrir Course Studio" /> : <AdminNotice title="Organização" description="Sua conta superadmin está ativa, mas ainda não há uma organização vinculada à sessão atual." />}
+          {orgPath ? <AdminCard title="Cursos" description="Abrir o catálogo administrativo de cursos e conteúdos da organização." href={`${orgPath}/courses`} action="Gerenciar cursos" /> : <AdminNotice title="Cursos" description="Vincule uma organização para habilitar os atalhos operacionais de cursos." />}
         </div>
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6">
@@ -108,15 +95,7 @@ export default async function XpexAdminPage() {
 }
 
 function AdminCard({ title, description, href, action }: { title: string; description: string; href: string; action: string }) {
-  return (
-    <article className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6">
-      <h2 className="text-xl font-black text-white">{title}</h2>
-      <p className="mt-2 min-h-16 text-sm leading-6 text-slate-400">{description}</p>
-      <Link href={href} className="mt-6 inline-flex rounded-xl bg-orange-500 px-4 py-2 text-sm font-black text-white transition hover:bg-orange-400">
-        {action}
-      </Link>
-    </article>
-  )
+  return <article className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6"><h2 className="text-xl font-black text-white">{title}</h2><p className="mt-2 min-h-16 text-sm leading-6 text-slate-400">{description}</p><Link href={href} className="mt-6 inline-flex rounded-xl bg-orange-500 px-4 py-2 text-sm font-black text-white transition hover:bg-orange-400">{action}</Link></article>
 }
 
 function AdminNotice({ title, description }: { title: string; description: string }) {
