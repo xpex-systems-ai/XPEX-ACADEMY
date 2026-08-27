@@ -70,9 +70,10 @@ RUN bun run build
 FROM python:3.14.3-slim-bookworm AS runner
 
 # Single apt layer: nginx, curl, netcat, node, pm2, and audiovisual runtime.
-# ffmpeg/ffprobe are required by the guarded XPeX video lesson render/review pipeline.
+# ffmpeg/ffprobe are required by the guarded XPeX video render/review pipeline.
+# espeak-ng is a deterministic Portuguese TTS fallback when no audited hosted TTS is configured.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx curl netcat-openbsd ca-certificates gnupg unzip build-essential ffmpeg \
+    && apt-get install -y --no-install-recommends nginx curl netcat-openbsd ca-certificates gnupg unzip build-essential ffmpeg espeak-ng \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g pm2 \
