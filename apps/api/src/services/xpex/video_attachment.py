@@ -8,7 +8,6 @@ upload and from publication; this helper always returns ``published=False``.
 from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
-
 from src.db.courses.activities import (
     ActivityCreate,
     ActivityLockType,
