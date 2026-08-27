@@ -1,3 +1,4 @@
+<img width="1942" height="809" alt="ChatGPT Image 1 de ago  de 2026, 22_11_48" src="https://github.com/user-attachments/assets/d9d2e286-8b72-432f-aeaa-f39b0e8f958d" />
 # XpeX Academy
 
 ## Plataforma Global de Desenvolvimento Profissional com Inteligência Artificial
