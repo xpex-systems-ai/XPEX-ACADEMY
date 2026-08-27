@@ -16,6 +16,8 @@ from pathlib import Path
 
 from src.services.courses.transfer.storage_utils import (
     get_content_delivery_type,
+    get_s3_bucket_name,
+    get_storage_client,
     upload_file_to_s3,
 )
 from src.services.xpex.video_factory import CaptionAsset, MediaRef, VideoAsset
@@ -126,6 +128,30 @@ def persist_local_or_s3(local_path: str, storage_key: str) -> StoredArtifact:
     return StoredArtifact(storage_key, str(target), checksum, mime)
 
 
+def materialize_storage_key(storage_key: str, local_path: str) -> str:
+    """Stream a persisted artifact to local scratch space for a resumable stage."""
+    destination = Path(local_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if get_content_delivery_type() == "s3api":
+        client = get_storage_client()
+        if client is None:
+            raise VideoMediaError("media storage client is unavailable")
+        try:
+            client.download_file(get_s3_bucket_name(), storage_key, str(destination))
+        except Exception as exc:  # noqa: BLE001
+            raise VideoMediaError("media artifact download failed") from exc
+    else:
+        source = Path(storage_key)
+        if not source.is_file():
+            raise VideoMediaError("media artifact is missing")
+        if source.resolve() != destination.resolve():
+            with open(source, "rb") as src, open(destination, "wb") as dst:
+                dst.writelines(iter(lambda: src.read(1024 * 1024), b""))
+    if not destination.is_file() or destination.stat().st_size == 0:
+        raise VideoMediaError("materialized media artifact is empty")
+    return str(destination)
+
+
 def _run_ffmpeg(command: list[str], *, timeout_seconds: int = 900) -> None:
     try:
         result = subprocess.run(
@@ -192,6 +218,33 @@ def compose_lesson_video(
         checksum_sha256=checksum,
         mime_type="video/mp4",
         duration_seconds=max(duration, 1),
+    )
+
+
+def extract_review_frame(video_path: str, output_path: str) -> MediaRef:
+    """Extract a deterministic midpoint-ish frame for multimodal QA evidence."""
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _run_ffmpeg(
+        [
+            "ffmpeg",
+            "-y",
+            "-ss",
+            "1",
+            "-i",
+            video_path,
+            "-frames:v",
+            "1",
+            str(output),
+        ],
+        timeout_seconds=120,
+    )
+    if not output.is_file() or output.stat().st_size == 0:
+        raise VideoMediaError("review frame extraction produced no image")
+    return MediaRef(
+        uri=str(output),
+        checksum_sha256=_sha256_file(str(output)),
+        mime_type=_mime_for_suffix(output.suffix),
     )
 
 
