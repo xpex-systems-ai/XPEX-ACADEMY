@@ -190,6 +190,8 @@ class VideoBatchPlan(BaseModel):
 
 class VideoModelRegistry(BaseModel):
     video_model: str | None = None
+    video_provider: str = "fal-ai"
+    video_provider_model: str | None = None
     image_model: str | None = None
     tts_model: str | None = None
     stt_model: str | None = None
@@ -199,6 +201,8 @@ class VideoModelRegistry(BaseModel):
     def from_environment(cls) -> VideoModelRegistry:
         return cls(
             video_model=os.getenv("XPEX_HF_VIDEO_MODEL"),
+            video_provider=os.getenv("XPEX_HF_VIDEO_PROVIDER", "fal-ai"),
+            video_provider_model=os.getenv("XPEX_HF_VIDEO_PROVIDER_MODEL"),
             image_model=os.getenv("XPEX_HF_IMAGE_MODEL"),
             tts_model=os.getenv("XPEX_HF_TTS_MODEL"),
             stt_model=os.getenv("XPEX_HF_STT_MODEL"),
@@ -206,12 +210,15 @@ class VideoModelRegistry(BaseModel):
         )
 
     def configured_for_full_pipeline(self) -> bool:
-        return all(
-            [
-                self.video_model,
-                self.image_model,
-                self.tts_model,
-                self.stt_model,
-                self.multimodal_review_model,
-            ]
+        video_ready = bool(
+            self.video_model
+            and self.video_provider == "fal-ai"
+            and self.video_provider_model
+        )
+        return bool(
+            video_ready
+            and self.image_model
+            and self.tts_model
+            and self.stt_model
+            and self.multimodal_review_model
         )
