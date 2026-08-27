@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from src.services.xpex.video_media import (
     VideoMediaError,
     activity_artifact_key,
