@@ -1,5 +1,4 @@
 import pytest
-
 from src.db.courses.activities import (
     ActivityLockType,
     ActivitySubTypeEnum,
