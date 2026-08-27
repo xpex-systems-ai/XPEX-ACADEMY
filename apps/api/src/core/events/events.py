@@ -12,6 +12,7 @@ from src.core.ee_hooks import run_ee_startup
 logger = logging.getLogger(__name__)
 
 _cleanup_task = None
+_xpex_launch002_task = None
 
 
 async def _periodic_migration_cleanup():
@@ -74,6 +75,11 @@ def startup_app(app: FastAPI) -> Callable:
         from src.services.utils.caption_jobs import start_consumer as start_captions_consumer
         start_captions_consumer()
 
+        # XPEX-LAUNCH-002 is opt-in, idempotent and never auto-approves video.
+        from src.services.xpex.launch002 import start_launch002
+        global _xpex_launch002_task
+        _xpex_launch002_task = start_launch002()
+
         # Start Enterprise Edition Startup tasks if available
         run_ee_startup(app)
 
@@ -82,6 +88,12 @@ def startup_app(app: FastAPI) -> Callable:
 
 def shutdown_app(app: FastAPI) -> Callable:
     async def close_app() -> None:
+        if _xpex_launch002_task:
+            _xpex_launch002_task.cancel()
+            try:
+                await _xpex_launch002_task
+            except asyncio.CancelledError:
+                pass
         if _cleanup_task:
             _cleanup_task.cancel()
             try:
