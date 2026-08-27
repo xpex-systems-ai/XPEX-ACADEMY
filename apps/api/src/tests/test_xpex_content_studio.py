@@ -1,5 +1,5 @@
-import pytest
 from pydantic import ValidationError
+import pytest
 
 from src.services.xpex.content_studio import (
     CourseDraft,
