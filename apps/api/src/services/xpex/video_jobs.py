@@ -91,6 +91,43 @@ async def ensure_batch_jobs(
     return [by_lesson[lesson_id] for lesson_id in plan.lesson_ids]
 
 
+def _resume_manifest(row: XPeXVideoJob) -> LessonVideoManifest:
+    manifest = LessonVideoManifest.model_validate(row.manifest_json)
+    try:
+        resume_state = VideoJobState(row.resume_state or VideoJobState.SCRIPTING.value)
+    except ValueError:
+        resume_state = VideoJobState.SCRIPTING
+    if resume_state not in ACTIVE_STATES:
+        resume_state = VideoJobState.SCRIPTING
+    manifest.state = resume_state
+    return manifest
+
+
+async def _claim_row(
+    db_session: AsyncSession,
+    row: XPeXVideoJob,
+    *,
+    worker_id: str,
+    lease_seconds: int,
+) -> XPeXVideoJob:
+    manifest = _resume_manifest(row)
+    lease_id = f"{worker_id}:{uuid4()}"
+    now = _now()
+    row.state = manifest.state.value
+    row.manifest_json = manifest.model_dump(mode="json")
+    row.revision = manifest.revision
+    row.content_hash = manifest.content_hash()
+    row.attempt_count += 1
+    row.lease_id = lease_id
+    row.lease_expires_at = _iso(now + timedelta(seconds=lease_seconds))
+    row.last_error = None
+    row.updated_at = _iso(now)
+    db_session.add(row)
+    await db_session.commit()
+    await db_session.refresh(row)
+    return row
+
+
 async def claim_next_job(
     db_session: AsyncSession,
     *,
@@ -122,31 +159,46 @@ async def claim_next_job(
     if row is None:
         await db_session.rollback()
         return None
+    return await _claim_row(
+        db_session,
+        row,
+        worker_id=worker_id,
+        lease_seconds=lease_seconds,
+    )
 
-    manifest = LessonVideoManifest.model_validate(row.manifest_json)
-    try:
-        resume_state = VideoJobState(row.resume_state or VideoJobState.SCRIPTING.value)
-    except ValueError:
-        resume_state = VideoJobState.SCRIPTING
-    if resume_state not in ACTIVE_STATES:
-        resume_state = VideoJobState.SCRIPTING
-    manifest.state = resume_state
 
-    lease_id = f"{worker_id}:{uuid4()}"
-    now = _now()
-    row.state = manifest.state.value
-    row.manifest_json = manifest.model_dump(mode="json")
-    row.revision = manifest.revision
-    row.content_hash = manifest.content_hash()
-    row.attempt_count += 1
-    row.lease_id = lease_id
-    row.lease_expires_at = _iso(now + timedelta(seconds=lease_seconds))
-    row.last_error = None
-    row.updated_at = _iso(now)
-    db_session.add(row)
-    await db_session.commit()
-    await db_session.refresh(row)
-    return row
+async def claim_job(
+    db_session: AsyncSession,
+    *,
+    job_id: str,
+    worker_id: str,
+    org_id: int,
+    lease_seconds: int = 1800,
+    max_attempts: int = 5,
+) -> XPeXVideoJob | None:
+    """Claim one explicitly selected job under the same lease/retry rules."""
+    lease_seconds = max(30, min(lease_seconds, 3600))
+    row = (
+        await db_session.execute(
+            select(XPeXVideoJob)
+            .where(
+                XPeXVideoJob.job_id == job_id,
+                XPeXVideoJob.org_id == org_id,
+                XPeXVideoJob.state.in_([VideoJobState.QUEUED.value, VideoJobState.FAILED.value]),
+                XPeXVideoJob.attempt_count < max_attempts,
+            )
+            .with_for_update(skip_locked=True)
+        )
+    ).scalars().first()
+    if row is None:
+        await db_session.rollback()
+        return None
+    return await _claim_row(
+        db_session,
+        row,
+        worker_id=worker_id,
+        lease_seconds=lease_seconds,
+    )
 
 
 def _require_live_lease(row: XPeXVideoJob, lease_id: str) -> None:
@@ -193,6 +245,34 @@ async def save_worker_checkpoint(
         lease_seconds = max(30, min(lease_seconds, 3600))
         row.lease_expires_at = _iso(_now() + timedelta(seconds=lease_seconds))
 
+    db_session.add(row)
+    await db_session.commit()
+    await db_session.refresh(row)
+    return row
+
+
+async def save_human_transition(
+    db_session: AsyncSession,
+    *,
+    row: XPeXVideoJob,
+    manifest: LessonVideoManifest,
+    actor_user_id: int,
+) -> XPeXVideoJob:
+    """Persist an approval/attachment/publication transition after domain validation."""
+    row.state = manifest.state.value
+    row.resume_state = None
+    row.revision = manifest.revision
+    row.content_hash = manifest.content_hash()
+    row.manifest_json = manifest.model_dump(mode="json")
+    row.native_activity_uuid = manifest.learnhouse_activity_uuid
+    row.updated_at = _iso(_now())
+    if manifest.state == VideoJobState.APPROVED:
+        row.approved_by_user_id = actor_user_id
+        row.approved_at = row.updated_at
+    elif manifest.state == VideoJobState.ATTACHED:
+        row.attached_at = row.updated_at
+    elif manifest.state == VideoJobState.PUBLISHED:
+        row.published_at = row.updated_at
     db_session.add(row)
     await db_session.commit()
     await db_session.refresh(row)
