@@ -121,8 +121,7 @@ def persist_local_or_s3(local_path: str, storage_key: str) -> StoredArtifact:
     if source.resolve() != target.resolve():
         temp_target = target.with_suffix(target.suffix + ".tmp")
         with open(source, "rb") as src, open(temp_target, "wb") as dst:
-            for chunk in iter(lambda: src.read(1024 * 1024), b""):
-                dst.write(chunk)
+            dst.writelines(iter(lambda: src.read(1024 * 1024), b""))
         os.replace(temp_target, target)
     return StoredArtifact(storage_key, str(target), checksum, mime)
 
