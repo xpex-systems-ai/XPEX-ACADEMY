@@ -70,8 +70,9 @@ export default async function XpexControlCenterPage() {
   const session = await getServerSession()
   if (!session?.user) redirect('/login?next=%2Fxpex%2Fcontrol-center')
   if (!session.tokens?.access_token) redirect('/xpex')
+  const accessToken = session.tokens.access_token
 
-  const context = await resolveAdministrativeContext(session.roles, session.tokens.access_token)
+  const context = await resolveAdministrativeContext(session.roles, accessToken)
   if (!context) redirect('/xpex?admin=forbidden')
 
   const { organizationSlug, drafts, launchDraft } = context
@@ -84,7 +85,7 @@ export default async function XpexControlCenterPage() {
   const jobsByDraft: DraftJobsResult[] = await Promise.all(
     drafts.map(async draft => {
       try {
-        const jobs = await listVideoJobs(draft.draft_id, session.tokens!.access_token)
+        const jobs = await listVideoJobs(draft.draft_id, accessToken)
         return { draftId: draft.draft_id, jobs, error: false }
       } catch {
         return { draftId: draft.draft_id, jobs: [], error: true }
