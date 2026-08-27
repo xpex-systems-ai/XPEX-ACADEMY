@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from src.db.xpex_video import XPeXVideoJob
 from src.services.xpex.video_factory import LessonVideoManifest, VideoJobState
 from src.services.xpex.video_worker import VideoStageHandlers, run_claimed_job
