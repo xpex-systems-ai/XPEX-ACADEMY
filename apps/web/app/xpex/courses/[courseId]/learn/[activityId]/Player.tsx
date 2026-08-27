@@ -8,6 +8,7 @@ import { getXpexModuleGuide } from '@/lib/xpex/module-guides'
 import { GXModuleGuide } from '@components/Xpex/GXModuleGuide'
 import { GXMotionLesson } from '@components/Xpex/GXMotionLesson'
 import { completeXpexActivity } from './actions'
+import { resolveCompletionNavigation } from './navigation'
 
 const VideoActivity = dynamic(() => import('@components/Objects/Activities/Video/Video'), { ssr: false })
 const DocumentPdfActivity = dynamic(() => import('@components/Objects/Activities/DocumentPdf/DocumentPdf'), { ssr: false })
@@ -30,7 +31,7 @@ function ActivityRenderer({ activity, courseUuid, orgUuid, orgSlug }: { activity
   return <div className="xpex-empty"><h2>Formato indisponível neste player</h2><p>Esta atividade não pode ser aberta ou concluída nesta experiência.</p></div>
 }
 
-export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activityMeta, previous, next, lessonNumber, totalLessons, completedLessons }: { courseId: string; courseUuid: string; orgUuid: string; orgSlug: string; activity: PlayerActivity; activityMeta: XpexLearningActivity; previous?: XpexLearningActivity; next?: XpexLearningActivity; lessonNumber: number; totalLessons: number; completedLessons: number }) {
+export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activityMeta, previous, next, lessonNumber, totalLessons, completedLessons, progressPercent }: { courseId: string; courseUuid: string; orgUuid: string; orgSlug: string; activity: PlayerActivity; activityMeta: XpexLearningActivity; previous?: XpexLearningActivity; next?: XpexLearningActivity; lessonNumber: number; totalLessons: number; completedLessons: number; progressPercent: number | null }) {
   const [pending, startTransition] = useTransition()
   const [saved, setSaved] = useState(activityMeta.complete)
   const [completionError, setCompletionError] = useState<string | null>(null)
@@ -39,7 +40,9 @@ export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activ
   const path = (item: XpexLearningActivity) => `/xpex/courses/${courseId}/learn/${item.activity_uuid.replace('activity_', '')}`
   const canComplete = activity.content?.paid_access !== false && activity.activity_type !== 'TYPE_ASSIGNMENT' && ['TYPE_VIDEO', 'TYPE_DOCUMENT', 'TYPE_DYNAMIC'].includes(activity.activity_type)
   const guide = getXpexModuleGuide(activityMeta.chapter_name, activity.name)
-  const progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0
+  const progress = progressPercent ?? 0
+  const completionResolved = completedNextHref !== undefined
+  const footerNextHref = resolveCompletionNavigation(next ? path(next) : null, completedNextHref)
 
   return <article className="xpex-player" aria-labelledby="lesson-title">
     <div className="xpex-player-progress" aria-label={`Progresso do curso: ${progress}%`}><div><span>Progresso do curso</span><strong>{progress}%</strong></div><progress value={completedLessons} max={totalLessons || 1}>{progress}%</progress></div>
@@ -63,11 +66,11 @@ export function Player({ courseId, courseUuid, orgUuid, orgSlug, activity, activ
           } catch {
             setCompletionError('Não foi possível salvar a conclusão. Tente novamente.')
           }
-        })}>{pending ? 'Salvando…' : 'Concluir aula'}</button>}
+        })}>{pending ? 'Salvando…' : 'Marcar como concluída'}</button>}
         {saved ? <span role="status" className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-300">Progresso salvo · aula concluída</span> : null}
         {completionError ? <span role="alert" className="text-sm font-semibold text-red-300">{completionError}</span> : null}
       </div>
-      {next ? <Link href={completedNextHref ?? path(next)}>Próxima →</Link> : <Link href={`/xpex/courses/${courseId}`}>Concluir curso</Link>}
+      {footerNextHref ? <Link href={footerNextHref}>Próxima →</Link> : <Link href={`/xpex/courses/${courseId}`}>{completionResolved ? 'Curso concluído' : 'Concluir curso'}</Link>}
     </footer>
   </article>
 }
