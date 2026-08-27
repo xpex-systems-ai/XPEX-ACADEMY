@@ -16,6 +16,7 @@ from fastapi import HTTPException, Request, status
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.db.courses.activities import ActivityUpdate
 from src.db.organizations import Organization
 from src.db.users import PublicUser
 from src.db.xpex_editorial import XPeXEditorialDraft
@@ -44,9 +45,11 @@ from src.services.xpex.video_media import (
     materialize_storage_key,
     persist_local_or_s3,
 )
-from src.services.xpex.video_pipeline import VideoLessonSource, build_video_stage_handlers
+from src.services.xpex.video_pipeline import (
+    VideoLessonSource,
+    build_video_stage_handlers,
+)
 from src.services.xpex.video_worker import run_claimed_job
-from src.db.courses.activities import ActivityUpdate
 
 
 class VideoJobResponse(BaseModel):
@@ -394,7 +397,7 @@ async def attach_video_job(
                         filename=caption_filename,
                     ),
                 )
-    except Exception:
+    except Exception:  # noqa: BLE001
         await delete_activity(request, activity.activity_uuid, current_user, db_session)
         raise HTTPException(
             status_code=500,
