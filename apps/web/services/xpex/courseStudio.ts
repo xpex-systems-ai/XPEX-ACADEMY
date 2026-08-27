@@ -24,6 +24,42 @@ export type CourseStudioDraft = {
   updated_at: string
 }
 
+export type VideoJobState =
+  | 'QUEUED'
+  | 'SCRIPTING'
+  | 'STORYBOARDING'
+  | 'NARRATING'
+  | 'ASSET_GENERATION'
+  | 'RENDERING'
+  | 'REVIEWING'
+  | 'AWAITING_HUMAN_APPROVAL'
+  | 'APPROVED'
+  | 'ATTACHED'
+  | 'PUBLISHED'
+  | 'FAILED'
+  | 'CANCELLED'
+
+export type VideoStudioJob = {
+  job_id: string
+  batch_id: string
+  lesson_id: string
+  lesson_title: string
+  state: VideoJobState
+  revision: number
+  attempt_count: number
+  last_error: string | null
+  native_course_uuid: string | null
+  native_activity_uuid: string | null
+  manifest: any
+}
+
+export type VideoBatchResult = {
+  draft_id: string
+  batch_id: string
+  target_lessons: number
+  jobs: VideoStudioJob[]
+}
+
 async function parseResponse(response: Response) {
   const body = await response.json().catch(() => null)
   if (!response.ok) {
@@ -102,3 +138,43 @@ export async function publishCourseStudioDraft(
     idempotent_replay: boolean
   }>
 }
+
+export async function createVideoBatch(draftId: string, accessToken: string) {
+  const response = await fetch(
+    `${getAPIUrl()}xpex/course-studio/drafts/${encodeURIComponent(draftId)}/videos`,
+    RequestBodyWithAuthHeader('POST', {}, null, accessToken)
+  )
+  return parseResponse(response) as Promise<VideoBatchResult>
+}
+
+export async function listVideoJobs(draftId: string, accessToken: string) {
+  const response = await fetch(
+    `${getAPIUrl()}xpex/course-studio/drafts/${encodeURIComponent(draftId)}/videos`,
+    RequestBodyWithAuthHeader('GET', null, null, accessToken)
+  )
+  return parseResponse(response) as Promise<VideoStudioJob[]>
+}
+
+async function transitionVideoJob(
+  jobId: string,
+  action: 'process' | 'approve' | 'attach' | 'publish',
+  accessToken: string
+) {
+  const response = await fetch(
+    `${getAPIUrl()}xpex/video-studio/jobs/${encodeURIComponent(jobId)}/${action}`,
+    RequestBodyWithAuthHeader('POST', {}, null, accessToken)
+  )
+  return parseResponse(response) as Promise<VideoStudioJob>
+}
+
+export const processVideoJob = (jobId: string, accessToken: string) =>
+  transitionVideoJob(jobId, 'process', accessToken)
+
+export const approveVideoJob = (jobId: string, accessToken: string) =>
+  transitionVideoJob(jobId, 'approve', accessToken)
+
+export const attachVideoJob = (jobId: string, accessToken: string) =>
+  transitionVideoJob(jobId, 'attach', accessToken)
+
+export const publishVideoJob = (jobId: string, accessToken: string) =>
+  transitionVideoJob(jobId, 'publish', accessToken)
