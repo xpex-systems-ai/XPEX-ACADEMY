@@ -31,9 +31,8 @@ def _role_has_editor_access(role: Role | None) -> bool:
 
     LearnHouse supports organization-scoped custom roles, so relying only on the
     seeded role IDs (1/2) incorrectly rejects legitimate dashboard editors.
-    Course Studio and restricted-content bypasses need the same capability view:
-    dashboard access plus permission to create courses. Malformed or incomplete
-    rights fail closed.
+    Editorial elevation requires dashboard access plus course-create permission.
+    Malformed or incomplete rights fail closed.
     """
     if role is None or not role.rights:
         return False
@@ -45,23 +44,30 @@ def _role_has_editor_access(role: Role | None) -> bool:
 
 
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True for seeded admin/maintainer roles or an equivalent custom editor role."""
-    result = (
+    """True for seeded admin/maintainer roles or an equivalent custom editor role.
+
+    Keep the historical UserOrganization lookup shape first. Besides being
+    cheaper for the seeded roles, this preserves compatibility with callers and
+    tests that mock the long-standing ``scalars().first()`` query contract.
+    Only custom roles require the second Role lookup.
+    """
+    uo = (
         await db_session.execute(
-            select(UserOrganization, Role)
-            .join(Role, Role.id == UserOrganization.role_id)
-            .where(
+            select(UserOrganization).where(
                 UserOrganization.user_id == user_id,
                 UserOrganization.org_id == org_id,
             )
         )
-    ).first()
-    if not result:
+    ).scalars().first()
+    if not uo:
         return False
-    uo, role = result
     if uo.role_id in ADMIN_OR_MAINTAINER_ROLE_IDS:
         return True
-    return _role_has_editor_access(role)
+
+    role = (
+        await db_session.execute(select(Role).where(Role.id == uo.role_id))
+    ).scalars().first()
+    return _role_has_editor_access(role if isinstance(role, Role) else None)
 
 
 async def batch_accessible_restricted_uuids(
@@ -138,4 +144,4 @@ async def is_locked_for_user(
     accessible = await batch_accessible_restricted_uuids(
         acting_user_id, [resource_uuid], db_session
     )
-    return resource_uuid not in accessible
+    return resource_uuid not in accessible_restricted_uuids if accessible_restricted_uuids is not None else resource_uuid not in accessible
