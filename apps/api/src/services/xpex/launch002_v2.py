@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 
 from fastapi import Request
 from sqlmodel import select
-
 from src.db.courses.activities import ActivityUpdate
 from src.db.courses.courses import CourseUpdate
 from src.db.organizations import Organization
@@ -159,21 +158,20 @@ async def _process_one(job_id: str, actor: PublicUser, semaphore: asyncio.Semaph
     """Process one lesson in an isolated DB session so failures cannot poison siblings."""
     from src.core.events.database import _async_session_factory
 
-    async with semaphore:
-        async with _async_session_factory() as job_session:
-            try:
-                result = await process_video_job(job_id, actor, job_session)
-                logger.info("XPEX-LAUNCH-002 video job=%s state=%s", job_id, result.state)
-            except asyncio.CancelledError:
-                await job_session.rollback()
-                raise
-            except Exception as exc:
-                await job_session.rollback()
-                logger.exception(
-                    "XPEX-LAUNCH-002 video job failed job=%s error=%s",
-                    job_id,
-                    type(exc).__name__,
-                )
+    async with semaphore, _async_session_factory() as job_session:
+        try:
+            result = await process_video_job(job_id, actor, job_session)
+            logger.info("XPEX-LAUNCH-002 video job=%s state=%s", job_id, result.state)
+        except asyncio.CancelledError:
+            await job_session.rollback()
+            raise
+        except Exception as exc:
+            await job_session.rollback()
+            logger.exception(
+                "XPEX-LAUNCH-002 video job failed job=%s error=%s",
+                job_id,
+                type(exc).__name__,
+            )
 
 
 async def run_launch002_v2() -> None:
@@ -259,7 +257,6 @@ async def run_launch002_v2() -> None:
             )
             return
 
-        # Always reconcile staging, including restarts after an interrupted publish.
         await _stage_native_course(record, actor, db_session)
         await _recover_expired_jobs(db_session, draft_id)
         batch = await create_video_batch(draft_id, actor, db_session)
@@ -271,7 +268,6 @@ async def run_launch002_v2() -> None:
             and job.attempt_count < 5
         ]
 
-    # Separate DB session per job; bounded concurrency keeps provider/runtime load controlled.
     semaphore = asyncio.Semaphore(2)
     await asyncio.gather(*(_process_one(job_id, actor, semaphore) for job_id in runnable))
 
