@@ -1,0 +1,85 @@
+{
+  "audit_version": "1.0",
+  "mission_id": "XPEX-CONTENT-002",
+  "auditor": "GX",
+  "scope": "full repository + PR + CI + production infrastructure checkpoint",
+  "decision": "BLOCKED_IMPLEMENTATION_NOT_PRESENT",
+  "pr": {
+    "number": 99,
+    "branch": "feat/xpex-content-002-editorial-ai-publisher",
+    "draft": true,
+    "mergeable": true,
+    "audited_head_before_report": "fb93db891efeddc244ace64d78d34b2e78a81a5d",
+    "implementation_present": false,
+    "changed_files_before_report": [
+      "docs/xpex/missions/XPEX-CONTENT-002.codex.json",
+      "docs/xpex/missions/XPEX-CONTENT-002.audit.json"
+    ],
+    "review_threads": 0
+  },
+  "verified": {
+    "dev_head": "05a3b00d7db892e19b770570a4d5756cfc2b1c58",
+    "dev_branch_protected": false,
+    "native_course_service": "apps/api/src/services/courses/courses.py",
+    "native_chapter_service": "apps/api/src/services/courses/chapters.py",
+    "native_activity_service": "apps/api/src/services/courses/activities/activities.py",
+    "native_course_default_published": false,
+    "native_rbac_admin_role_id": 1,
+    "native_rbac_maintainer_role_id": 2,
+    "railway_service": "XPEX-ACADEMY",
+    "railway_environment": "production",
+    "railway_source_branch": "dev",
+    "railway_configured_source_commit": "317f7b6dd071b9de86e3d45546015ea29a0a7633",
+    "railway_latest_deployment_status": "SUCCESS",
+    "railway_ai_variable_names_present": [
+      "OPENROUTER_API_KEY",
+      "HF_TOKEN",
+      "XPEX_OPENROUTER_COURSE_MODEL",
+      "XPEX_HF_REVIEW_MODEL"
+    ],
+    "ci_on_audited_pr_head": {
+      "Notify Infrastructure": "SUCCESS",
+      "Staging build": "SUCCESS",
+      "Build Community Images": "SUCCESS",
+      "Staging preflight": "SUCCESS"
+    }
+  },
+  "critical_findings": [
+    {
+      "severity": "BLOCKER",
+      "id": "GX-002-001",
+      "finding": "PR #99 contains mission/audit documents only. No backend, frontend, persistence, migration, tests or publisher implementation exists yet.",
+      "required_action": "Keep PR draft. Codex must implement the mission before GX can perform code-level acceptance audit."
+    },
+    {
+      "severity": "HIGH",
+      "id": "GX-002-002",
+      "finding": "GitHub dev branch is currently unprotected and has no required status checks enforced by branch protection.",
+      "required_action": "Operationally enforce PR-only merge discipline now; configure branch protection/ruleset separately before treating CI gates as repository-enforced controls."
+    },
+    {
+      "severity": "HIGH",
+      "id": "GX-002-003",
+      "finding": "Railway production service is configured to dev but its reported source commit 317f7b6d... is behind the current dev head 05a3b00d....",
+      "required_action": "Do not claim production parity with dev. After approved merge, verify/trigger deployment and confirm deployed commit equals the intended merge commit before live smoke."
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "GX-002-004",
+      "finding": "A second Vercel project/integration has recently hit the free deployment daily limit while another preview deployment reported Ready.",
+      "required_action": "Treat Vercel rate-limit noise separately from core API/Web correctness; deduplicate deployment integrations later if it remains operationally noisy."
+    }
+  ],
+  "merge_gate": {
+    "allowed_now": false,
+    "reasons": [
+      "implementation absent",
+      "required backend/frontend tests absent",
+      "no migration/persistence implementation to validate",
+      "no code-level security review possible yet",
+      "no post-merge Railway commit parity evidence",
+      "no live provider smoke for CONTENT-002"
+    ]
+  },
+  "next_executor_action": "Codex implements XPEX-CONTENT-002 on the existing feature branch, preserving both codex.json and audit.json as mandatory contracts. GX then audits every changed implementation file, test, migration, review thread, CI result, merge and deployment before PASS_PRODUCTION."
+}
