@@ -17,8 +17,8 @@ export function XpexLegalAttribution() {
 
 function AdminEntry({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
-  const current = pathname === '/xpex/control-center' || pathname.startsWith('/xpex/control-center/')
-  return <Link href="/xpex/control-center" aria-current={current ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${current ? 'xpex-nav-active' : ''}`}><ShieldCheck aria-hidden="true" size={18}/><span>Painel Admin</span></Link>
+  const current = pathname === '/xpex/admin' || pathname.startsWith('/xpex/admin/')
+  return <Link href="/xpex/admin" aria-current={current ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${current ? 'xpex-nav-active' : ''}`}><ShieldCheck aria-hidden="true" size={18}/><span>Painel Admin</span></Link>
 }
 
 function StudentNavigation({ organizationSlug, adminAccess = false, onNavigate }: { organizationSlug: string; adminAccess?: boolean; onNavigate?: () => void }) {
