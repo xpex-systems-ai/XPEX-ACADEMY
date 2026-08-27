@@ -138,7 +138,7 @@ def materialize_storage_key(storage_key: str, local_path: str) -> str:
             raise VideoMediaError("media storage client is unavailable")
         try:
             client.download_file(get_s3_bucket_name(), storage_key, str(destination))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise VideoMediaError("media artifact download failed") from exc
     else:
         source = Path(storage_key)
