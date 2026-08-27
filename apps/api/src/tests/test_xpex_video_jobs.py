@@ -108,6 +108,7 @@ async def test_ensure_batch_jobs_is_idempotent_for_existing_lessons():
 @pytest.mark.asyncio
 async def test_claim_moves_job_to_scripting_and_sets_unique_lease():
     row = make_job()
+    row.resume_state = VideoJobState.SCRIPTING.value
     session = FakeSession(execute_rows=[[row]])
 
     claimed = await claim_next_job(
@@ -122,6 +123,22 @@ async def test_claim_moves_job_to_scripting_and_sets_unique_lease():
     assert row.lease_id is not None and row.lease_id.startswith("railway-worker-1:")
     assert row.lease_expires_at
     assert session.commits == 1
+
+
+@pytest.mark.asyncio
+async def test_failed_job_claim_resumes_last_durable_stage():
+    row = make_job(state=VideoJobState.FAILED)
+    row.resume_state = VideoJobState.RENDERING.value
+    session = FakeSession(execute_rows=[[row]])
+
+    claimed = await claim_next_job(
+        session,  # type: ignore[arg-type]
+        worker_id="railway-worker-2",
+    )
+
+    assert claimed is row
+    assert row.state == VideoJobState.RENDERING.value
+    assert LessonVideoManifest.model_validate(row.manifest_json).state == VideoJobState.RENDERING
 
 
 @pytest.mark.asyncio
@@ -186,6 +203,7 @@ async def test_failed_job_releases_lease_and_sanitizes_error_length():
     )
 
     assert saved.state == VideoJobState.FAILED.value
+    assert saved.resume_state == VideoJobState.RENDERING.value
     assert saved.lease_id is None
     assert saved.lease_expires_at is None
     assert len(saved.last_error or "") == 1000
