@@ -2,8 +2,14 @@
 
 import argparse
 import asyncio
+import sys
+from pathlib import Path
 
-from src.services.xpex.content_studio import (
+API_ROOT = Path(__file__).resolve().parents[1]
+if str(API_ROOT) not in sys.path:
+    sys.path.insert(0, str(API_ROOT))
+
+from src.services.xpex.content_studio import (  # noqa: E402
     CourseStudioNotConfigured,
     CourseStudioProviderError,
     generate_and_review_course_draft,
@@ -29,6 +35,10 @@ async def run(topic: str, audience: str, modules: int, skip_hf_review: bool) -> 
         return 4
 
     print(result.model_dump_json(indent=2))
+    if result.review and any(note.severity == "BLOCKER" for note in result.review.notes):
+        print("BLOCKED reviewer_blocker=true published=false learnhouse_mutated=false")
+        return 5
+
     print("PASS preview_generated=true published=false learnhouse_mutated=false")
     return 0
 
