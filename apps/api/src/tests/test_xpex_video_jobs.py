@@ -4,9 +4,12 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-
 from src.db.xpex_video import XPeXVideoJob
-from src.services.xpex.video_factory import LessonVideoManifest, VideoBatchPlan, VideoJobState
+from src.services.xpex.video_factory import (
+    LessonVideoManifest,
+    VideoBatchPlan,
+    VideoJobState,
+)
 from src.services.xpex.video_jobs import (
     claim_next_job,
     ensure_batch_jobs,
