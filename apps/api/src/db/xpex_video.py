@@ -17,12 +17,25 @@ class XPeXVideoJob(SQLModel, table=True):
     job_id: str = Field(index=True, max_length=80)
     batch_id: str = Field(max_length=80)
     lesson_id: str = Field(max_length=160)
-    org_id: int = Field(sa_column=Column(Integer, ForeignKey("organization.id", ondelete="CASCADE"), nullable=False))
-    created_by_user_id: int = Field(sa_column=Column(Integer, ForeignKey("user.id", ondelete="RESTRICT"), nullable=False))
+    org_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("organization.id", ondelete="CASCADE"),
+            nullable=False,
+        )
+    )
+    created_by_user_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="RESTRICT"),
+            nullable=False,
+        )
+    )
     editorial_draft_id: str | None = Field(default=None, max_length=80)
     native_course_uuid: str | None = Field(default=None, max_length=100)
     native_activity_uuid: str | None = Field(default=None, max_length=100)
     state: str = Field(default="QUEUED", max_length=40)
+    resume_state: str | None = Field(default=None, max_length=40)
     revision: int = Field(default=1, ge=1)
     content_hash: str = Field(default="", max_length=64)
     manifest_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
@@ -30,7 +43,14 @@ class XPeXVideoJob(SQLModel, table=True):
     lease_id: str | None = Field(default=None, max_length=120)
     lease_expires_at: str | None = Field(default=None, max_length=64)
     last_error: str | None = Field(default=None, max_length=1000)
-    approved_by_user_id: int | None = Field(default=None, sa_column=Column(Integer, ForeignKey("user.id", ondelete="SET NULL"), nullable=True))
+    approved_by_user_id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey("user.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+    )
     approved_at: str | None = Field(default=None, max_length=64)
     attached_at: str | None = Field(default=None, max_length=64)
     published_at: str | None = Field(default=None, max_length=64)
