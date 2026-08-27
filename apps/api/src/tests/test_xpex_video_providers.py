@@ -16,7 +16,9 @@ from src.services.xpex.video_providers import (
 )
 
 REGISTRY = VideoModelRegistry(
-    video_model="org/video-model",
+    video_model="Wan-AI/Wan2.2-TI2V-5B",
+    video_provider="fal-ai",
+    video_provider_model="fal-ai/wan/v2.2-5b/text-to-video",
     image_model="org/image-model",
     tts_model="org/tts-model",
     stt_model="org/stt-model",
@@ -39,7 +41,8 @@ class FakeResponse:
 
 class FakeClient:
     response = FakeResponse()
-    calls: ClassVar[list[tuple[str, dict]]] = []
+    get_responses: ClassVar[list[FakeResponse]] = []
+    calls: ClassVar[list[tuple[str, str, dict]]] = []
 
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -52,7 +55,13 @@ class FakeClient:
         return False
 
     async def post(self, url, **kwargs):
-        self.__class__.calls.append((url, kwargs))
+        self.__class__.calls.append(("POST", url, kwargs))
+        return self.__class__.response
+
+    async def get(self, url, **kwargs):
+        self.__class__.calls.append(("GET", url, kwargs))
+        if self.__class__.get_responses:
+            return self.__class__.get_responses.pop(0)
         return self.__class__.response
 
 
@@ -60,6 +69,7 @@ class FakeClient:
 def provider_env(monkeypatch):
     monkeypatch.setenv("HF_TOKEN", "server-only-test-token")
     FakeClient.calls = []
+    FakeClient.get_responses = []
     FakeClient.response = FakeResponse()
     monkeypatch.setattr(httpx, "AsyncClient", FakeClient)
 
@@ -74,8 +84,8 @@ async def test_binary_adapters_use_server_side_models_and_return_media():
     assert image.data == b"image-bytes"
     assert image.mime_type == "image/png"
     assert image.model == "org/image-model"
-    assert FakeClient.calls[-1][0].endswith("/org/image-model")
-    assert FakeClient.calls[-1][1]["headers"]["Authorization"] == "Bearer server-only-test-token"
+    assert FakeClient.calls[-1][1].endswith("/org/image-model")
+    assert FakeClient.calls[-1][2]["headers"]["Authorization"] == "Bearer server-only-test-token"
 
     FakeClient.response = FakeResponse(
         content=b"audio-bytes",
@@ -83,21 +93,67 @@ async def test_binary_adapters_use_server_side_models_and_return_media():
     )
     narration = await synthesize_narration("Olá aula", REGISTRY)
     assert narration.mime_type == "audio/wav"
-    assert FakeClient.calls[-1][0].endswith("/org/tts-model")
+    assert FakeClient.calls[-1][1].endswith("/org/tts-model")
 
+
+@pytest.mark.asyncio
+async def test_video_uses_hf_routed_fal_queue_and_downloads_result(monkeypatch):
+    monkeypatch.setattr("src.services.xpex.video_providers.asyncio.sleep", lambda _seconds: _noop())
     FakeClient.response = FakeResponse(
-        content=b"video-bytes",
-        headers={"content-type": "video/mp4"},
+        content=b"{}",
+        headers={"content-type": "application/json"},
+        json_body={
+            "request_id": "req-1",
+            "response_url": (
+                "https://queue.fal.run/fal-ai/wan/v2.2-5b/text-to-video/requests/req-1"
+            ),
+        },
     )
-    clip = await generate_video_clip("browser animation", REGISTRY, duration_seconds=99)
+    FakeClient.get_responses = [
+        FakeResponse(
+            content=b"{}",
+            headers={"content-type": "application/json"},
+            json_body={"status": "COMPLETED", "request_id": "req-1"},
+        ),
+        FakeResponse(
+            content=b"{}",
+            headers={"content-type": "application/json"},
+            json_body={"video": {"url": "https://media.example/video.mp4"}},
+        ),
+        FakeResponse(content=b"video-bytes", headers={"content-type": "video/mp4"}),
+    ]
+
+    clip = await generate_video_clip("browser animation", REGISTRY)
+
+    assert clip.data == b"video-bytes"
     assert clip.mime_type == "video/mp4"
-    assert FakeClient.calls[-1][1]["json"]["parameters"]["duration"] == 30
+    assert clip.model == "Wan-AI/Wan2.2-TI2V-5B"
+    method, submit_url, kwargs = FakeClient.calls[0]
+    assert method == "POST"
+    assert submit_url == (
+        "https://router.huggingface.co/fal-ai/"
+        "fal-ai/wan/v2.2-5b/text-to-video?_subdomain=queue"
+    )
+    assert kwargs["json"] == {"prompt": "browser animation"}
+    assert kwargs["headers"]["Authorization"] == "Bearer server-only-test-token"
+    assert FakeClient.calls[-1][1] == "https://media.example/video.mp4"
+
+
+async def _noop():
+    return None
 
 
 @pytest.mark.asyncio
 async def test_missing_capability_model_fails_closed():
     with pytest.raises(VideoProviderNotConfigured, match="image model"):
         await generate_image("x", VideoModelRegistry())
+
+
+@pytest.mark.asyncio
+async def test_video_rejects_unsupported_provider():
+    registry = REGISTRY.model_copy(update={"video_provider": "hf-inference"})
+    with pytest.raises(VideoProviderNotConfigured, match="Only the audited Fal AI"):
+        await generate_video_clip("x", registry)
 
 
 @pytest.mark.asyncio
@@ -120,7 +176,7 @@ async def test_stt_returns_transcript():
     transcript = await transcribe_audio(b"audio", "audio/mpeg", REGISTRY)
     assert transcript.text == "Olá, mundo."
     assert transcript.model == "org/stt-model"
-    _, kwargs = FakeClient.calls[-1]
+    _, _, kwargs = FakeClient.calls[-1]
     assert kwargs["content"] == b"audio"
     assert kwargs["headers"]["Content-Type"] == "audio/mpeg"
 
@@ -160,7 +216,7 @@ async def test_multimodal_review_normalizes_blocker_and_embeds_frame():
     )
     assert review.has_blocker is True
     assert review.notes[0].severity == ReviewSeverity.BLOCKER
-    _, kwargs = FakeClient.calls[-1]
+    _, _, kwargs = FakeClient.calls[-1]
     user_content = kwargs["json"]["messages"][1]["content"]
     assert user_content[1]["type"] == "image_url"
     assert user_content[1]["image_url"]["url"].startswith("data:image/png;base64,")
