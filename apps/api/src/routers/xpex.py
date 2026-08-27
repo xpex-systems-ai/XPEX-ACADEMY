@@ -1,11 +1,25 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
 from src.services.xpex.dashboard import get_student_dashboard
+from src.services.xpex.editorial_studio import (
+    EditorialDraftResponse,
+    EditorialEditRequest,
+    EditorialGenerateRequest,
+    EditorialMutationRequest,
+    PublishResult,
+    approve_editorial_draft,
+    edit_editorial_draft,
+    generate_editorial_draft,
+    get_editorial_draft,
+    list_editorial_drafts,
+    publish_editorial_draft,
+    review_editorial_draft,
+)
 from src.services.xpex.teacher_dashboard import get_teacher_dashboard
 
 router = APIRouter()
@@ -39,3 +53,72 @@ async def teacher_dashboard(
             detail="Teacher membership required",
         )
     return dashboard
+
+
+@router.post("/course-studio/drafts", response_model=EditorialDraftResponse)
+async def course_studio_generate(
+    payload: EditorialGenerateRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await generate_editorial_draft(payload, current_user, db_session)
+
+
+@router.get("/course-studio/drafts", response_model=list[EditorialDraftResponse])
+async def course_studio_list(
+    organization_slug: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+    limit: int = 25,
+):
+    return await list_editorial_drafts(organization_slug, current_user, db_session, limit)
+
+
+@router.get("/course-studio/drafts/{draft_id}", response_model=EditorialDraftResponse)
+async def course_studio_get(
+    draft_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await get_editorial_draft(draft_id, current_user, db_session)
+
+
+@router.put("/course-studio/drafts/{draft_id}", response_model=EditorialDraftResponse)
+async def course_studio_edit(
+    draft_id: str,
+    payload: EditorialEditRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await edit_editorial_draft(draft_id, payload, current_user, db_session)
+
+
+@router.post("/course-studio/drafts/{draft_id}/review", response_model=EditorialDraftResponse)
+async def course_studio_review(
+    draft_id: str,
+    payload: EditorialMutationRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await review_editorial_draft(draft_id, payload, current_user, db_session)
+
+
+@router.post("/course-studio/drafts/{draft_id}/approve", response_model=EditorialDraftResponse)
+async def course_studio_approve(
+    draft_id: str,
+    payload: EditorialMutationRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await approve_editorial_draft(draft_id, payload, current_user, db_session)
+
+
+@router.post("/course-studio/drafts/{draft_id}/publish", response_model=PublishResult)
+async def course_studio_publish(
+    request: Request,
+    draft_id: str,
+    payload: EditorialMutationRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await publish_editorial_draft(request, draft_id, payload, current_user, db_session)

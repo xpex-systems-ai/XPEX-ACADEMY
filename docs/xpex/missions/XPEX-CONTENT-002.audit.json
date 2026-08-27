@@ -1,0 +1,152 @@
+{
+  "audit_version": "1.0",
+  "mission_id": "XPEX-CONTENT-002",
+  "audited_base": "05a3b00d7db892e19b770570a4d5756cfc2b1c58",
+  "auditor": "GX",
+  "decision": "PASS_WITH_MANDATORY_HARDENING",
+  "purpose": "Mandatory architecture and security addendum to XPEX-CONTENT-002.codex.json. Codex must satisfy both files before requesting review.",
+  "verified_native_architecture": {
+    "course_service": "apps/api/src/services/courses/courses.py",
+    "chapter_service": "apps/api/src/services/courses/chapters.py",
+    "activity_service": "apps/api/src/services/courses/activities/activities.py",
+    "course_model": "apps/api/src/db/courses/courses.py",
+    "rbac_constants": "apps/api/src/security/rbac/constants.py",
+    "facts": [
+      "Course creation enforces resource CREATE authorization plus explicit organization membership and creates the authenticated actor as ResourceAuthor.",
+      "Course creation commits Course and ResourceAuthor atomically inside its own transaction.",
+      "Chapter creation authorizes against the parent course and commits Chapter plus CourseChapter inside its own transaction.",
+      "Activity creation authorizes against the parent course and commits Activity plus ChapterActivity inside its own transaction.",
+      "Native Course.published defaults to false.",
+      "Native course update can mutate published through the generic UPDATE path; the additional sensitive-field validation currently enumerates public and open_to_contributors, not published.",
+      "Core elevated organization roles are ADMIN=1 and MAINTAINER=2.",
+      "Because native course/chapter/activity create services each commit independently, composing them naively is not an all-or-nothing multi-entity publication transaction."
+    ]
+  },
+  "mandatory_architecture": {
+    "editorial_persistence": [
+      "Persist AI editorial drafts separately from native LearnHouse Course/Chapter/Activity rows until the explicit Publish action.",
+      "Editorial persistence is workflow metadata/content staging only; it must not implement enrollment, progress, completion, certification, learner access, or a parallel LMS.",
+      "Every draft must have immutable draft_id, org_id/org_uuid scope, revision integer, content_hash, schema_version, created_by, created_at and updated_at."
+    ],
+    "state_and_revision_binding": [
+      "Allowed states remain DRAFT, REVIEWED, APPROVED, PUBLISHED.",
+      "Review evidence must bind to the exact revision and content_hash reviewed.",
+      "Approval evidence must bind to the exact revision and content_hash approved.",
+      "Any content-bearing edit increments revision, recalculates content_hash and invalidates prior review and approval evidence.",
+      "Publish must compare current revision/hash with approved revision/hash server-side and reject stale approval with 409 or equivalent fail-closed response."
+    ],
+    "approval_evidence": [
+      "Store approver actor UUID/user ID, organization scope, timestamp, approved revision, approved content_hash and authorization decision context.",
+      "Never accept approved_by, approved_at, approved revision/hash, PUBLISHED status, or native identifiers from client-controlled mass assignment.",
+      "Re-authorize the authenticated actor server-side at both Approve and Publish; authentication at page load is not sufficient."
+    ],
+    "publish_boundary": [
+      "No native LearnHouse Course/Chapter/Activity row may be created by Generate, Review, Edit or Approve.",
+      "Only the explicit authorized Publish action may cross the boundary from editorial draft storage into native LearnHouse records.",
+      "Create the native Course initially with published=false, build all required chapters/activities, verify the complete authoritative mapping, and only then perform the final explicit native published=true transition.",
+      "Do not expose a partially built course publicly.",
+      "Do not rely on a browser-supplied published flag."
+    ],
+    "authorization": [
+      "Reuse native LearnHouse RBAC and organization membership; do not invent a second auth system.",
+      "Generate/Review/Edit access must be explicitly defined from existing roles/permissions.",
+      "Approve and Publish require elevated server-side authorization. Unless a stronger existing permission primitive is discovered, restrict Approve and Publish to ADMIN or MAINTAINER and document the exact reused primitive.",
+      "Every draft lookup/mutation must include organization scoping to prevent cross-org IDOR.",
+      "API-token behavior must be explicitly decided and tested; do not accidentally inherit browser/editor permissions for API tokens."
+    ],
+    "idempotency_and_concurrency": [
+      "Publish must accept or derive a stable idempotency key tied to draft_id plus approved revision/hash.",
+      "Two concurrent Publish requests for the same approved revision must produce one native course, never duplicates.",
+      "Use database uniqueness/locking or an equivalent durable server-side mechanism; an in-memory lock is insufficient.",
+      "Edit/Review/Approve/Publish mutations must reject stale revision writes using optimistic concurrency or equivalent compare-and-swap semantics."
+    ],
+    "partial_failure_strategy": [
+      "Native create services commit independently, so the publisher must implement a deliberate partial-failure strategy rather than claiming cross-service atomicity.",
+      "Preferred behavior: keep the native course unpublished until every chapter/activity is created and verified.",
+      "On failure before final publication, record FAILED/RECOVERABLE publication attempt metadata and either compensate by deleting only the publisher-created unpublished native tree or allow deterministic resume using persisted native IDs.",
+      "Never delete or overwrite a pre-existing native resource during compensation.",
+      "A retry must resume or safely converge without creating duplicate chapters/activities."
+    ],
+    "native_mapping": [
+      "Persist the authoritative mapping from editorial draft/revision to native course_uuid/course_id, chapter IDs/UUIDs and activity IDs/UUIDs.",
+      "After success, PUBLISHED is terminal for that approved revision and returns the canonical native destination.",
+      "The mapping must be auditable and sufficient to prove which exact approved content produced which native records."
+    ],
+    "security_and_observability": [
+      "Provider tokens, Authorization headers, Railway variable values and raw provider error bodies must never be logged or returned.",
+      "Treat generated, reviewed and stored course text as untrusted data at every provider/UI boundary.",
+      "Structured logs may include draft_id, org_id, revision, hash prefix, actor UUID, transition, provider/model name, sanitized result and native IDs after publication.",
+      "Do not log full generated course bodies by default in production.",
+      "Apply bounded module_count/body sizes and provider timeouts already compatible with CONTENT-001; reject abuse fail-closed."
+    ]
+  },
+  "mandatory_regression_tests": {
+    "state_integrity": [
+      "edit after REVIEWED resets/invalidate review evidence",
+      "edit after APPROVED resets/invalidate approval evidence",
+      "publish with stale approved hash/revision is rejected",
+      "client cannot mass-assign APPROVED or PUBLISHED",
+      "provider review cannot auto-approve",
+      "approval cannot auto-publish"
+    ],
+    "authorization_and_tenancy": [
+      "anonymous rejected from all editorial mutations",
+      "ordinary learner rejected from protected editorial mutations",
+      "cross-organization draft read/update/approve/publish rejected",
+      "Approve authorization rechecked server-side",
+      "Publish authorization rechecked server-side",
+      "API-token path is explicitly allowed with equivalent authorization or explicitly rejected"
+    ],
+    "publish_safety": [
+      "no native course exists before explicit Publish",
+      "native Course begins unpublished during assembly",
+      "public visibility remains false until assembly succeeds",
+      "concurrent duplicate Publish produces exactly one native course",
+      "retry after partial chapter/activity failure converges without duplicates",
+      "failed publication never exposes a partial public course",
+      "compensation never touches unrelated/pre-existing courses",
+      "successful publication persists complete editorial-to-native mapping",
+      "learner enrollment/progress/completion/certification counts and rows remain unchanged"
+    ],
+    "security": [
+      "provider secrets absent from frontend bundle and serialized API responses",
+      "provider error sanitization does not leak response body/token",
+      "stored prompt-injection text cannot alter server workflow state",
+      "oversized/invalid module_count or payload rejected"
+    ]
+  },
+  "mandatory_live_smoke": {
+    "sequence": [
+      "Generate one real module with OpenRouter into editorial DRAFT only",
+      "Verify zero native LearnHouse Course rows were created by Generate",
+      "Run real Hugging Face review and verify REVIEWED only",
+      "Verify zero native LearnHouse Course rows were created by Review",
+      "Approve explicitly as an authorized human actor and capture approved revision/hash evidence",
+      "Verify zero native LearnHouse Course rows were created by Approve",
+      "Publish explicitly as an authorized human actor",
+      "Verify exactly one native course plus expected chapter/activity tree and authoritative IDs",
+      "Verify the final native course is published only after tree assembly",
+      "Verify enrollment/progress/completion/certification state remains unchanged",
+      "Verify retrying the same publish request does not duplicate the native tree"
+    ],
+    "cleanup": "The live smoke must use a clearly named test artifact. After evidence capture, either keep it intentionally unpublished/identified as a test fixture or remove it through the native authorized delete path. Never leave accidental public test content."
+  },
+  "merge_gate": {
+    "keep_pr_draft_until": [
+      "Codex implementation is present",
+      "all mandatory tests above are green",
+      "review threads resolved",
+      "core API/Web CI green",
+      "migration dry-run green if editorial persistence adds schema",
+      "no secret exposure in diff",
+      "GX architecture/security audit PASS"
+    ],
+    "forbidden": [
+      "merge with core CI red",
+      "auto-merge before GX audit",
+      "provider-generated automatic publication",
+      "native resource creation before explicit Publish",
+      "claiming multi-entity atomicity while calling independently committing native services without a verified transaction strategy"
+    ]
+  }
+}
