@@ -15,7 +15,6 @@ from typing import Any
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
-
 from src.services.xpex.video_factory import (
     MultimodalReview,
     ReviewSeverity,
