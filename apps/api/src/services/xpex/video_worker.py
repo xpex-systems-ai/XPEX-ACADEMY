@@ -11,7 +11,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.xpex_video import XPeXVideoJob
 from src.services.xpex.video_factory import LessonVideoManifest, VideoJobState
 from src.services.xpex.video_jobs import mark_job_failed, save_worker_checkpoint
@@ -94,8 +93,9 @@ async def run_claimed_job(
             if state == VideoJobState.AWAITING_HUMAN_APPROVAL:
                 return job
         raise ValueError(f"video worker cannot continue state {state.value}")
-    except Exception as exc:
-        # Never persist provider response bodies, prompts, credentials or generated media.
+    except Exception as exc:  # noqa: BLE001
+        # Handler failures may originate from provider/storage adapters. Persist only
+        # the exception category, never upstream bodies, prompts, media or credentials.
         safe_error = f"{type(exc).__name__}: stage execution failed"
         return await mark_job_failed(
             db_session,
