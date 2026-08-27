@@ -14,7 +14,6 @@ to be checked at once without N+1 queries.
 from collections.abc import Iterable
 
 from pydantic import ValidationError
-from sqlalchemy import text
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.roles import Rights, Role, RoleTypeEnum
@@ -48,34 +47,13 @@ def _role_has_editor_access(role: Role | None, org_id: int) -> bool:
     return bool(rights.dashboard.action_access and rights.courses.action_create)
 
 
-async def _is_platform_superadmin(user_id: int, db_session: AsyncSession) -> bool:
-    """Resolve platform superadmin directly from the canonical user row.
-
-    XPeX administrative services call ``is_org_admin`` from several paths. A
-    platform superadmin must not lose access just because their organization
-    membership is still a student role. Read the canonical flag from the DB so
-    authorization is not affected by stale session-role caches.
-    """
-    result = await db_session.execute(
-        text('SELECT is_superadmin FROM "user" WHERE id = :user_id'),
-        {"user_id": user_id},
-    )
-    value = result.scalar_one_or_none()
-    return value is True
-
-
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True for platform superadmin, seeded org admin/maintainer, or custom editor.
+    """True for seeded admin/maintainer or an org-scoped custom editor role.
 
-    Platform superadmins are authorized across organizations by the canonical
-    ``user.is_superadmin`` flag. Seeded role recognition remains ID-based for
-    backward compatibility. Capability-based elevation is constrained to a Role
-    whose role_type is TYPE_ORGANIZATION and whose org_id exactly matches the
-    requested org.
+    Seeded role recognition remains ID-based for backward compatibility. Any
+    capability-based elevation is constrained to a Role whose role_type is
+    TYPE_ORGANIZATION and whose org_id exactly matches the requested org.
     """
-    if await _is_platform_superadmin(user_id, db_session):
-        return True
-
     uo = (
         await db_session.execute(
             select(UserOrganization).where(
