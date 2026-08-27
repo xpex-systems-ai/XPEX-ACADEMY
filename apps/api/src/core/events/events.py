@@ -88,10 +88,10 @@ def startup_app(app: FastAPI) -> Callable:
         start_captions_consumer()
 
         # XPEX-LAUNCH-002 is opt-in, idempotent and never auto-approves video.
-        from src.services.xpex.launch002 import start_launch002
+        from src.services.xpex.launch002_v2 import start_launch002_v2
 
         global _xpex_launch002_task
-        _xpex_launch002_task = start_launch002()
+        _xpex_launch002_task = start_launch002_v2()
 
         # Start Enterprise Edition Startup tasks if available
         run_ee_startup(app)
@@ -107,6 +107,8 @@ def shutdown_app(app: FastAPI) -> Callable:
                 await _xpex_launch002_task
             except asyncio.CancelledError:
                 pass
+            except Exception:  # noqa: BLE001
+                logger.exception("XPEX-LAUNCH-002 task failed before shutdown; continuing cleanup")
         if _cleanup_task:
             _cleanup_task.cancel()
             try:
