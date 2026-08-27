@@ -1,0 +1,96 @@
+{
+  "mission_id": "XPEX-CONTENT-003",
+  "title": "AI Video Lesson Factory",
+  "owner": "GX",
+  "status": "IMPLEMENTATION_STARTED",
+  "objective": "Generate a resumable audiovisual package for approved course lessons without ever publishing AI-generated video automatically.",
+  "pipeline": [
+    "COURSE_APPROVED",
+    "VIDEO_SCRIPT",
+    "STORYBOARD",
+    "NARRATION",
+    "ASSETS",
+    "VIDEO_DRAFT",
+    "MULTIMODAL_REVIEW",
+    "HUMAN_APPROVAL",
+    "ATTACHMENT_TO_LEARNHOUSE",
+    "HUMAN_PUBLISH"
+  ],
+  "batch_mode": {
+    "target_lessons": 24,
+    "initial_concurrency": 3,
+    "resumable": true,
+    "retry_failed_only": true
+  },
+  "job_states": [
+    "QUEUED",
+    "SCRIPTING",
+    "STORYBOARDING",
+    "NARRATING",
+    "ASSET_GENERATION",
+    "RENDERING",
+    "REVIEWING",
+    "AWAITING_HUMAN_APPROVAL",
+    "APPROVED",
+    "ATTACHED",
+    "PUBLISHED",
+    "FAILED",
+    "CANCELLED"
+  ],
+  "server_side_model_registry": [
+    "XPEX_HF_VIDEO_MODEL",
+    "XPEX_HF_IMAGE_MODEL",
+    "XPEX_HF_TTS_MODEL",
+    "XPEX_HF_STT_MODEL",
+    "XPEX_HF_MULTIMODAL_REVIEW_MODEL"
+  ],
+  "hard_gates": {
+    "provider_secrets_browser_exposed": false,
+    "automatic_video_approval": false,
+    "automatic_learnhouse_publish": false,
+    "human_approval_required": true,
+    "separate_human_publish_required": true,
+    "edit_invalidates_approval": true,
+    "blocker_review_disables_approval": true,
+    "attachment_is_unpublished": true,
+    "idempotent_attachment_required": true,
+    "cross_org_access_forbidden": true
+  },
+  "learnhouse_contract": {
+    "activity_type": "TYPE_VIDEO",
+    "preferred_subtype": "SUBTYPE_VIDEO_HOSTED",
+    "published_on_attachment": false,
+    "exact_hosted_payload_must_be_audited_before_provider_attachment": true
+  },
+  "programming_lessons": {
+    "deterministic_code_capture_required": true,
+    "generative_fake_code_ui_forbidden": true,
+    "composition_layer": "FFmpeg/Remotion-equivalent",
+    "browser_or_terminal_capture": "real execution preferred"
+  },
+  "multimodal_review_checks": [
+    "narration matches lesson",
+    "factual and code correctness",
+    "audio/video synchronization",
+    "caption accuracy",
+    "no clipped text",
+    "no hallucinated UI presented as real",
+    "minimum media quality",
+    "asset and model license compatibility",
+    "no credentials, secrets or private data in frames/audio"
+  ],
+  "definition_of_done": [
+    "persistent resumable batch jobs",
+    "24-lesson batch planning",
+    "revision plus content hash per lesson video manifest",
+    "provider registry server-side only",
+    "multimodal review evidence persisted",
+    "human approval bound to revision and hash",
+    "native LearnHouse video attachment created unpublished",
+    "separate human publish action",
+    "idempotency and concurrency tests",
+    "API and web CI green",
+    "Railway production success",
+    "one real provider smoke test with no automatic publication"
+  ]
+}
