@@ -21,6 +21,7 @@ from src.services.xpex.video_factory import (
     VideoModelRegistry,
     VideoScript,
 )
+from src.services.xpex.video_local_tts import synthesize_local_narration
 from src.services.xpex.video_media import (
     compose_lesson_video,
     draft_artifact_key,
@@ -84,6 +85,17 @@ def _duration_from_text(text: str) -> int:
     return max(30, min(round(words / 2.2), 3600))
 
 
+async def _produce_narration(text: str, registry: VideoModelRegistry) -> ProviderBinary:
+    """Prefer an explicitly configured HF TTS model; otherwise use local pt-BR TTS.
+
+    The fallback is intentional and fail-closed: no implicit external provider or
+    browser credential is introduced when hosted TTS is unavailable.
+    """
+    if registry.tts_model:
+        return await synthesize_narration(text, registry)
+    return await synthesize_local_narration(text)
+
+
 def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
     async def scripting(manifest: LessonVideoManifest) -> LessonVideoManifest:
         narration = _narration_text(source.lesson)
@@ -127,7 +139,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
     async def narrating(manifest: LessonVideoManifest) -> LessonVideoManifest:
         if manifest.video_script is None:
             raise ValueError("video script is required before narration")
-        audio = await synthesize_narration(
+        audio = await _produce_narration(
             manifest.video_script.narration_text,
             source.registry,
         )
