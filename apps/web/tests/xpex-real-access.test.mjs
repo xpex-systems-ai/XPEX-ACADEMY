@@ -79,7 +79,7 @@ describe('server-authoritative XpeX routes', () => {
   test('resolves the LearnHouse server session before selecting an experience', () => {
     expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
     expect(boundary).toContain('const session = await getServerSession()')
-    expect(boundary).toContain('resolveXpexOrganization(memberships, requestedRole)')
+    expect(boundary).toContain('resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)')
     expect(boundary).toContain('noOrganization={!hasOrganizationMembership}')
     expect(boundary).not.toContain("'use client'")
   })
@@ -96,7 +96,7 @@ describe('server-authoritative XpeX routes', () => {
     expect(boundary).toContain('role={role}')
     expect(boundary).toContain('displayName={displayName}')
     expect(boundary).not.toContain('StudentExperience')
-    expect(authenticatedDashboard).toContain('Dados reais, quando disponíveis')
+    expect(authenticatedDashboard).toContain('dados disponíveis')
     expect(authenticatedDashboard).not.toMatch(/value="(?:\d+|\d+%)"/)
   })
 })
