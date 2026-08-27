@@ -20,7 +20,7 @@ from src.db.roles import Rights, Role, RoleTypeEnum
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
-from src.db.users import AnonymousUser, APITokenUser, PublicUser
+from src.db.users import AnonymousUser, APITokenUser, PublicUser, User
 from src.security.auth import resolve_acting_user_id
 from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
 
@@ -48,12 +48,19 @@ def _role_has_editor_access(role: Role | None, org_id: int) -> bool:
 
 
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True for seeded admin/maintainer or an org-scoped custom editor role.
+    """True for platform superadmins, seeded org admins/maintainers, or scoped editors.
 
-    Seeded role recognition remains ID-based for backward compatibility. Any
-    capability-based elevation is constrained to a Role whose role_type is
-    TYPE_ORGANIZATION and whose org_id exactly matches the requested org.
+    A platform superadmin is intentionally an organization-independent authority.
+    This matters for the XPeX control plane because the same authenticated
+    superadmin may legitimately carry an ordinary learner membership in the org.
+    Global instructor/member roles are still never elevated by capability alone.
     """
+    user = (
+        await db_session.execute(select(User).where(User.id == user_id))
+    ).scalars().first()
+    if user is not None and user.is_superadmin is True:
+        return True
+
     uo = (
         await db_session.execute(
             select(UserOrganization).where(
