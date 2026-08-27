@@ -1,0 +1,234 @@
+{
+  "handoff_version": "1.0",
+  "mission_id": "XPEX-CONTENT-002",
+  "mission_title": "Editorial AI Course Studio + Human Approval Publisher",
+  "issued_by": "GX",
+  "executor": "Codex",
+  "repository": "xpex-systems-ai/XPEX-ACADEMY",
+  "base_branch": "dev",
+  "base_commit": "05a3b00d7db892e19b770570a4d5756cfc2b1c58",
+  "working_branch": "feat/xpex-content-002-editorial-ai-publisher",
+  "priority": "P0",
+  "previous_mission": {
+    "id": "XPEX-CONTENT-001",
+    "status": "PASS_PRODUCTION",
+    "merged_pr": 98,
+    "merge_commit": "05a3b00d7db892e19b770570a4d5756cfc2b1c58",
+    "pipeline": ["OpenRouter structured CourseDraft generation", "Hugging Face independent review"],
+    "publication_mode": "preview-only"
+  },
+  "objective": "Build an authenticated editorial workflow in XPeX Academy where authorized staff can Generate with AI -> Review -> Edit -> Approve -> Publish into native LearnHouse Course/Chapter/Activity services. Human approval and a separate explicit publish action are mandatory. LearnHouse remains the source of truth after publication.",
+  "principles": [
+    "GENERATED != REVIEWED != APPROVED != PUBLISHED",
+    "No automatic publication",
+    "No AI provider secret in client code",
+    "OPENROUTER_API_KEY and HF_TOKEN remain server-side only",
+    "Never introduce NEXT_PUBLIC_* AI secrets",
+    "Reuse LearnHouse native auth, role, Course, Chapter and Activity services",
+    "Do not create a second LMS or parallel enrollment/progress system",
+    "Fail closed on provider, validation, permission, approval or persistence errors",
+    "Do not fabricate certifications, partners, enrollments, metrics, testimonials or claims",
+    "All approval/publish writes must be auditable and tied to an authenticated actor"
+  ],
+  "state_machine": {
+    "states": ["DRAFT", "REVIEWED", "APPROVED", "PUBLISHED"],
+    "allowed": [
+      "DRAFT -> REVIEWED",
+      "REVIEWED -> DRAFT when edited",
+      "REVIEWED -> APPROVED only without unresolved BLOCKER",
+      "APPROVED -> DRAFT when approved content is edited",
+      "APPROVED -> PUBLISHED only by explicit authorized publish action"
+    ],
+    "forbidden": [
+      "DRAFT -> PUBLISHED",
+      "REVIEWED -> PUBLISHED",
+      "provider generation -> automatic APPROVED",
+      "provider review -> automatic PUBLISHED"
+    ]
+  },
+  "backend_scope": [
+    "Create authenticated editorial endpoints/services for generate, retrieve, edit, review, approve and publish",
+    "Reuse apps/api/src/services/xpex/content_studio.py",
+    "Preserve provider provenance, timestamps, actor UUID, topic, audience, module count and schema version",
+    "Persist approval metadata before publication if durable workflow requires it",
+    "Map validated APPROVED CourseDraft into native LearnHouse Course/Chapter/Activity services",
+    "Make publication idempotent or safely reject duplicates",
+    "Reject publish unless status is APPROVED and no unresolved BLOCKER exists",
+    "Never mutate learner enrollment, progress, completion or certification during editorial publication",
+    "Return native authoritative identifiers after publish"
+  ],
+  "frontend_scope": [
+    "Add authenticated staff/editorial Course Studio screen using existing XPeX/LearnHouse UI conventions",
+    "Inputs: topic, audience, module count",
+    "Actions: Gerar com IA -> Revisar -> Aprovar -> Publicar",
+    "Show DRAFT/REVIEWED/APPROVED/PUBLISHED badges",
+    "Show provider provenance, review notes and severity",
+    "Allow draft editing before approval",
+    "Disable/hide protected actions for unauthorized users",
+    "Publish must remain a separate deliberate action after approval",
+    "After publish, link to native LearnHouse destination using authoritative IDs"
+  ],
+  "authorization": [
+    "Discover and reuse existing LearnHouse/XPeX role and permission primitives",
+    "Do not invent a separate auth system",
+    "Enforce approval and publication authorization server-side",
+    "At minimum restrict editorial actions to authenticated authorized staff"
+  ],
+  "security": [
+    "Treat generated/stored draft text as untrusted data",
+    "Preserve prompt-injection protections from XPEX-CONTENT-001",
+    "Do not log provider tokens or Authorization headers",
+    "Sanitize provider error bodies",
+    "Validate AI output with Pydantic before persistence/publication",
+    "Avoid client-controlled approval/publication status mass assignment"
+  ],
+  "publisher_contract": {
+    "input": "validated + reviewed + explicitly approved CourseDraft",
+    "output": "native LearnHouse course/chapter/activity identifiers and canonical navigation target",
+    "must_not_write": ["enrollments", "progress", "completion records", "certifications", "fake analytics"]
+  },
+  "required_tests": {
+    "backend": [
+      "unauthenticated actions rejected",
+      "unauthorized authenticated user rejected",
+      "generation returns DRAFT only",
+      "review records provenance and notes",
+      "BLOCKER prevents approval",
+      "editing invalidates stale review/approval",
+      "approval requires explicit authorized actor",
+      "publish rejects DRAFT and REVIEWED",
+      "publish rejects stale approval",
+      "valid APPROVED publish succeeds",
+      "publish does not mutate enrollment/progress/completion",
+      "duplicate publish idempotent or safely rejected",
+      "provider failures fail closed without secret leakage",
+      "prompt injection content remains data only"
+    ],
+    "frontend": [
+      "staff can access Course Studio",
+      "learner/non-editor cannot execute protected actions",
+      "Generate shows DRAFT",
+      "Review shows notes/provenance",
+      "Approve disabled with blockers",
+      "Publish unavailable before approval",
+      "editing invalidates review/approval",
+      "successful publish shows native destination",
+      "error/loading/empty states truthful and accessible"
+    ],
+    "regression": [
+      "existing dashboard works",
+      "course vitrine works",
+      "lesson completion/progress remains authoritative",
+      "API lint/type/tests pass",
+      "Web lint/type/tests/build pass where configured",
+      "migration dry-run passes if schema changes exist"
+    ]
+  },
+  "live_validation": {
+    "environment": "Railway production after merge and successful deploy",
+    "provider_secret_names": ["OPENROUTER_API_KEY", "HF_TOKEN"],
+    "never_output_secret_values": true,
+    "smoke": {
+      "topic": "Fundamentos de Inteligência Artificial Aplicada",
+      "audience": "alunos iniciantes da XPeX Academy",
+      "module_count": 1,
+      "steps": [
+        "generate real DRAFT with OpenRouter",
+        "run real Hugging Face review",
+        "verify no automatic approval",
+        "verify no automatic publish",
+        "perform explicit authorized approval",
+        "perform explicit authorized publish",
+        "verify native LearnHouse records and authoritative identifiers",
+        "verify no learner enrollment/progress/completion mutation"
+      ]
+    }
+  },
+  "observability": [
+    "Log state transitions with draft identifier and actor UUID without secrets",
+    "Log provider/model and sanitized result status",
+    "Log publish attempt/success/failure with native LearnHouse identifiers"
+  ],
+  "documentation": [
+    "Update docs/xpex/launch/XPEX_CONTENT_STUDIO.md or create linked CONTENT-002 runbook",
+    "Document state machine, permissions, publish contract, rollback and smoke procedure",
+    "Document that provider secrets belong only in Railway server variables"
+  ],
+  "git_protocol": {
+    "never_commit_directly_to_dev": true,
+    "branch": "feat/xpex-content-002-editorial-ai-publisher",
+    "pr_base": "dev",
+    "pr_title": "feat(xpex): add editorial AI approval and native LearnHouse publisher",
+    "required_before_merge": [
+      "review threads resolved",
+      "core CI green",
+      "no secrets in diff",
+      "authorization/publish safety tests green",
+      "migration dry-run green if applicable"
+    ]
+  },
+  "acceptance_criteria": [
+    "Authorized editor can generate a real AI course draft from XPeX UI",
+    "Generated draft is server-side DRAFT",
+    "Real Hugging Face review can run with provenance",
+    "BLOCKER prevents approval",
+    "Approval requires explicit authenticated authorized action",
+    "Meaningful edit invalidates stale review/approval",
+    "Publication requires a second explicit authenticated authorized action",
+    "Publication uses native LearnHouse services and returns authoritative IDs",
+    "Publication never mutates enrollment/progress/completion",
+    "No provider secret reaches browser, logs, GitHub or committed files",
+    "All CI gates pass",
+    "Railway deployment succeeds",
+    "Real end-to-end smoke confirms Generate -> Review -> Approve -> Publish",
+    "Evidence confirms no automatic publish before explicit Publish action"
+  ],
+  "definition_of_done": {
+    "code": "merged to dev through reviewed PR",
+    "ci": "PASS",
+    "railway": "SUCCESS",
+    "live_provider_generation": "PASS",
+    "live_provider_review": "PASS",
+    "human_approval_gate": "PASS",
+    "native_learnhouse_publish": "PASS",
+    "no_automatic_publish": "PASS",
+    "security_secret_exposure": "PASS",
+    "final_status": "PASS_PRODUCTION only with evidence for every gate"
+  },
+  "codex_execution_instructions": [
+    "Audit current dev at commit 05a3b00d7db892e19b770570a4d5756cfc2b1c58 before coding.",
+    "Discover existing auth/roles and Course/Chapter/Activity services before choosing implementation files.",
+    "Continue only on feat/xpex-content-002-editorial-ai-publisher; never implement directly on dev.",
+    "Implement the smallest architecture satisfying the state machine and native publisher contract.",
+    "Add focused automated tests before requesting review.",
+    "Open a PR to dev with architecture, security, migration, test and live-validation notes.",
+    "Do not merge until review threads are resolved and required CI is green.",
+    "Do not expose provider secret values in any output.",
+    "Return the structured execution report defined below."
+  ],
+  "required_codex_report": {
+    "mission_id": "XPEX-CONTENT-002",
+    "decision": "PASS | BLOCKED | FAIL",
+    "base_commit": "sha",
+    "branch": "string",
+    "commits": ["sha"],
+    "pull_request": "number/url",
+    "files_changed": ["path"],
+    "architecture_summary": "string",
+    "security_controls": ["string"],
+    "tests": [{"name": "string", "result": "PASS|FAIL"}],
+    "ci": [{"check": "string", "result": "PASS|FAIL|PENDING"}],
+    "railway_deployment": {"id": "string", "commit": "sha", "status": "SUCCESS|FAILED|PENDING"},
+    "live_smoke": {
+      "openrouter_generation": "PASS|FAIL|NOT_RUN",
+      "huggingface_review": "PASS|FAIL|NOT_RUN",
+      "human_approval_gate": "PASS|FAIL|NOT_RUN",
+      "native_publish": "PASS|FAIL|NOT_RUN",
+      "automatic_publish_absent": "PASS|FAIL|NOT_RUN",
+      "learner_state_unchanged": "PASS|FAIL|NOT_RUN"
+    },
+    "blockers": ["string"],
+    "rollback": "string",
+    "next_recommended_mission": "string"
+  }
+}
