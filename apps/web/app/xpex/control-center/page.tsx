@@ -7,7 +7,6 @@ import type { XpexRole } from '@components/Xpex/xpex-types'
 import {
   listCourseStudioDrafts,
   listVideoJobs,
-  type CourseStudioDraft,
   type VideoStudioJob,
 } from '@services/xpex/courseStudio'
 
