@@ -15,7 +15,6 @@ from src.services.xpex.video_providers import (
     transcribe_audio,
 )
 
-
 REGISTRY = VideoModelRegistry(
     video_model="org/video-model",
     image_model="org/image-model",
