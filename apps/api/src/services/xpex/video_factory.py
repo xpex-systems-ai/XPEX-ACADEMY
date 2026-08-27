@@ -106,14 +106,16 @@ class LessonVideoManifest(BaseModel):
     published: bool = False
 
     @model_validator(mode="after")
-    def enforce_publication_invariants(self) -> "LessonVideoManifest":
+    def enforce_publication_invariants(self) -> LessonVideoManifest:
         if self.published and not self.learnhouse_activity_uuid:
             raise ValueError("published video requires a LearnHouse activity")
         if self.published and not self.attached_unpublished:
             raise ValueError("video must pass through unpublished attachment before publish")
-        if self.state in {VideoJobState.APPROVED, VideoJobState.ATTACHED, VideoJobState.PUBLISHED}:
-            if self.approved_revision != self.revision or not self.approved_content_hash:
-                raise ValueError("approved states require revision-bound approval evidence")
+        if (
+            self.state in {VideoJobState.APPROVED, VideoJobState.ATTACHED, VideoJobState.PUBLISHED}
+            and (self.approved_revision != self.revision or not self.approved_content_hash)
+        ):
+            raise ValueError("approved states require revision-bound approval evidence")
         return self
 
     def content_hash(self) -> str:
@@ -177,7 +179,7 @@ class VideoBatchPlan(BaseModel):
     concurrency: int = Field(default=3, ge=1, le=8)
 
     @model_validator(mode="after")
-    def unique_lessons(self) -> "VideoBatchPlan":
+    def unique_lessons(self) -> VideoBatchPlan:
         if len(set(self.lesson_ids)) != len(self.lesson_ids):
             raise ValueError("lesson_ids must be unique")
         return self
@@ -194,7 +196,7 @@ class VideoModelRegistry(BaseModel):
     multimodal_review_model: str | None = None
 
     @classmethod
-    def from_environment(cls) -> "VideoModelRegistry":
+    def from_environment(cls) -> VideoModelRegistry:
         return cls(
             video_model=os.getenv("XPEX_HF_VIDEO_MODEL"),
             image_model=os.getenv("XPEX_HF_IMAGE_MODEL"),
