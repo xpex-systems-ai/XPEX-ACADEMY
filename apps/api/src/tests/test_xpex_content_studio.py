@@ -8,7 +8,6 @@ from src.services.xpex.content_studio import (
     review_course_draft,
 )
 
-
 SAMPLE_DRAFT = {
     "title": "Inteligência Artificial Aplicada",
     "description": "Curso prático para compreender fundamentos, aplicar IA e construir um projeto demonstrável com responsabilidade.",
