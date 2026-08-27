@@ -13,7 +13,7 @@ describe('XPeX next-generation learning experience', () => {
 
   test('exposes authoritative progress and accessible lesson context', () => {
     const player = read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')
-    expect(player).toContain('completedLessons / totalLessons')
+    expect(player).toContain('progressPercent ?? 0')
     expect(player).toContain('<progress')
     expect(player).toContain('aria-labelledby="lesson-title"')
     expect(player).toContain('router.refresh()')
@@ -24,6 +24,8 @@ describe('XPeX next-generation learning experience', () => {
   test('persists completion before refreshing the official dashboard state', () => {
     const actions = read('app/xpex/courses/[courseId]/learn/[activityId]/actions.ts')
     expect(actions).toContain('await markActivityAsComplete')
+    expect(actions).toContain('item.complete')
+    expect(actions).toContain('persistedCourse.target_href')
     expect(actions).toContain('revalidatePath')
     expect(actions).toContain('nextHref')
   })
