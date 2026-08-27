@@ -45,26 +45,14 @@ async def _reconcile_packs():
 
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
-        # Get LearnHouse Config
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
         app.learnhouse_config = learnhouse_config  # type: ignore
-
-        # Connect to database
         await connect_to_db(app)
-
-        # Create logs directory
         await create_logs_dir()
-
-        # Create content directory
         await check_content_directory()
-
-        # Check if auto-installation is needed
         await auto_install()
-
-        # Reconcile pack credits (Redis ↔ DB)
         await _reconcile_packs()
 
-        # Clean up stale migration temp directories (on startup + every 10 min)
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
         )
@@ -73,27 +61,21 @@ def startup_app(app: FastAPI) -> Callable:
         global _cleanup_task
         _cleanup_task = asyncio.create_task(_periodic_migration_cleanup())
 
-        # Start the in-app HLS transcoding consumer (drains the Redis queue as a
-        # background task; no separate worker). No-op unless LEARNHOUSE_HLS_ENABLED.
         from src.services.utils.hls_jobs import start_consumer
 
         start_consumer()
 
-        # Start the in-app AI captions consumer (no-op without Redis; idle until an
-        # instructor enables captions on a video).
         from src.services.utils.caption_jobs import (
             start_consumer as start_captions_consumer,
         )
 
         start_captions_consumer()
 
-        # XPEX-LAUNCH-002 is opt-in, idempotent and never auto-approves video.
         from src.services.xpex.launch002_v2 import start_launch002_v2
 
         global _xpex_launch002_task
         _xpex_launch002_task = start_launch002_v2()
 
-        # Start Enterprise Edition Startup tasks if available
         run_ee_startup(app)
 
     return start_app
@@ -107,7 +89,7 @@ def shutdown_app(app: FastAPI) -> Callable:
                 await _xpex_launch002_task
             except asyncio.CancelledError:
                 pass
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("XPEX-LAUNCH-002 task failed before shutdown; continuing cleanup")
         if _cleanup_task:
             _cleanup_task.cancel()
@@ -115,17 +97,15 @@ def shutdown_app(app: FastAPI) -> Callable:
                 await _cleanup_task
             except asyncio.CancelledError:
                 pass
-        # Stop the in-app HLS consumer and wait for in-flight transcodes.
+
         from src.services.utils.hls_jobs import stop_consumer
 
         await stop_consumer()
-        # Stop the in-app captions consumer.
         from src.services.utils.caption_jobs import (
             stop_consumer as stop_captions_consumer,
         )
 
         await stop_captions_consumer()
-        # Wait for in-flight webhook deliveries before closing the HTTP client
         from src.services.webhooks.dispatch import _background_tasks as _webhook_tasks
         from src.services.webhooks.dispatch import close_webhook_client
 
