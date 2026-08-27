@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from pydantic import ValidationError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.roles import Rights, Role
+from src.db.roles import Rights, Role, RoleTypeEnum
 from src.db.user_organizations import UserOrganization
 from src.db.usergroup_resources import UserGroupResource
 from src.db.usergroup_user import UserGroupUser
@@ -25,15 +25,20 @@ from src.security.auth import resolve_acting_user_id
 from src.security.rbac.constants import ADMIN_OR_MAINTAINER_ROLE_IDS
 
 
-def _role_has_editor_access(role: Role | None) -> bool:
-    """Recognize custom org roles that are operationally equivalent to editors.
+def _role_has_editor_access(role: Role | None, org_id: int) -> bool:
+    """Recognize only organization-scoped custom roles as editor-equivalent.
 
-    LearnHouse supports organization-scoped custom roles, so relying only on the
-    seeded role IDs (1/2) incorrectly rejects legitimate dashboard editors.
-    Editorial elevation requires dashboard access plus course-create permission.
-    Malformed or incomplete rights fail closed.
+    Global roles such as Instructor must never become organization-admin bypasses
+    merely because their capabilities include dashboard access and course creation.
+    Capability-based elevation is accepted only when the Role row is explicitly
+    scoped to the requested organization. Malformed/incomplete rights fail closed.
     """
-    if role is None or not role.rights:
+    if (
+        role is None
+        or role.role_type != RoleTypeEnum.TYPE_ORGANIZATION
+        or role.org_id != org_id
+        or not role.rights
+    ):
         return False
     try:
         rights = role.rights if isinstance(role.rights, Rights) else Rights.model_validate(role.rights)
@@ -43,12 +48,11 @@ def _role_has_editor_access(role: Role | None) -> bool:
 
 
 async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> bool:
-    """True for seeded admin/maintainer roles or an equivalent custom editor role.
+    """True for seeded admin/maintainer or an org-scoped custom editor role.
 
-    Keep the historical UserOrganization lookup shape first. Besides being
-    cheaper for the seeded roles, this preserves compatibility with callers and
-    tests that mock the long-standing ``scalars().first()`` query contract.
-    Only custom roles require the second Role lookup.
+    Seeded role recognition remains ID-based for backward compatibility. Any
+    capability-based elevation is constrained to a Role whose role_type is
+    TYPE_ORGANIZATION and whose org_id exactly matches the requested org.
     """
     uo = (
         await db_session.execute(
@@ -66,7 +70,7 @@ async def is_org_admin(user_id: int, org_id: int, db_session: AsyncSession) -> b
     role = (
         await db_session.execute(select(Role).where(Role.id == uo.role_id))
     ).scalars().first()
-    return _role_has_editor_access(role if isinstance(role, Role) else None)
+    return _role_has_editor_access(role if isinstance(role, Role) else None, org_id)
 
 
 async def batch_accessible_restricted_uuids(
