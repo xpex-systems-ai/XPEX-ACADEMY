@@ -50,18 +50,15 @@ async def test_reconcile_completely_empty_install(db, monkeypatch):
     assert membership.role_id == ADMIN_ROLE_ID
 
 
-async def test_reconcile_existing_organization_creates_missing_admin(db, monkeypatch):
+async def test_reconcile_existing_organization_does_not_create_or_promote_admin(db, monkeypatch):
     _set_initial_admin(monkeypatch)
-    org = await install_create_organization(
+    await install_create_organization(
         OrganizationCreate(name="Existing", slug="default", email=""), db
     )
 
     await reconcile_initial_install(db)
 
-    assert (await _counts(db)) == (1, 1, 1)
-    membership = (await db.execute(select(UserOrganization))).scalars().one()
-    assert membership.org_id == org.id
-    assert membership.role_id == ADMIN_ROLE_ID
+    assert (await _counts(db)) == (1, 0, 0)
 
 
 async def test_established_install_without_bootstrap_only_refreshes_roles(db, monkeypatch):
@@ -99,11 +96,8 @@ async def test_explicit_non_default_admin_email_is_used(db, monkeypatch):
     assert user.is_superadmin is True
 
 
-async def test_reconcile_repairs_existing_admin_and_membership(db, monkeypatch):
+async def test_reconcile_never_promotes_an_existing_account_at_startup(db, monkeypatch):
     _set_initial_admin(monkeypatch)
-    org = await install_create_organization(
-        OrganizationCreate(name="Existing", slug="default", email=""), db
-    )
     user = User(
         username="administrator",
         first_name="",
@@ -115,16 +109,17 @@ async def test_reconcile_repairs_existing_admin_and_membership(db, monkeypatch):
         creation_date=str(datetime.now(UTC)),
         update_date=str(datetime.now(UTC)),
     )
+    await install_create_organization(
+        OrganizationCreate(name="Existing", slug="default", email=""), db
+    )
     db.add(user)
     await db.commit()
 
     await reconcile_initial_install(db)
 
     await db.refresh(user)
-    membership = (await db.execute(select(UserOrganization))).scalars().one()
-    assert user.is_superadmin is True
-    assert membership.org_id == org.id
-    assert membership.role_id == ADMIN_ROLE_ID
+    assert user.is_superadmin is False
+    assert (await db.execute(select(UserOrganization))).scalars().first() is None
 
 
 async def test_reconcile_repeated_startup_does_not_duplicate_records(db, monkeypatch):

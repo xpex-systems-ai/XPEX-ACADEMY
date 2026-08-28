@@ -29,6 +29,34 @@ for _stream in (sys.stdout, sys.stderr):
 cli = typer.Typer()
 
 
+@cli.command("provision-configured-admin")
+def provision_configured_admin_command():
+    """One-shot, opt-in repair of native authority for the configured account."""
+    from src.services.setup.admin_provisioning import (
+        AdminProvisioningRefused,
+        provision_configured_admin,
+    )
+
+    async def run():
+        config = get_learnhouse_config()
+        engine = create_async_engine(
+            _to_async_url(config.database_config.sql_connection_string),  # type: ignore
+            pool_pre_ping=True,
+        )
+        try:
+            async with AsyncSession(engine, expire_on_commit=False) as session:
+                try:
+                    result = await provision_configured_admin(session)
+                except AdminProvisioningRefused as exc:
+                    print(f"Admin provisioning refused: {exc}")
+                    raise typer.Exit(code=2) from None
+            print(f"Admin provisioning: {result}. Disable LEARNHOUSE_ADMIN_BOOTSTRAP_ENABLED now.")
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 @cli.command("xpex-pilot-readiness")
 def xpex_pilot_readiness():
     """Print configuration states without printing configuration values."""
