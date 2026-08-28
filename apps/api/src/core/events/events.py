@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from collections.abc import Callable
 
 from config.config import LearnHouseConfig, get_learnhouse_config
@@ -43,6 +44,19 @@ async def _reconcile_packs():
         logger.warning("Pack reconciliation skipped (non-fatal): %s", e)
 
 
+async def _provision_configured_admin_once() -> None:
+    """Run the explicit admin repair only when the operator enable flag is set."""
+    if os.environ.get("LEARNHOUSE_ADMIN_BOOTSTRAP_ENABLED", "").lower() != "true":
+        return
+
+    from src.core.events.database import _async_session_factory
+    from src.services.setup.admin_provisioning import provision_configured_admin
+
+    async with _async_session_factory() as db_session:
+        result = await provision_configured_admin(db_session)
+    logger.warning("XPEX startup admin provisioning result=%s", result)
+
+
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
@@ -52,6 +66,7 @@ def startup_app(app: FastAPI) -> Callable:
         await check_content_directory()
         await auto_install()
         await _reconcile_packs()
+        await _provision_configured_admin_once()
 
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
