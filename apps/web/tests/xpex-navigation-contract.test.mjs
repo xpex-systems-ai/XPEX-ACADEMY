@@ -4,7 +4,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   xpexAdminRoute,
+  xpexControlCenterRoute,
   xpexCourseStudioRoute,
+  xpexLearnerCoursesRoute,
   xpexPoloCoursesRoute,
   xpexPoloRoute,
   xpexPoloStudentsRoute,
@@ -21,7 +23,8 @@ describe('XPeX canonical navigation contract', () => {
       xpexPoloRoute(),
       xpexPoloStudentsRoute(),
       xpexStudentRoute(),
-      xpexCourseStudioRoute('authorized-polo'),
+      xpexControlCenterRoute(),
+      xpexLearnerCoursesRoute(),
     ]
 
     for (const route of fixedRoutes) {
@@ -31,14 +34,18 @@ describe('XPeX canonical navigation contract', () => {
         : directPage
       expect(existsSync(rolePage)).toBe(true)
     }
-    expect(xpexPoloCoursesRoute('authorized polo')).toBe('/orgs/authorized%20polo/dash/courses')
+    expect(xpexCourseStudioRoute('authorized-polo')).toBe('/course-studio')
+    expect(xpexPoloCoursesRoute('authorized-polo')).toBe('/dash/courses')
     expect(existsSync(join(webRoot, 'app/orgs/[orgslug]/dash/courses/page.tsx'))).toBe(true)
+    expect(existsSync(join(webRoot, 'app/orgs/[orgslug]/(withmenu)/course-studio/page.tsx'))).toBe(true)
   })
 
   test('never generates the production dead routes', () => {
-    const generated = [xpexCourseStudioRoute('default'), xpexPoloCoursesRoute('default')]
+    const generated = [xpexCourseStudioRoute('non-default'), xpexPoloCoursesRoute('non-default')]
     expect(generated).not.toContain('/orgs/default/course-studio')
     expect(generated).not.toContain('/orgs/default/courses')
+    expect(generated.every(route => !route.includes('/orgs/'))).toBe(true)
+    expect(xpexCourseStudioRoute('non-default')).not.toBe(xpexControlCenterRoute())
   })
 
   test('keeps active XPeX callers free from legacy course links', () => {
@@ -66,9 +73,14 @@ describe('pt-BR login copy', () => {
     const catalog = JSON.parse(readFileSync(join(webRoot, 'locales/pt.json'), 'utf8'))
     const login = readFileSync(join(webRoot, 'app/auth/login/login.tsx'), 'utf8')
 
-    expect(catalog.auth.login_with_google).toBe('Entrar com Google')
-    expect(catalog.auth.signup).toBe('Criar conta')
-    expect(login).toContain("defaultValue: 'Entrar com Google'")
-    expect(login).toContain("defaultValue: 'Criar conta'")
+    const english = JSON.parse(readFileSync(join(webRoot, 'locales/en.json'), 'utf8'))
+    expect(catalog.auth.sign_in_with_google).toBe('Entrar com Google')
+    expect(catalog.auth.sign_up).toBe('Cadastrar-se')
+    expect(english.auth.sign_in_with_google).toBe('Sign in with Google')
+    expect(english.auth.sign_up).toBe('Sign up')
+    expect(login).toContain("t('auth.sign_in_with_google')")
+    expect(login).toContain("t('auth.sign_up')")
+    expect(login).not.toContain("t('auth.sign_in_with_google', { defaultValue:")
+    expect(login).not.toContain("t('auth.sign_up', { defaultValue:")
   })
 })

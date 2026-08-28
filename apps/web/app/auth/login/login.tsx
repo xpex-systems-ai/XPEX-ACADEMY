@@ -431,12 +431,12 @@ const LoginClient = (props: LoginClientProps) => {
                   className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50"
                 >
                   <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4" />
-                  <span>{t('auth.login_with_google', { defaultValue: 'Entrar com Google' })}</span>
+                  <span>{t('auth.sign_in_with_google')}</span>
                 </button>
               </div>
 
               <p className="mt-6 text-center text-sm text-white/55">
-                {t('auth.no_account')} <Link className="rounded font-semibold text-[#00D4FF] hover:underline" href="/signup">{t('auth.signup', { defaultValue: 'Criar conta' })}</Link>
+                {t('auth.no_account')} <Link className="rounded font-semibold text-[#00D4FF] hover:underline" href="/signup">{t('auth.sign_up')}</Link>
               </p>
             </div>
           </div>

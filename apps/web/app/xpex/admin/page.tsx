@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { xpexCourseStudioRoute, xpexPoloCoursesRoute } from '@/lib/xpexRouteMap'
+import { xpexControlCenterRoute, xpexCourseStudioRoute, xpexPoloCoursesRoute } from '@/lib/xpexRouteMap'
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
 import {
@@ -77,7 +77,7 @@ export default async function XpexAdminPage() {
         </header>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <AdminCard title="Centro de Controle" description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar." href="/xpex/control-center" action="Abrir centro de controle" />
+          <AdminCard title="Centro de Controle" description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar." href={xpexControlCenterRoute()} action="Abrir centro de controle" />
           {courseStudioPath ? <AdminCard title="Fábrica de Cursos IA" description="Criar, revisar, aprovar e publicar cursos na organização autorizada." href={courseStudioPath} action="Abrir Course Studio" /> : <AdminNotice title="Organização" description="Sua conta superadmin está ativa, mas ainda não há uma organização vinculada à sessão atual." />}
           {coursesPath ? <AdminCard title="Cursos" description="Abrir o catálogo administrativo de cursos e conteúdos da organização." href={coursesPath} action="Gerenciar cursos" /> : <AdminNotice title="Cursos" description="Vincule uma organização para habilitar os atalhos operacionais de cursos." />}
         </div>
