@@ -617,7 +617,6 @@ async def third_party_login(
     ),
     responses={
         200: {"description": "Logout successful; auth cookies cleared."},
-        401: {"description": "No authenticated session was found"},
     },
 )
 async def logout(
@@ -633,11 +632,11 @@ async def logout(
     """
     token = extract_jwt_from_request(request)
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        # Logout is idempotent: an absent/expired session is already in the
+        # requested final state. Still emit cookie-clearing headers so stale
+        # browser cookies cannot keep the frontend in a phantom session.
+        unset_auth_cookies(response, request)
+        return {"msg": "Successfully logout"}
 
     # Best-effort resolve the user to revoke every session they have across
     # devices (not just the one tied to this cookie).

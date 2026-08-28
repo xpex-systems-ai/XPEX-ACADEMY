@@ -34,19 +34,17 @@ describe('native OSS administration entry', () => {
     expect(nativeAdminPage).not.toMatch(/xpeacademy@outlook\.com/i)
   })
 
-  test('resolves post-login routing from backend authority rather than URL intent', () => {
-    expect(authRedirect).toContain('const session = await getServerSession()')
-    expect(authRedirect).toContain('if (session.user.is_superadmin === true) return true')
-    expect(authRedirect).toContain('await listCourseStudioDrafts(organization.slug, session.tokens.access_token')
-    expect(authRedirect).toContain("isAdmin ? requested : '/home'")
-    expect(authRedirect).toContain("requested === '/home' && isAdmin")
+  test('keeps the auth handoff deterministic and leaves authority at the destination', () => {
+    expect(authRedirect).toContain('safeAuthReturnPath(')
+    expect(authRedirect).toContain('Authorization stays at the destination itself')
+    expect(authRedirect).toContain('NextResponse.redirect(new URL(requested, request.nextUrl.origin))')
     expect(authRedirect).not.toMatch(/xpeacademy@outlook\.com/i)
     expect(proxy).not.toContain("if (pathname === '/redirect_from_auth')")
   })
 
-  test('reveals navigation only after the backend capability probe succeeds', () => {
-    expect(experience).toContain('let adminAccess = isSuperadmin')
-    expect(experience).toContain('await listCourseStudioDrafts(organizationSlug, session.tokens.access_token)')
+  test('reveals navigation only from server-authoritative role resolution', () => {
+    expect(experience).toContain('resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)')
+    expect(experience).toContain('const adminAccess = poloAccess?.isManager ?? isSuperadmin')
     expect(experience).toContain('adminAccess={adminAccess}')
     expect(shell).toContain('{adminAccess && <AdminEntry')
     expect(shell).toContain('href="/xpex/admin"')
@@ -54,8 +52,9 @@ describe('native OSS administration entry', () => {
 
   test('builds management links only from the organization in the authenticated membership', () => {
     expect(nativeAdminPage).toContain('const organization = resolveXpexOrganization(memberships)')
-    expect(nativeAdminPage).toContain('const orgPath = organization?.slug ? `/orgs/${encodeURIComponent(organization.slug)}` : null')
-    expect(nativeAdminPage).toContain('href={`${orgPath}/course-studio`}')
-    expect(nativeAdminPage).toContain('href={`${orgPath}/courses`}')
+    expect(nativeAdminPage).toContain('xpexCourseStudioRoute(organization.slug)')
+    expect(nativeAdminPage).toContain('xpexPoloCoursesRoute(organization.slug)')
+    expect(nativeAdminPage).not.toContain('/course-studio`}')
+    expect(nativeAdminPage).not.toContain('/courses`}')
   })
 })
