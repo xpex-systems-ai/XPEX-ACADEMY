@@ -37,17 +37,15 @@ const LoginClient = (props: LoginClientProps) => {
   const session = useLHSession() as any;
   const isAuthenticated = session?.status === 'authenticated'
 
-  // A signed-in user has nothing to do on /login → bounce to the hub. The proxy
-  // does this best-effort, but pages must self-handle it too (mirrors signup.tsx).
-  // Guarded by !isSubmitting so a FRESH login (which flips the session to
-  // authenticated) doesn't race the onSubmit's own post-login navigation.
+  // A signed-in user has nothing to do on /login → bounce to the requested
+  // same-origin destination. Guarded by !isSubmitting so a fresh login does
+  // not race the onSubmit navigation below.
   useEffect(() => {
     if (isAuthenticated && !isSubmitting) {
       router.replace(safeAuthReturnPath(new URLSearchParams(window.location.search).get('next')))
     }
   }, [isAuthenticated, isSubmitting, router])
 
-  // Error state with type information
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState<string | null>(null)
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
@@ -56,38 +54,32 @@ const LoginClient = (props: LoginClientProps) => {
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
 
-  // Honor a post-login redirect via ?next / ?redirect, sanitized to an
-  // internal same-origin path (no open-redirect), defaulting to /home.
-  // Forward it through the cross-domain /redirect_from_auth handoff.
+  // Post-login destinations are sanitized to an internal path before use.
+  // Credentials login can navigate there directly because /api/auth/login has
+  // already set LH_access/LH_refresh/LH_session on this origin. Avoid an extra
+  // bridge route: authorization remains enforced by the destination page.
   const buildCallbackUrl = () => {
     const params = new URLSearchParams(window.location.search)
     const dest = safeAuthReturnPath(params.get('next') ?? params.get('redirect'))
-    return `${window.location.origin}/redirect_from_auth?next=${encodeURIComponent(dest)}`
+    return `${window.location.origin}${dest}`
   }
 
   const handleGoogleSignIn = () => {
     track(AnalyticsEvent.LoginGoogleClicked)
-    // Store org context in cookies before OAuth redirect
     if (props.org?.slug) {
       const topDomain = getLEARNHOUSE_TOP_DOMAIN_VAL();
       const isSecure = window.location.protocol === 'https:';
       const secureAttr = isSecure ? '; secure' : '';
       const baseAttributes = `; path=/; SameSite=Lax${secureAttr}`;
-      // Host-only on custom domains: a `.{platformTopDomain}` cookie can't be set
-      // from learn.acme.org (Domain not a suffix of host) → the browser drops it
-      // and the callback loses org context. Omit the Domain there.
       const domainAttr = (topDomain === 'localhost' || isOnCustomDomain()) ? '' : `; domain=.${topDomain}`;
       document.cookie = `LH_oauth_orgslug=${props.org.slug}${baseAttributes}${domainAttr}`;
       document.cookie = `LH_oauth_org_id=${props.org.id}${baseAttributes}${domainAttr}`;
     }
-    // Use absolute URL with current origin for custom domain support
     signIn('google', { callbackUrl: buildCallbackUrl() });
   };
 
-  // Check if SSO is enabled for this organization (requires enterprise plan)
   useEffect(() => {
     const checkSSO = async () => {
-      // SSO is only available for enterprise plan (requires EE or SaaS/enterprise)
       const orgConfig = props.org?.config?.config
       const plan = orgConfig?.plan ?? orgConfig?.cloud?.plan
       const mode = getDeploymentMode()
@@ -101,7 +93,6 @@ const LoginClient = (props: LoginClientProps) => {
           const result = await checkSSOEnabled(props.org.slug)
           setSsoEnabled(result.sso_enabled)
         } catch (error) {
-          // SSO not available, silently ignore
           console.debug('SSO check failed:', error)
         }
       }
@@ -139,8 +130,6 @@ const LoginClient = (props: LoginClientProps) => {
   }
 
   const handleResendVerification = async () => {
-    // org?.id is undefined on the org-less apex — the backend resends by email
-    // without an org, so we only require the email here.
     if (!unverifiedEmail) return
 
     setIsResendingVerification(true)
@@ -185,7 +174,6 @@ const LoginClient = (props: LoginClientProps) => {
 
       track(AnalyticsEvent.LoginSubmitted, { has_sso_enabled: ssoEnabled })
 
-      // Bot check before attempting credentials (blocks credential-stuffing).
       let botOk = false
       try {
         botOk = await verifyTurnstileToken(turnstileToken)
@@ -200,8 +188,6 @@ const LoginClient = (props: LoginClientProps) => {
         return
       }
 
-      // Use absolute URL with current origin for custom domain support;
-      // forwards a sanitized ?next so the post-exchange landing honors it.
       const callbackUrl = buildCallbackUrl();
 
       let res: any = null
@@ -213,9 +199,6 @@ const LoginClient = (props: LoginClientProps) => {
           callbackUrl
         });
       } catch {
-        // Transport-level failure (offline, DNS/TLS): next-auth THROWS rather than
-        // returning res.error. Without this, isSubmitting stays true and the submit
-        // button is permanently disabled with a spinning loader until a reload.
         track(AnalyticsEvent.LoginFailed, { method: 'credentials', error_type: 'exception' })
         setError(t('auth.wrong_email_password'))
         setShowErrorModal(true)
@@ -227,9 +210,7 @@ const LoginClient = (props: LoginClientProps) => {
 
       if (res && res.error) {
         let loginErrorType: string | null = null
-        // Try to parse the error message for error codes
         try {
-          // The error from next-auth might contain our structured error
           const errorData = JSON.parse(res.error);
           if (errorData.code) {
             loginErrorType = errorData.code;
@@ -245,7 +226,6 @@ const LoginClient = (props: LoginClientProps) => {
             setError(t('auth.wrong_email_password'));
           }
         } catch {
-          // If parsing fails, check for specific error strings
           if (res.error.includes('EMAIL_NOT_VERIFIED')) {
             loginErrorType = 'EMAIL_NOT_VERIFIED';
             setErrorType('EMAIL_NOT_VERIFIED');
@@ -266,11 +246,11 @@ const LoginClient = (props: LoginClientProps) => {
         track(AnalyticsEvent.LoginFailed, { method: 'credentials', error_type: loginErrorType })
         setShowErrorModal(true);
         setIsSubmitting(false);
-        // Single-use token was consumed by this attempt — refresh for the retry.
         turnstileRef.current?.reset();
       } else {
         track(AnalyticsEvent.LoginSucceeded, { method: 'credentials' })
-        // First signIn already authenticated and set cookies — just redirect
+        // Authentication and cookie persistence are complete at this point.
+        // Go straight to the requested guarded page; no intermediate bridge.
         window.location.href = callbackUrl;
       }
     },
@@ -283,7 +263,6 @@ const LoginClient = (props: LoginClientProps) => {
       title="XpeX Academy"
       subtitle={t('auth.enter_credentials')}
     >
-        {/* Error Top Bar */}
         {showErrorModal && (
           <div className={`
             mx-6 md:mx-12 lg:mx-20 mt-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top duration-200
@@ -349,7 +328,6 @@ const LoginClient = (props: LoginClientProps) => {
 
         <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
           <div className="w-full max-w-[420px] py-10">
-            {/* Header */}
             <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
             <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.login_to')}</h1>
             <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.enter_credentials')}</p>
@@ -388,7 +366,7 @@ const LoginClient = (props: LoginClientProps) => {
                     )}
                     <Link
                       href="/forgot"
-                      className="rounded text-xs font-semibold text-[#00D4FF] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
+                      className="rounded text-xs font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]"
                     >
                       {t('auth.forgot_password')}
                     </Link>
@@ -418,55 +396,47 @@ const LoginClient = (props: LoginClientProps) => {
                   >
                     {isSubmitting ? (
                       <span className="flex items-center space-x-2">
-                        <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" />
                         <span>{t('common.loading')}</span>
                       </span>
                     ) : (
-                      t('auth.login')
+                      <span className="flex items-center space-x-2">
+                        <Shield size={16} />
+                        <span>{t('auth.login')}</span>
+                      </span>
                     )}
                   </button>
                 </Form.Submit>
               </FormLayout>
 
-              {/* Divider */}
+              {ssoEnabled && (
+                <button
+                  type="button"
+                  onClick={handleSSOLogin}
+                  disabled={ssoLoading}
+                  className="mt-3 w-full rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  {ssoLoading ? t('common.loading') : t('auth.sso_login')}
+                </button>
+              )}
+
               <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#0B1220] px-3 text-xs font-medium text-white/55">{t('common.or')}</span>
-                </div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                <div className="relative flex justify-center text-sm"><span className="bg-[#0B1220] px-3 text-xs font-medium text-white/55">OU</span></div>
               </div>
 
-              {/* Social & SSO Buttons */}
               <div className="space-y-2.5">
                 <button
+                  type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={isSubmitting}
-                  className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50 motion-reduce:transition-none"
+                  className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50"
                 >
                   <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" alt="" className="w-4 h-4" />
-                  <span>{t('auth.sign_in_with_google')}</span>
+                  <span>{t('auth.login_with_google')}</span>
                 </button>
-
-                {ssoEnabled && (
-                  <button
-                    onClick={handleSSOLogin}
-                    disabled={ssoLoading}
-                    className="flex w-full items-center justify-center space-x-3 rounded-lg border border-white/15 bg-white/[.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF] disabled:opacity-50 motion-reduce:transition-none"
-                  >
-                    <Shield size={16} />
-                    <span>{ssoLoading ? t('common.loading') : t('auth.sign_in_with_sso')}</span>
-                  </button>
-                )}
               </div>
 
-              {/* Sign Up Link */}
               <p className="mt-6 text-center text-sm text-white/55">
-                {t('auth.no_account')}{' '}
-                <Link href="/signup" className="rounded font-semibold text-[#00D4FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
-                  {t('auth.sign_up')}
-                </Link>
+                {t('auth.no_account')} <Link className="rounded font-semibold text-[#00D4FF] hover:underline" href="/signup">{t('auth.signup')}</Link>
               </p>
             </div>
           </div>
