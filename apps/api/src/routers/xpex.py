@@ -20,6 +20,12 @@ from src.services.xpex.editorial_studio import (
     publish_editorial_draft,
     review_editorial_draft,
 )
+from src.services.xpex.launch_ops import (
+    StudentEnrollmentRequest,
+    StudentInviteRequest,
+    enroll_launch_student,
+    invite_launch_student,
+)
 from src.services.xpex.launch_readiness import get_launch_readiness
 from src.services.xpex.teacher_dashboard import get_teacher_dashboard
 from src.services.xpex.video_studio import (
@@ -79,6 +85,25 @@ async def launch_readiness(
             detail="Organization administrator access required",
         )
     return readiness
+
+
+@router.post("/launch/students/invite")
+async def launch_student_invite(
+    request: Request,
+    payload: StudentInviteRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await invite_launch_student(request, payload, current_user, db_session)
+
+
+@router.post("/launch/students/enroll")
+async def launch_student_enroll(
+    payload: StudentEnrollmentRequest,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await enroll_launch_student(payload, current_user, db_session)
 
 
 @router.post("/course-studio/drafts", response_model=EditorialDraftResponse)
