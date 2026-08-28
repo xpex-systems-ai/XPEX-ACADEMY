@@ -19,6 +19,21 @@ function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) 
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
 }
 
+function resolveOperationalOrganization(
+  memberships: LearnHouseMembership[] | undefined,
+  isSuperadmin: boolean,
+): LearnHouseMembership['org'] | null {
+  if (isSuperadmin) return resolveXpexOrganization(memberships)
+
+  const slugs = [...new Set((memberships ?? []).map(({ org }) => org?.slug).filter((slug): slug is string => Boolean(slug)))]
+  for (const slug of slugs) {
+    if (resolveXpexPoloAccess(memberships, slug)) {
+      return memberships?.find(({ org }) => org?.slug === slug)?.org ?? null
+    }
+  }
+  return null
+}
+
 export async function AuthenticatedXpexExperience({
   requestedRole,
   returnPath,
@@ -32,23 +47,31 @@ export async function AuthenticatedXpexExperience({
   const memberships: LearnHouseMembership[] | undefined = session.roles
   const isSuperadmin = session.user.is_superadmin === true
   const hasOrganizationMembership = memberships?.some(({ org }) => Boolean(org?.slug)) ?? false
+  const requestedOperationalRole = requestedRole === 'polo' || requestedRole === 'professora'
 
-  // A superadmin is a platform-level administrator. Its organization membership
-  // may legitimately be a student membership, so do not use that membership
-  // role to block the administrative XPeX experience.
-  const organization = resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)
+  // Polo and Professor are one operational surface. For explicit operational routes,
+  // resolve an organization that grants either canonical manager or teacher access.
+  // This keeps teacher-only users inside the unified shell without inventing manager rights.
+  const organization = requestedOperationalRole
+    ? resolveOperationalOrganization(memberships, isSuperadmin)
+    : resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)
   const organizationSlug = organization?.slug
   if (!organizationSlug) return <AccessDenied noOrganization={!hasOrganizationMembership} />
 
   const membershipRoles = resolveXpexAccess(memberships, organizationSlug)
-  const roles: XpexExperienceRole[] = isSuperadmin
+  const canonicalRoles: XpexExperienceRole[] = isSuperadmin
     ? (['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexExperienceRole[])
     : membershipRoles
-  const requestedOperationalRole = requestedRole === 'polo' || requestedRole === 'professora'
   const poloAccess = resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)
-  const role: XpexExperienceRole | undefined = requestedOperationalRole && poloAccess
+  const shouldUseUnifiedPolo = Boolean(
+    poloAccess && (requestedOperationalRole || (!requestedRole && (membershipRoles.includes('polo') || membershipRoles.includes('professora')))),
+  )
+  const role: XpexExperienceRole | undefined = shouldUseUnifiedPolo
     ? 'polo'
-    : requestedRole ?? (isSuperadmin ? 'polo' : roles[0])
+    : requestedRole ?? (isSuperadmin ? 'polo' : canonicalRoles[0])
+  const roles: XpexExperienceRole[] = poloAccess
+    ? (['polo', ...canonicalRoles.filter(item => item !== 'polo' && item !== 'professora')] as XpexExperienceRole[])
+    : canonicalRoles
   if (!role || (role === 'polo' ? !poloAccess : !roles.includes(role))) return <AccessDenied />
 
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
