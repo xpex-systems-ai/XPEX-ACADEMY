@@ -24,9 +24,30 @@ const CANONICAL_ROLE_UUIDS: Record<string, XpexExperienceRole> = {
   role_global_user: 'aluno',
 }
 
+const CANONICAL_ROLE_NAMES: Record<string, XpexExperienceRole> = {
+  admin: 'polo',
+  administrator: 'polo',
+  maintainer: 'polo',
+  instructor: 'professora',
+  teacher: 'professora',
+  professor: 'professora',
+  professora: 'professora',
+  user: 'aluno',
+  student: 'aluno',
+  aluno: 'aluno',
+}
+
+function normalizeRoleValue(value: string | undefined): string | null {
+  const normalized = value?.trim().toLowerCase()
+  return normalized || null
+}
+
 export function xpexRoleForMembership(membership: LearnHouseMembership): XpexExperienceRole | null {
-  const roleUuid = membership.role?.role_uuid?.toLowerCase()
-  return roleUuid ? CANONICAL_ROLE_UUIDS[roleUuid] ?? null : null
+  const roleUuid = normalizeRoleValue(membership.role?.role_uuid)
+  if (roleUuid && CANONICAL_ROLE_UUIDS[roleUuid]) return CANONICAL_ROLE_UUIDS[roleUuid]
+
+  const roleName = normalizeRoleValue(membership.role?.name)
+  return roleName ? CANONICAL_ROLE_NAMES[roleName] ?? null : null
 }
 
 export function resolveXpexAccess(
