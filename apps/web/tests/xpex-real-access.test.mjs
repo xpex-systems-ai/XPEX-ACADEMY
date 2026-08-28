@@ -96,9 +96,19 @@ describe('server-authoritative XpeX routes', () => {
   test('resolves the LearnHouse server session before selecting an experience', () => {
     expect(boundary).toContain("import { getServerSession } from '@/lib/auth/server'")
     expect(boundary).toContain('const session = await getServerSession()')
+    expect(boundary).toContain('resolveOperationalOrganization(memberships, isSuperadmin)')
     expect(boundary).toContain('resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)')
     expect(boundary).toContain('noOrganization={!hasOrganizationMembership}')
     expect(boundary).not.toContain("'use client'")
+  })
+
+  test('normalizes teacher and manager operational entry without granting manager capabilities', () => {
+    expect(boundary).toContain("requestedRole === 'polo' || requestedRole === 'professora'")
+    expect(boundary).toContain('shouldUseUnifiedPolo')
+    expect(boundary).toContain("? 'polo'")
+    expect(boundary).toContain("canonicalRoles.filter(item => item !== 'polo' && item !== 'professora')")
+    expect(boundary).toContain('poloAccess?.isTeacher')
+    expect(boundary).toContain('poloAccess?.isManager')
   })
 
   test('redirects unauthenticated requests and denies missing, unsupported, or tampered roles', () => {
