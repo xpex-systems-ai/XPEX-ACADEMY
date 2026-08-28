@@ -49,6 +49,35 @@ async def _authorized_org(
     return organization
 
 
+async def list_launch_courses(
+    organization_slug: str,
+    current_user: PublicUser,
+    db_session: AsyncSession,
+) -> list[dict]:
+    """Return only published courses available for launch enrollment."""
+    organization = await _authorized_org(
+        current_user, organization_slug, db_session
+    )
+    courses = list(
+        (
+            await db_session.execute(
+                select(Course).where(
+                    Course.org_id == organization.id,
+                    Course.published == True,
+                )
+            )
+        ).scalars().all()
+    )
+    return [
+        {
+            "course_uuid": course.course_uuid,
+            "name": course.name,
+            "description": course.description,
+        }
+        for course in sorted(courses, key=lambda item: item.name.lower())
+    ]
+
+
 async def invite_launch_student(
     request: Request,
     payload: StudentInviteRequest,
