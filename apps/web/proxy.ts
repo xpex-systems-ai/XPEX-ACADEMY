@@ -239,6 +239,14 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(`${pathname.toLowerCase()}${search}`, req.url), 308)
   }
 
+  // `/admin` is the historical entry for LearnHouse's platform-wide
+  // superadmin dashboard. XPeX operators need the OSS-native, organization-
+  // scoped workspace instead. Redirect only the exact landing path: nested
+  // `/admin/*` routes retain their existing superadmin authorization boundary.
+  if (pathname === '/admin') {
+    return NextResponse.redirect(new URL(`/xpex/admin${search}`, req.url), 307)
+  }
+
   // -------------------------------------------------------------------------
   // 1. Admin subdomain (multi only) → rewrite to /admin route group.
   //    Idempotent: if the path already starts with /admin (e.g. internal nav

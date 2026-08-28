@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.security.rbac.constants import ADMIN_ROLE_ID
 from src.services.courses.locks import is_org_admin
 
 
@@ -38,3 +39,25 @@ async def test_ordinary_user_without_org_membership_is_not_org_admin():
     session = FakeSession(user, None)
 
     assert await is_org_admin(42, 9001, session) is False
+
+
+@pytest.mark.asyncio
+async def test_organization_admin_is_authorized_only_when_membership_query_matches_tenant():
+    user = SimpleNamespace(is_superadmin=False)
+    matching_membership = SimpleNamespace(role_id=ADMIN_ROLE_ID)
+
+    organization_a = FakeSession(user, matching_membership)
+    organization_b = FakeSession(user, None)
+
+    assert await is_org_admin(42, 1001, organization_a) is True
+    assert await is_org_admin(42, 2002, organization_b) is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role_id", [3, 4])
+async def test_student_and_teacher_memberships_do_not_grant_admin(role_id):
+    user = SimpleNamespace(is_superadmin=False)
+    ordinary_membership = SimpleNamespace(role_id=role_id)
+    session = FakeSession(user, ordinary_membership, None)
+
+    assert await is_org_admin(42, 1001, session) is False

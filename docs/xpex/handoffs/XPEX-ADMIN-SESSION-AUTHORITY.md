@@ -25,6 +25,8 @@ That made the UI appear to be learner-only even though the authenticated identit
 `apps/api/tests/test_xpex_admin_authority.py` covers:
 - platform superadmin access without an organization membership row;
 - ordinary user denial without organization membership.
+- organization-admin access in its matching tenant and denial in another tenant;
+- student and teacher memberships remaining non-administrative.
 
 `apps/web/tests/xpex-admin-access.test.mjs` additionally locks down:
 - the `/admin` to `/xpex/admin` compatibility redirect;
