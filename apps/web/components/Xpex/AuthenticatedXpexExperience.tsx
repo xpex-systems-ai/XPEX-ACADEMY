@@ -12,6 +12,7 @@ import { XpexAuthenticatedShell } from './XpexAuthenticatedShell'
 import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 import { getXpexTeacherDashboard } from '@/lib/xpex/teacher-dashboard'
+import { getXpexLaunchReadiness } from '@/lib/xpex/launch-readiness'
 import { listCourseStudioDrafts } from '@services/xpex/courseStudio'
 
 function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
@@ -52,6 +53,8 @@ export async function AuthenticatedXpexExperience({
   let learningDataFailed = false
   let teacherData = null
   let teacherDataFailed = false
+  let launchReadiness = null
+  let launchReadinessFailed = false
   let adminAccess = isSuperadmin
 
   if (session.tokens?.access_token) {
@@ -77,6 +80,13 @@ export async function AuthenticatedXpexExperience({
         teacherDataFailed = true
       }
     }
+    if (role === 'polo' && adminAccess) {
+      try {
+        launchReadiness = await getXpexLaunchReadiness(session.tokens.access_token, organizationSlug)
+      } catch {
+        launchReadinessFailed = true
+      }
+    }
   }
 
   const organizationName = organization?.name
@@ -98,6 +108,8 @@ export async function AuthenticatedXpexExperience({
           learningDataFailed={learningDataFailed}
           teacherData={teacherData}
           teacherDataFailed={teacherDataFailed}
+          launchReadiness={launchReadiness}
+          launchReadinessFailed={launchReadinessFailed}
           organizationName={organizationName}
           organizationSlug={organizationSlug}
         />
