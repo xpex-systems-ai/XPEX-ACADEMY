@@ -2,7 +2,6 @@
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.activities import Activity
 from src.db.courses.courses import Course
 from src.db.organizations import Organization
@@ -12,7 +11,6 @@ from src.db.trail_steps import TrailStep
 from src.db.user_organizations import UserOrganization
 from src.db.users import PublicUser
 from src.services.courses.locks import is_org_admin
-
 
 TEACHER_ROLE_UUID = "role_global_instructor"
 
