@@ -59,16 +59,19 @@ async def get_launch_readiness(
             ).scalars().all()
         )
 
-    runs = list(
-        (
-            await db_session.execute(
-                select(TrailRun).where(
-                    TrailRun.org_id == organization.id,
-                    TrailRun.status != StatusEnum.STATUS_CANCELLED,
+    runs: list[TrailRun] = []
+    if published_course_ids:
+        runs = list(
+            (
+                await db_session.execute(
+                    select(TrailRun).where(
+                        TrailRun.org_id == organization.id,
+                        TrailRun.course_id.in_(published_course_ids),
+                        TrailRun.status != StatusEnum.STATUS_CANCELLED,
+                    )
                 )
-            )
-        ).scalars().all()
-    )
+            ).scalars().all()
+        )
     enrolled_students = {run.user_id for run in runs}
     active_students = {
         run.user_id for run in runs if run.status == StatusEnum.STATUS_IN_PROGRESS
@@ -77,16 +80,20 @@ async def get_launch_readiness(
         run.user_id for run in runs if run.status == StatusEnum.STATUS_COMPLETED
     }
 
-    completed_steps = list(
-        (
-            await db_session.execute(
-                select(TrailStep.id).where(
-                    TrailStep.org_id == organization.id,
-                    TrailStep.complete == True,
+    completed_steps: list[int] = []
+    if published_course_ids and published_activity_ids:
+        completed_steps = list(
+            (
+                await db_session.execute(
+                    select(TrailStep.id).where(
+                        TrailStep.org_id == organization.id,
+                        TrailStep.course_id.in_(published_course_ids),
+                        TrailStep.activity_id.in_(published_activity_ids),
+                        TrailStep.complete == True,
+                    )
                 )
-            )
-        ).scalars().all()
-    )
+            ).scalars().all()
+        )
 
     teacher_ids = set(
         (
