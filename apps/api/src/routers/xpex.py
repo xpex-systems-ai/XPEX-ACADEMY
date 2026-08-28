@@ -20,6 +20,7 @@ from src.services.xpex.editorial_studio import (
     publish_editorial_draft,
     review_editorial_draft,
 )
+from src.services.xpex.launch_readiness import get_launch_readiness
 from src.services.xpex.teacher_dashboard import get_teacher_dashboard
 from src.services.xpex.video_studio import (
     VideoBatchResponse,
@@ -63,6 +64,21 @@ async def teacher_dashboard(
             detail="Teacher membership required",
         )
     return dashboard
+
+
+@router.get("/launch-readiness")
+async def launch_readiness(
+    organization_slug: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    readiness = await get_launch_readiness(current_user, organization_slug, db_session)
+    if readiness is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization administrator access required",
+        )
+    return readiness
 
 
 @router.post("/course-studio/drafts", response_model=EditorialDraftResponse)
