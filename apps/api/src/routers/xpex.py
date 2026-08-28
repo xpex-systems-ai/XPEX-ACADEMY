@@ -25,6 +25,7 @@ from src.services.xpex.launch_ops import (
     StudentInviteRequest,
     enroll_launch_student,
     invite_launch_student,
+    list_launch_courses,
 )
 from src.services.xpex.launch_readiness import get_launch_readiness
 from src.services.xpex.teacher_dashboard import get_teacher_dashboard
@@ -85,6 +86,15 @@ async def launch_readiness(
             detail="Organization administrator access required",
         )
     return readiness
+
+
+@router.get("/launch/courses")
+async def launch_courses(
+    organization_slug: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await list_launch_courses(organization_slug, current_user, db_session)
 
 
 @router.post("/launch/students/invite")
