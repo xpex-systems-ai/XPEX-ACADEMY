@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlmodel import select
-from src.db.organizations import Organization, OrganizationCreate
+from src.db.organizations import OrganizationCreate
 from src.db.user_organizations import UserOrganization
 from src.db.users import User
 from src.security.rbac.constants import ADMIN_ROLE_ID
