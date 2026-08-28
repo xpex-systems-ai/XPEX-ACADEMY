@@ -4,6 +4,8 @@
 Restore the XPeX administrative control plane for a platform superadmin whose authenticated LearnHouse membership may still be an ordinary learner membership.
 
 ## Root cause
+The legacy `/admin` route names the platform-wide superadmin surface in LearnHouse; it is not the organization-administration route. In OSS, the supported XPeX entry is `/xpex/admin`, which links to organization-scoped LearnHouse management routes. The legacy landing page now redirects to that workspace without removing or weakening authorization on the remaining superadmin routes.
+
 The XPeX web admin surface already recognized `session.user.is_superadmin`, but the native LearnHouse lock/access layer used by Course Studio only recognized organization membership roles. A platform superadmin carrying a learner membership could therefore pass the web-level superadmin check while still receiving `403` from the backend capability probe.
 
 That made the UI appear to be learner-only even though the authenticated identity was a platform administrator.
@@ -23,6 +25,15 @@ That made the UI appear to be learner-only even though the authenticated identit
 `apps/api/tests/test_xpex_admin_authority.py` covers:
 - platform superadmin access without an organization membership row;
 - ordinary user denial without organization membership.
+- organization-admin access in its matching tenant and denial in another tenant;
+- student and teacher memberships remaining non-administrative.
+
+`apps/web/tests/xpex-admin-access.test.mjs` additionally locks down:
+- the `/admin` to `/xpex/admin` compatibility redirect;
+- session and backend-capability enforcement;
+- conditional administrative navigation;
+- organization-derived, tenant-scoped management links;
+- absence of an email-specific authorization bypass.
 
 ## Expected user flow
 1. Authenticate normally.
