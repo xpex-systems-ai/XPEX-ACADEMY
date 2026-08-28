@@ -684,4 +684,7 @@ class TestAuthRouter:
             return_value=None,
         ):
             response = await client.delete("/api/v1/auth/logout")
-        assert response.status_code == 401
+        assert response.status_code == 200
+        assert response.json() == {"msg": "Successfully logout"}
+        assert "LH_access=" in response.headers.get("set-cookie", "")
+        assert "LH_refresh=" in response.headers.get("set-cookie", "")

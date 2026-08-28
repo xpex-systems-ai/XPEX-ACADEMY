@@ -617,7 +617,6 @@ async def third_party_login(
     ),
     responses={
         200: {"description": "Logout successful; auth cookies cleared."},
-        401: {"description": "No authenticated session was found"},
     },
 )
 async def logout(
@@ -631,17 +630,18 @@ async def logout(
     ``get_current_user`` via a Redis blocklist, so stolen tokens cannot
     outlive logout simply by being replayed outside the browser.
     """
-    token = extract_jwt_from_request(request)
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    access_token = extract_jwt_from_request(request)
+    payload = decode_jwt(access_token) if access_token else None
+
+    # An expired/missing access cookie must not let its still-valid refresh
+    # cookie escape revocation. Resolve the refresh subject as the fallback.
+    if not payload:
+        refresh_token = request.cookies.get(JWT_REFRESH_COOKIE_NAME)
+        if refresh_token:
+            payload = decode_refresh_token(refresh_token)
 
     # Best-effort resolve the user to revoke every session they have across
     # devices (not just the one tied to this cookie).
-    payload = decode_jwt(token)
     if payload and payload.get("sub"):
         try:
             user_record = await security_get_user(

@@ -58,6 +58,56 @@ async def test_logout_revokes_every_session_for_the_user(client, admin_user):
 
 
 @pytest.mark.asyncio
+async def test_logout_revokes_refresh_only_session(client, admin_user):
+    """A valid refresh cookie remains revocable when access is absent."""
+    client.cookies.set("LH_refresh", "valid-refresh")
+    with patch(
+        "src.routers.auth.extract_jwt_from_request",
+        return_value=None,
+    ), patch(
+        "src.routers.auth.decode_refresh_token",
+        return_value={"sub": admin_user.email, "type": "refresh"},
+    ) as decode_refresh, patch(
+        "src.routers.auth.security_get_user",
+        new_callable=AsyncMock,
+        return_value=MagicMock(id=admin_user.id),
+    ), patch(
+        "src.routers.auth.revoke_user_sessions_before"
+    ) as revoke:
+        response = await client.delete("/api/v1/auth/logout")
+
+    assert response.status_code == 200
+    decode_refresh.assert_called_once_with("valid-refresh")
+    revoke.assert_called_once_with(admin_user.id)
+
+
+@pytest.mark.asyncio
+async def test_logout_falls_back_to_refresh_when_access_is_expired(client, admin_user):
+    """An expired access token cannot hide a valid refresh-only session."""
+    client.cookies.set("LH_refresh", "valid-refresh")
+    with patch(
+        "src.routers.auth.extract_jwt_from_request",
+        return_value="expired-access",
+    ), patch(
+        "src.routers.auth.decode_jwt",
+        return_value=None,
+    ), patch(
+        "src.routers.auth.decode_refresh_token",
+        return_value={"sub": admin_user.email, "type": "refresh"},
+    ), patch(
+        "src.routers.auth.security_get_user",
+        new_callable=AsyncMock,
+        return_value=MagicMock(id=admin_user.id),
+    ), patch(
+        "src.routers.auth.revoke_user_sessions_before"
+    ) as revoke:
+        response = await client.delete("/api/v1/auth/logout")
+
+    assert response.status_code == 200
+    revoke.assert_called_once_with(admin_user.id)
+
+
+@pytest.mark.asyncio
 async def test_logout_succeeds_when_revocation_store_raises(client, admin_user):
     """
     A transient Redis / DB error inside the revocation branch must not prevent

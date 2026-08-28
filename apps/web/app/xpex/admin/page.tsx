@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { xpexControlCenterRoute, xpexCourseStudioRoute, xpexPoloCoursesRoute } from '@/lib/xpexRouteMap'
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
 import {
@@ -48,7 +49,8 @@ export default async function XpexAdminPage() {
       : [shellRole]
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Administrador XPeX'
-  const orgPath = organization?.slug ? `/orgs/${encodeURIComponent(organization.slug)}` : null
+  const courseStudioPath = organization?.slug ? xpexCourseStudioRoute(organization.slug) : null
+  const coursesPath = organization?.slug ? xpexPoloCoursesRoute(organization.slug) : null
 
   return (
     <XpexAuthenticatedShell
@@ -75,9 +77,9 @@ export default async function XpexAdminPage() {
         </header>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <AdminCard title="Centro de Controle" description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar." href="/xpex/control-center" action="Abrir centro de controle" />
-          {orgPath ? <AdminCard title="Fábrica de Cursos IA" description="Criar, revisar, aprovar e publicar cursos na organização autorizada." href={`${orgPath}/course-studio`} action="Abrir Course Studio" /> : <AdminNotice title="Organização" description="Sua conta superadmin está ativa, mas ainda não há uma organização vinculada à sessão atual." />}
-          {orgPath ? <AdminCard title="Cursos" description="Abrir o catálogo administrativo de cursos e conteúdos da organização." href={`${orgPath}/courses`} action="Gerenciar cursos" /> : <AdminNotice title="Cursos" description="Vincule uma organização para habilitar os atalhos operacionais de cursos." />}
+          <AdminCard title="Centro de Controle" description="Operação acadêmica, fábrica editorial e telemetria audiovisual em um só lugar." href={xpexControlCenterRoute()} action="Abrir centro de controle" />
+          {courseStudioPath ? <AdminCard title="Fábrica de Cursos IA" description="Criar, revisar, aprovar e publicar cursos na organização autorizada." href={courseStudioPath} action="Abrir Course Studio" /> : <AdminNotice title="Organização" description="Sua conta superadmin está ativa, mas ainda não há uma organização vinculada à sessão atual." />}
+          {coursesPath ? <AdminCard title="Cursos" description="Abrir o catálogo administrativo de cursos e conteúdos da organização." href={coursesPath} action="Gerenciar cursos" /> : <AdminNotice title="Cursos" description="Vincule uma organização para habilitar os atalhos operacionais de cursos." />}
         </div>
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6">

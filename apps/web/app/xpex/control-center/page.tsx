@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { xpexCourseStudioRoute, xpexPoloCoursesRoute } from '@/lib/xpexRouteMap'
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
 import { resolveXpexAccess, type LearnHouseMembership } from '@/lib/xpex/access'
@@ -101,7 +102,8 @@ export default async function XpexControlCenterPage() {
   const launchJobResult = launchDraft ? jobsByDraft.find(result => result.draftId === launchDraft.draft_id) : undefined
   const launchJobs = launchJobResult?.jobs ?? []
   const launchPublished = launchJobs.filter(job => job.state === 'PUBLISHED').length
-  const orgPath = `/orgs/${encodeURIComponent(organizationSlug)}`
+  const courseStudioPath = xpexCourseStudioRoute(organizationSlug)
+  const coursesPath = xpexPoloCoursesRoute(organizationSlug)
 
   return (
     <XpexAuthenticatedShell
@@ -137,8 +139,8 @@ export default async function XpexControlCenterPage() {
         </div>
 
         <section className={`grid gap-4 ${isSuperadmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-          <ActionCard title="Fábrica de Cursos IA" description="Gerar, revisar, aprovar e publicar cursos pelo fluxo editorial XPeX." href={`${orgPath}/course-studio`} action="Abrir Course Studio" />
-          <ActionCard title="Cursos LearnHouse" description="Acompanhar o catálogo nativo, cursos e conteúdos publicados." href={`${orgPath}/courses`} action="Abrir cursos" />
+          <ActionCard title="Fábrica de Cursos IA" description="Gerar, revisar, aprovar e publicar cursos pelo fluxo editorial XPeX." href={courseStudioPath} action="Abrir Course Studio" />
+          <ActionCard title="Cursos LearnHouse" description="Acompanhar o catálogo nativo, cursos e conteúdos publicados." href={coursesPath} action="Abrir cursos" />
           {isSuperadmin ? <ActionCard title="Administração" description="Acessar recursos avançados da plataforma quando necessário." href="/admin" action="Abrir admin" /> : null}
         </section>
 
