@@ -99,6 +99,166 @@ def xpex_pilot_bootstrap():
     asyncio.run(run())
 
 
+@cli.command("audit-org-readiness")
+def audit_org_readiness(
+    org_slug: Annotated[str, typer.Option("--org-slug", help="Organization slug to audit")] = "default",
+):
+    """READ-ONLY audit mirroring get_launch_readiness() queries, no authorization checks.
+
+    Prints only aggregate metrics and gate booleans — never personal data
+    (no user names, emails, or IDs).
+    """
+    from sqlmodel import select
+    from src.db.courses.activities import Activity
+    from src.db.courses.courses import Course
+    from src.db.organizations import Organization
+    from src.db.roles import Role
+    from src.db.trail_runs import StatusEnum, TrailRun
+    from src.db.trail_steps import TrailStep
+    from src.db.user_organizations import UserOrganization
+
+    TEACHER_ROLE_UUID = "role_global_instructor"
+
+    async def run():
+        config = get_learnhouse_config()
+        engine = create_async_engine(
+            _to_async_url(config.database_config.sql_connection_string),  # type: ignore
+            pool_pre_ping=True,
+        )
+        try:
+            async with AsyncSession(engine, expire_on_commit=False) as db_session:
+                organization = (
+                    await db_session.execute(
+                        select(Organization).where(Organization.slug == org_slug)
+                    )
+                ).scalars().first()
+                if organization is None or organization.id is None:
+                    print(f"Organization with slug '{org_slug}' not found.")
+                    raise typer.Exit(code=1)
+
+                published_course_ids = list(
+                    (
+                        await db_session.execute(
+                            select(Course.id).where(
+                                Course.org_id == organization.id,
+                                Course.published == True,
+                            )
+                        )
+                    ).scalars().all()
+                )
+
+                published_activity_ids: list[int] = []
+                if published_course_ids:
+                    published_activity_ids = list(
+                        (
+                            await db_session.execute(
+                                select(Activity.id).where(
+                                    Activity.org_id == organization.id,
+                                    Activity.course_id.in_(published_course_ids),
+                                    Activity.published == True,
+                                )
+                            )
+                        ).scalars().all()
+                    )
+
+                runs: list[TrailRun] = []
+                if published_course_ids:
+                    runs = list(
+                        (
+                            await db_session.execute(
+                                select(TrailRun).where(
+                                    TrailRun.org_id == organization.id,
+                                    TrailRun.course_id.in_(published_course_ids),
+                                    TrailRun.status != StatusEnum.STATUS_CANCELLED,
+                                )
+                            )
+                        ).scalars().all()
+                    )
+                enrolled_students = {run.user_id for run in runs}
+                active_students = {
+                    run.user_id for run in runs if run.status == StatusEnum.STATUS_IN_PROGRESS
+                }
+                completed_students = {
+                    run.user_id for run in runs if run.status == StatusEnum.STATUS_COMPLETED
+                }
+
+                completed_steps: list[int] = []
+                if published_course_ids and published_activity_ids:
+                    completed_steps = list(
+                        (
+                            await db_session.execute(
+                                select(TrailStep.id).where(
+                                    TrailStep.org_id == organization.id,
+                                    TrailStep.course_id.in_(published_course_ids),
+                                    TrailStep.activity_id.in_(published_activity_ids),
+                                    TrailStep.complete == True,
+                                )
+                            )
+                        ).scalars().all()
+                    )
+
+                teacher_ids = set(
+                    (
+                        await db_session.execute(
+                            select(UserOrganization.user_id)
+                            .join(Role, Role.id == UserOrganization.role_id)
+                            .where(
+                                UserOrganization.org_id == organization.id,
+                                Role.role_uuid == TEACHER_ROLE_UUID,
+                            )
+                        )
+                    ).scalars().all()
+                )
+
+                gates = {
+                    "admin_access": True,
+                    "published_course": bool(published_course_ids),
+                    "published_activity": bool(published_activity_ids),
+                    "pilot_enrollment": bool(enrolled_students),
+                    "progress_verified": bool(completed_steps),
+                    "teacher_assigned": bool(teacher_ids),
+                }
+                ready_for_controlled_pilot = (
+                    gates["admin_access"]
+                    and gates["published_course"]
+                    and gates["published_activity"]
+                )
+                ready_for_official_intake = (
+                    ready_for_controlled_pilot
+                    and gates["pilot_enrollment"]
+                    and gates["progress_verified"]
+                    and gates["teacher_assigned"]
+                )
+
+                metrics = {
+                    "published_courses": len(published_course_ids),
+                    "published_activities": len(published_activity_ids),
+                    "enrolled_students": len(enrolled_students),
+                    "active_students": len(active_students),
+                    "completed_students": len(completed_students),
+                    "completed_trail_steps": len(completed_steps),
+                    "teachers": len(teacher_ids),
+                }
+
+                print(f"Organization: {organization.slug} (ID: {organization.id})")
+                print()
+                print("Metrics:")
+                for key, value in metrics.items():
+                    print(f"  {key}: {value}")
+                print()
+                print("Gates:")
+                for key, value in gates.items():
+                    print(f"  {key}: {str(value).lower()}")
+                print()
+                print("Status:")
+                print(f"  ready_for_controlled_pilot: {str(ready_for_controlled_pilot).lower()}")
+                print(f"  ready_for_official_intake: {str(ready_for_official_intake).lower()}")
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
 def _to_async_url(url: str) -> str:
     if "+asyncpg" in url:
         return url
