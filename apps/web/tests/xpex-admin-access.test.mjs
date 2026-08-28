@@ -9,6 +9,7 @@ describe('native OSS administration entry', () => {
   const experience = source('../components/Xpex/AuthenticatedXpexExperience.tsx')
   const shell = source('../components/Xpex/XpexAuthenticatedShell.tsx')
   const proxy = source('../proxy.ts')
+  const authRedirect = source('../app/redirect_from_auth/route.ts')
 
   test('keeps the legacy admin entry separate from the native OSS workspace', () => {
     expect(legacyAdminPage).toContain("redirect('/xpex/admin')")
@@ -31,6 +32,16 @@ describe('native OSS administration entry', () => {
     expect(nativeAdminPage).toContain('await listCourseStudioDrafts(organization.slug, session.tokens.access_token')
     expect(nativeAdminPage).toContain("if (!isSuperadmin && !capabilityAdmin) redirect('/xpex?admin=forbidden')")
     expect(nativeAdminPage).not.toMatch(/xpeacademy@outlook\.com/i)
+  })
+
+  test('resolves post-login routing from backend authority rather than URL intent', () => {
+    expect(authRedirect).toContain('const session = await getServerSession()')
+    expect(authRedirect).toContain('if (session.user.is_superadmin === true) return true')
+    expect(authRedirect).toContain('await listCourseStudioDrafts(organization.slug, session.tokens.access_token')
+    expect(authRedirect).toContain("isAdmin ? requested : '/home'")
+    expect(authRedirect).toContain("requested === '/home' && isAdmin")
+    expect(authRedirect).not.toMatch(/xpeacademy@outlook\.com/i)
+    expect(proxy).not.toContain("if (pathname === '/redirect_from_auth')")
   })
 
   test('reveals navigation only after the backend capability probe succeeds', () => {

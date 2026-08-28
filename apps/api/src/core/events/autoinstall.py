@@ -52,7 +52,10 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
         if not email or not password:
             logger.info("Empty installation has no complete bootstrap configuration; skipping seed data")
             return
-    elif org is None or not email:
+    else:
+        # Bootstrap credentials are installation inputs, not a standing
+        # authorization policy. Never promote an existing account at startup;
+        # operators must use the explicit, audited provisioning command.
         logger.info("Established installation detected; initial seed reconciliation skipped")
         return
 

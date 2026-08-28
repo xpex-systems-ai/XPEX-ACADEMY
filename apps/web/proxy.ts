@@ -1,7 +1,7 @@
 import { getAPIUrl } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isPublicBetaPath, safeAuthReturnPath, tenantScopedPath } from './lib/proxyPaths'
+import { isPublicBetaPath, tenantScopedPath } from './lib/proxyPaths'
 import { isPublicRootRequest } from './lib/proxyHosts'
 
 // =============================================================================
@@ -407,24 +407,7 @@ export default async function proxy(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 8. Auth redirect bridge (cross-domain return path)
-  // -------------------------------------------------------------------------
-  if (pathname === '/redirect_from_auth') {
-    const safeNext = safeAuthReturnPath(req.nextUrl.searchParams.get('next'))
-    const customDomain = req.cookies.get('LH_custom_domain')?.value
-
-    let redirectUrl: URL
-    if (customDomain) {
-      const protocol = req.nextUrl.protocol + '//'
-      redirectUrl = new URL(safeNext, `${protocol}${customDomain}`)
-    } else {
-      redirectUrl = new URL(safeNext, req.url)
-    }
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // -------------------------------------------------------------------------
-  // 9. Per-org metadata endpoints (sitemap, robots, podcast feed)
+  // 8. Per-org metadata endpoints (sitemap, robots, podcast feed)
   // -------------------------------------------------------------------------
   if (pathname.match(/^\/podcast\/([^/]+)\/feed$/)) {
     const resolved = await resolveTenant(req, instance)
