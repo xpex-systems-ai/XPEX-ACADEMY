@@ -7,6 +7,7 @@ import {
   enrollXpexLaunchStudent,
   inviteXpexLaunchStudent,
   listXpexLaunchCourses,
+  type XpexLaunchCourse,
 } from '@/lib/xpex/launch-ops'
 
 async function getLaunchContext() {
@@ -45,6 +46,7 @@ async function enrollStudent(formData: FormData) {
     redirect('/xpex/polo/alunos?error=Informe%20aluno%20e%20curso%20publicado.')
   }
 
+  let message: string
   try {
     const result = await enrollXpexLaunchStudent(
       accessToken,
@@ -52,14 +54,14 @@ async function enrollStudent(formData: FormData) {
       email,
       courseUuid
     )
-    const message = result?.status === 'already_enrolled'
+    message = result?.status === 'already_enrolled'
       ? 'Aluno já estava matriculado neste curso.'
       : 'Matrícula realizada com sucesso.'
-    redirect(`/xpex/polo/alunos?status=${encodeURIComponent(message)}`)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Falha ao realizar matrícula.'
-    redirect(`/xpex/polo/alunos?error=${encodeURIComponent(message)}`)
+    const failure = error instanceof Error ? error.message : 'Falha ao realizar matrícula.'
+    redirect(`/xpex/polo/alunos?error=${encodeURIComponent(failure)}`)
   }
+  redirect(`/xpex/polo/alunos?status=${encodeURIComponent(message)}`)
 }
 
 export default async function PoleStudentsPage({
@@ -72,7 +74,7 @@ export default async function PoleStudentsPage({
   const status = typeof params.status === 'string' ? params.status : null
   const error = typeof params.error === 'string' ? params.error : null
 
-  let courses = []
+  let courses: XpexLaunchCourse[] = []
   let coursesError = false
   try {
     courses = await listXpexLaunchCourses(accessToken, organizationSlug)
