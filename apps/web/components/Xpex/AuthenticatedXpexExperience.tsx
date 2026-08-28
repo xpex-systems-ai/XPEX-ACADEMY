@@ -6,6 +6,7 @@ import {
   resolveXpexPoloAccess,
   type LearnHouseMembership,
   type XpexExperienceRole,
+  type XpexPoloAccess,
 } from '@/lib/xpex/access'
 import { AuthenticatedDashboard } from './experiences/AuthenticatedDashboard'
 import { FuturisticStudentDashboard } from './experiences/FuturisticStudentDashboard'
@@ -19,19 +20,38 @@ function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) 
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
 }
 
+function membershipOrganizations(
+  memberships: LearnHouseMembership[] | undefined,
+): NonNullable<LearnHouseMembership['org']>[] {
+  const organizations = new Map<string, NonNullable<LearnHouseMembership['org']>>()
+  for (const { org } of memberships ?? []) {
+    if (org?.slug && !organizations.has(org.slug)) organizations.set(org.slug, org)
+  }
+  return [...organizations.values()]
+}
+
 function resolveOperationalOrganization(
   memberships: LearnHouseMembership[] | undefined,
   isSuperadmin: boolean,
 ): LearnHouseMembership['org'] | null {
   if (isSuperadmin) return resolveXpexOrganization(memberships)
 
-  const slugs = [...new Set((memberships ?? []).map(({ org }) => org?.slug).filter((slug): slug is string => Boolean(slug)))]
-  for (const slug of slugs) {
-    if (resolveXpexPoloAccess(memberships, slug)) {
-      return memberships?.find(({ org }) => org?.slug === slug)?.org ?? null
-    }
+  for (const org of membershipOrganizations(memberships)) {
+    if (org.slug && resolveXpexPoloAccess(memberships, org.slug)) return org
   }
   return null
+}
+
+const AUTHORITATIVE_TEACHER_ACCESS: XpexPoloAccess = {
+  experience: 'polo_unificado_reduced',
+  capabilities: [
+    'view_assigned_students',
+    'view_students_progress',
+    'manage_authored_content',
+    'manage_mentoring',
+  ],
+  isManager: false,
+  isTeacher: true,
 }
 
 export async function AuthenticatedXpexExperience({
@@ -49,12 +69,39 @@ export async function AuthenticatedXpexExperience({
   const hasOrganizationMembership = memberships?.some(({ org }) => Boolean(org?.slug)) ?? false
   const requestedOperationalRole = requestedRole === 'polo' || requestedRole === 'professora'
 
-  // Polo and Professor are one operational surface. For explicit operational routes,
-  // resolve an organization that grants either canonical manager or teacher access.
-  // This keeps teacher-only users inside the unified shell without inventing manager rights.
-  const organization = requestedOperationalRole
+  let teacherData = null
+  let teacherDataFailed = false
+  let authoritativeTeacherAccess = false
+
+  // Prefer canonical session roles. If serialization/custom-role drift prevents the
+  // web resolver from recognizing a teacher, ask the XPeX teacher endpoint itself.
+  // That endpoint performs a DB join against Role.role_uuid == role_global_instructor,
+  // so a 200 response is server-authoritative proof of teacher access and grants only
+  // the reduced teacher capability set — never manager/admin rights.
+  let organization = requestedOperationalRole
     ? resolveOperationalOrganization(memberships, isSuperadmin)
     : resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)
+
+  if (
+    requestedOperationalRole
+    && !organization
+    && !isSuperadmin
+    && session.tokens?.access_token
+  ) {
+    for (const candidate of membershipOrganizations(memberships)) {
+      if (!candidate.slug) continue
+      try {
+        teacherData = await getXpexTeacherDashboard(session.tokens.access_token, candidate.slug)
+        organization = candidate
+        authoritativeTeacherAccess = true
+        break
+      } catch {
+        // A 403/404 means this organization does not grant canonical teacher access.
+        // Keep checking other memberships without widening authorization.
+      }
+    }
+  }
+
   const organizationSlug = organization?.slug
   if (!organizationSlug) return <AccessDenied noOrganization={!hasOrganizationMembership} />
 
@@ -63,6 +110,7 @@ export async function AuthenticatedXpexExperience({
     ? (['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexExperienceRole[])
     : membershipRoles
   const poloAccess = resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)
+    ?? (authoritativeTeacherAccess ? AUTHORITATIVE_TEACHER_ACCESS : null)
   const shouldUseUnifiedPolo = Boolean(
     poloAccess && (requestedOperationalRole || (!requestedRole && (membershipRoles.includes('polo') || membershipRoles.includes('professora')))),
   )
@@ -78,8 +126,6 @@ export async function AuthenticatedXpexExperience({
   const displayName = fullName || session.user.username || 'Pessoa participante'
   let learningData = null
   let learningDataFailed = false
-  let teacherData = null
-  let teacherDataFailed = false
   let launchReadiness = null
   let launchReadinessFailed = false
   const adminAccess = poloAccess?.isManager ?? isSuperadmin
@@ -92,7 +138,7 @@ export async function AuthenticatedXpexExperience({
         learningDataFailed = true
       }
     }
-    if (role === 'polo' && poloAccess?.isTeacher) {
+    if (role === 'polo' && poloAccess?.isTeacher && teacherData === null) {
       try {
         teacherData = await getXpexTeacherDashboard(session.tokens.access_token, organizationSlug)
       } catch {
