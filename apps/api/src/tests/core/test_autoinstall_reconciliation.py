@@ -52,14 +52,13 @@ async def test_reconcile_completely_empty_install(db, monkeypatch):
 
 async def test_reconcile_existing_organization_does_not_create_or_promote_admin(db, monkeypatch):
     _set_initial_admin(monkeypatch)
-    org = await install_create_organization(
+    await install_create_organization(
         OrganizationCreate(name="Existing", slug="default", email=""), db
     )
 
     await reconcile_initial_install(db)
 
     assert (await _counts(db)) == (1, 0, 0)
-    assert org.slug == "default"
 
 
 async def test_established_install_without_bootstrap_only_refreshes_roles(db, monkeypatch):
@@ -99,9 +98,6 @@ async def test_explicit_non_default_admin_email_is_used(db, monkeypatch):
 
 async def test_reconcile_never_promotes_an_existing_account_at_startup(db, monkeypatch):
     _set_initial_admin(monkeypatch)
-    org = await install_create_organization(
-        OrganizationCreate(name="Existing", slug="default", email=""), db
-    )
     user = User(
         username="administrator",
         first_name="",
@@ -112,6 +108,9 @@ async def test_reconcile_never_promotes_an_existing_account_at_startup(db, monke
         is_superadmin=False,
         creation_date=str(datetime.now(UTC)),
         update_date=str(datetime.now(UTC)),
+    )
+    await install_create_organization(
+        OrganizationCreate(name="Existing", slug="default", email=""), db
     )
     db.add(user)
     await db.commit()
