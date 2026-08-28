@@ -5,6 +5,18 @@ export interface LearnHouseMembership {
   org?: { slug?: string; name?: string }
 }
 
+export type XpexPoloCapability =
+  | 'view_pole_overview' | 'manage_students' | 'manage_classes'
+  | 'manage_courses' | 'view_assigned_students' | 'view_students_progress'
+  | 'manage_authored_content' | 'manage_mentoring'
+
+export type XpexPoloAccess = {
+  experience: 'polo_unificado' | 'polo_unificado_reduced'
+  capabilities: XpexPoloCapability[]
+  isManager: boolean
+  isTeacher: boolean
+}
+
 const CANONICAL_ROLE_UUIDS: Record<string, XpexExperienceRole> = {
   role_global_admin: 'polo',
   role_global_maintainer: 'polo',
@@ -26,6 +38,22 @@ export function resolveXpexAccess(
     .map(xpexRoleForMembership)
     .filter((role): role is XpexExperienceRole => role !== null)
   return [...new Set(roles)]
+}
+
+/** Derive the unified operational experience only from canonical session roles. */
+export function resolveXpexPoloAccess(
+  memberships: LearnHouseMembership[] | undefined,
+  orgSlug: string,
+  isSuperadmin = false,
+): XpexPoloAccess | null {
+  const roles = resolveXpexAccess(memberships, orgSlug)
+  const isManager = isSuperadmin || roles.includes('polo')
+  const isTeacher = roles.includes('professora')
+  if (!isManager && !isTeacher) return null
+  const capabilities: XpexPoloCapability[] = isManager
+    ? ['view_pole_overview', 'manage_students', 'manage_classes', 'manage_courses', 'view_assigned_students', 'view_students_progress', 'manage_authored_content', 'manage_mentoring']
+    : ['view_assigned_students', 'view_students_progress', 'manage_authored_content', 'manage_mentoring']
+  return { experience: isManager ? 'polo_unificado' : 'polo_unificado_reduced', capabilities, isManager, isTeacher }
 }
 
 export function resolveXpexOrganization(

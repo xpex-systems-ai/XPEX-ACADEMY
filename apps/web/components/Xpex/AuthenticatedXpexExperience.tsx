@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import {
   resolveXpexAccess,
   resolveXpexOrganization,
+  resolveXpexPoloAccess,
   type LearnHouseMembership,
   type XpexExperienceRole,
 } from '@/lib/xpex/access'
@@ -13,7 +14,6 @@ import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 import { getXpexTeacherDashboard } from '@/lib/xpex/teacher-dashboard'
 import { getXpexLaunchReadiness } from '@/lib/xpex/launch-readiness'
-import { listCourseStudioDrafts } from '@services/xpex/courseStudio'
 
 function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
@@ -44,8 +44,12 @@ export async function AuthenticatedXpexExperience({
   const roles: XpexExperienceRole[] = isSuperadmin
     ? (['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexExperienceRole[])
     : membershipRoles
-  const role: XpexExperienceRole | undefined = requestedRole ?? (isSuperadmin ? 'polo' : roles[0])
-  if (!role || !roles.includes(role)) return <AccessDenied />
+  const requestedOperationalRole = requestedRole === 'polo' || requestedRole === 'professora'
+  const poloAccess = resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)
+  const role: XpexExperienceRole | undefined = requestedOperationalRole && poloAccess
+    ? 'polo'
+    : requestedRole ?? (isSuperadmin ? 'polo' : roles[0])
+  if (!role || (role === 'polo' ? !poloAccess : !roles.includes(role))) return <AccessDenied />
 
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Pessoa participante'
@@ -55,17 +59,9 @@ export async function AuthenticatedXpexExperience({
   let teacherDataFailed = false
   let launchReadiness = null
   let launchReadinessFailed = false
-  let adminAccess = isSuperadmin
+  const adminAccess = poloAccess?.isManager ?? isSuperadmin
 
   if (session.tokens?.access_token) {
-    if (!adminAccess) {
-      try {
-        await listCourseStudioDrafts(organizationSlug, session.tokens.access_token)
-        adminAccess = true
-      } catch {
-        adminAccess = false
-      }
-    }
     if (role === 'aluno') {
       try {
         learningData = await getXpexLearningDashboard(session.tokens.access_token, organizationSlug)
@@ -73,14 +69,14 @@ export async function AuthenticatedXpexExperience({
         learningDataFailed = true
       }
     }
-    if (role === 'professora') {
+    if (role === 'polo' && poloAccess?.isTeacher) {
       try {
         teacherData = await getXpexTeacherDashboard(session.tokens.access_token, organizationSlug)
       } catch {
         teacherDataFailed = true
       }
     }
-    if (role === 'polo' && adminAccess) {
+    if (role === 'polo' && poloAccess?.isManager) {
       try {
         launchReadiness = await getXpexLaunchReadiness(session.tokens.access_token, organizationSlug)
       } catch {
@@ -112,6 +108,7 @@ export async function AuthenticatedXpexExperience({
           launchReadinessFailed={launchReadinessFailed}
           organizationName={organizationName}
           organizationSlug={organizationSlug}
+          poloAccess={poloAccess}
         />
       )}
     </XpexAuthenticatedShell>

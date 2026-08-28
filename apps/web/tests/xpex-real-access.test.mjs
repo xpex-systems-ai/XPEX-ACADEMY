@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { resolveXpexAccess, resolveXpexOrganization, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
+import { resolveXpexAccess, resolveXpexOrganization, resolveXpexPoloAccess, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
 import { safeAuthReturnPath } from '../lib/proxyPaths.ts'
 
 const membership = (role_uuid, slug = 'kelle-digital-lab', name) => ({ role: { name, role_uuid }, org: { slug } })
@@ -42,6 +42,23 @@ describe('XpeX server-authoritative role mapping', () => {
     expect(resolveXpexAccess([membership('role_global_user')], 'kelle-digital-lab')).toEqual(['aluno'])
     expect(resolveXpexAccess([membership('role_global_instructor')], 'kelle-digital-lab')).toEqual(['professora'])
     expect(resolveXpexAccess([membership('role_global_admin')], 'kelle-digital-lab')).toEqual(['polo'])
+  })
+
+  test('unifies manager and teacher capabilities without elevating a teacher-only account', () => {
+    const managerTeacher = resolveXpexPoloAccess([
+      membership('role_global_admin'),
+      membership('role_global_instructor'),
+    ], 'kelle-digital-lab')
+    expect(managerTeacher?.experience).toBe('polo_unificado')
+    expect(managerTeacher?.isManager).toBe(true)
+    expect(managerTeacher?.isTeacher).toBe(true)
+    expect(managerTeacher?.capabilities).toContain('manage_students')
+
+    const teacher = resolveXpexPoloAccess([membership('role_global_instructor')], 'kelle-digital-lab')
+    expect(teacher?.experience).toBe('polo_unificado_reduced')
+    expect(teacher?.isManager).toBe(false)
+    expect(teacher?.capabilities).not.toContain('manage_students')
+    expect(resolveXpexPoloAccess([membership('role_global_user')], 'kelle-digital-lab')).toBeNull()
   })
 })
 
@@ -87,7 +104,7 @@ describe('server-authoritative XpeX routes', () => {
   test('redirects unauthenticated requests and denies missing, unsupported, or tampered roles', () => {
     expect(boundary).toContain('if (!session?.user) redirect(')
     expect(boundary).toContain('`/login?next=${encodeURIComponent(returnPath)}`')
-    expect(boundary).toContain('if (!role || !roles.includes(role)) return <AccessDenied />')
+    expect(boundary).toContain("role === 'polo' ? !poloAccess : !roles.includes(role)")
     expect(rolePage).toContain('requestedRole={role as XpexExperienceRole}')
   })
 
@@ -98,6 +115,11 @@ describe('server-authoritative XpeX routes', () => {
     expect(boundary).not.toContain('StudentExperience')
     expect(authenticatedDashboard).toContain('dados disponíveis')
     expect(authenticatedDashboard).not.toMatch(/value="(?:\d+|\d+%)"/)
+  })
+
+  test('does not probe Course Studio to infer administrative access', () => {
+    expect(boundary).not.toContain('listCourseStudioDrafts')
+    expect(boundary).toContain('resolveXpexPoloAccess')
   })
 })
 
