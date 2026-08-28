@@ -2,6 +2,7 @@ import { BookOpen, CalendarDays, CheckCircle2, FilePlus2, GraduationCap, Message
 import Link from 'next/link'
 import type { XpexLearningCourse, XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
 import type { XpexTeacherDashboardData } from '@/lib/xpex/teacher-dashboard'
+import type { XpexLaunchReadinessData } from '@/lib/xpex/launch-readiness'
 import { getCourseThumbnailMediaDirectory } from '@services/media/media'
 import type { XpexRole } from '../xpex-types'
 import { XpexActivityList, XpexComingSoon, XpexCourseCard, XpexEmptyState, XpexErrorState, XpexKpiGrid, XpexMetricCard, XpexPanel, XpexQuickAction, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
@@ -27,11 +28,11 @@ const copy = {
   polo: { eyebrow: 'Visão institucional', description: 'Acompanhe a operação da organização com informações autorizadas e dados disponíveis.' },
 } as const
 
-export function AuthenticatedDashboard({ role, displayName, organizationName, organizationSlug, learningData, learningDataFailed = false, teacherData, teacherDataFailed = false }: { role: XpexRole; displayName: string; organizationName?: string; organizationSlug: string; learningData?: XpexLearningDashboardData | null; learningDataFailed?: boolean; teacherData?: XpexTeacherDashboardData | null; teacherDataFailed?: boolean }) {
+export function AuthenticatedDashboard({ role, displayName, organizationName, organizationSlug, learningData, learningDataFailed = false, teacherData, teacherDataFailed = false, launchReadiness, launchReadinessFailed = false }: { role: XpexRole; displayName: string; organizationName?: string; organizationSlug: string; learningData?: XpexLearningDashboardData | null; learningDataFailed?: boolean; teacherData?: XpexTeacherDashboardData | null; teacherDataFailed?: boolean; launchReadiness?: XpexLaunchReadinessData | null; launchReadinessFailed?: boolean }) {
   const title = role === 'polo' && organizationName ? organizationName : `Olá, ${displayName}.`
   return <div className="xpex-dashboard">
     <XpexRoleHero eyebrow={`${copy[role].eyebrow}${organizationName ? ` · ${organizationName}` : ''}`} title={title} description={copy[role].description}/>
-    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard data={teacherData} failed={teacherDataFailed} organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName}/>}
+    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard data={teacherData} failed={teacherDataFailed} organizationName={organizationName}/> : <PoleDashboard organizationName={organizationName} organizationSlug={organizationSlug} data={launchReadiness} failed={launchReadinessFailed}/>} 
   </div>
 }
 
@@ -67,11 +68,29 @@ function TeacherDashboard({ data, failed, organizationName }: { data?: XpexTeach
   </>
 }
 
-function PoleDashboard({ organizationName }: { organizationName?: string }) { return <>
-  {!organizationName && <p className="xpex-context">Nome da organização indisponível</p>}
-  <XpexEmptyState title="Operação ainda sem dados" description="Indicadores, turmas, eventos e avisos aparecerão quando as integrações operacionais oferecerem dados autorizados."/>
-  <section><XpexSectionHeader eyebrow="Operação" title="Ações do polo"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Nova turma"/><XpexQuickAction icon={BookOpen} title="Novo curso"/><XpexQuickAction icon={Users} title="Novo aluno"/><XpexQuickAction icon={FilePlus2} title="Relatório"/></div></section>
-  <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Atualizações" title="Atividades recentes"/><div className="mt-5"><XpexActivityList items={[]}/></div></XpexPanel><EntryPoints role="polo"/>
-</> }
+function ReadinessGate({ label, ready }: { label: string; ready: boolean }) {
+  return <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3"><span className="text-sm font-semibold text-slate-200">{label}</span><span className={`text-xs font-black uppercase tracking-wider ${ready ? 'text-emerald-300' : 'text-amber-300'}`}>{ready ? 'Pronto' : 'Pendente'}</span></div>
+}
 
-function EntryPoints({ role, organizationSlug }: { role: XpexRole; organizationSlug?: string }) { return <section aria-label={`Próximas experiências para ${role}`}><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid">{role === 'aluno' && organizationSlug ? <Link href={`/orgs/${organizationSlug}/courses`} className="xpex-card block p-5"><span className="xpex-label">Catálogo disponível</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Encontre cursos publicados e autorizados para sua organização.</p><span className="xpex-primary mt-4">Ver cursos</span></Link> : <XpexComingSoon title="Cursos" description="O catálogo estará disponível quando sua organização oferecer cursos."/>}<XpexComingSoon title="Trilhas" description="As trilhas aparecerão quando forem disponibilizadas para sua conta."/><XpexComingSoon title="Laboratório de IA" description="Este módulo ainda não está disponível para estudantes."/></div></section> }
+function PoleDashboard({ organizationName, organizationSlug, data, failed }: { organizationName?: string; organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
+  if (failed) return <XpexErrorState title="Não foi possível calcular a prontidão de lançamento" description="O painel administrativo continua protegido. Atualize em instantes para recalcular os gates de produção."/>
+  const statusTitle = data?.ready_for_official_intake ? 'Pronto para entrada oficial' : data?.ready_for_controlled_pilot ? 'Pronto para piloto controlado' : 'Preparação em andamento'
+  return <>
+    {!organizationName && <p className="xpex-context">Nome da organização indisponível</p>}
+    {data ? <XpexKpiGrid>
+      <XpexMetricCard icon={BookOpen} label="Cursos publicados" value={String(data.metrics.published_courses)} detail="Cursos disponíveis na organização"/>
+      <XpexMetricCard icon={Route} label="Atividades publicadas" value={String(data.metrics.published_activities)} detail="Aulas e atividades publicadas"/>
+      <XpexMetricCard icon={Users} label="Alunos matriculados" value={String(data.metrics.enrolled_students)} detail={`${data.metrics.active_students} em andamento`}/>
+      <XpexMetricCard icon={GraduationCap} label="Professoras" value={String(data.metrics.teachers)} detail="Perfis de instrutora vinculados" tone="orange"/>
+    </XpexKpiGrid> : <XpexEmptyState title="Prontidão ainda sem dados" description="O backend ainda não retornou o snapshot operacional desta organização."/>}
+    {data && <XpexPanel><XpexSectionHeader eyebrow="XPEX-LAUNCH-READINESS" title={statusTitle} detail={<span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${data.ready_for_official_intake ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-300'}`}>{data.ready_for_official_intake ? 'GO' : 'CHECK'}</span>}/><p className="mt-3 text-sm text-slate-400">Gate calculado somente com dados persistidos: publicação, matrícula, progresso e professora vinculada.</p><div className="mt-5 grid gap-3 md:grid-cols-2"><ReadinessGate label="Acesso administrativo" ready={data.gates.admin_access}/><ReadinessGate label="Curso publicado" ready={data.gates.published_course}/><ReadinessGate label="Atividade publicada" ready={data.gates.published_activity}/><ReadinessGate label="Matrícula piloto" ready={data.gates.pilot_enrollment}/><ReadinessGate label="Progresso verificado" ready={data.gates.progress_verified}/><ReadinessGate label="Professora vinculada" ready={data.gates.teacher_assigned}/></div></XpexPanel>}
+    <section><XpexSectionHeader eyebrow="Operação" title="Ações do polo"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Nova turma"/><XpexQuickAction icon={BookOpen} title="Novo curso" disabled={false} href={`/orgs/${organizationSlug}/course-studio`} detail="Abrir Course Studio"/><XpexQuickAction icon={Users} title="Novo aluno"/><XpexQuickAction icon={FilePlus2} title="Relatório"/></div></section>
+    <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Operação real" title="Estado de aprendizagem"/><div className="mt-5 grid gap-3 sm:grid-cols-3"><ReadinessGate label={`${data?.metrics.active_students ?? 0} alunos ativos`} ready={(data?.metrics.active_students ?? 0) > 0}/><ReadinessGate label={`${data?.metrics.completed_activities ?? 0} atividades concluídas`} ready={(data?.metrics.completed_activities ?? 0) > 0}/><ReadinessGate label={`${data?.metrics.completed_students ?? 0} alunos concluídos`} ready={(data?.metrics.completed_students ?? 0) > 0}/></div></XpexPanel><EntryPoints role="polo" organizationSlug={organizationSlug}/>
+  </>
+}
+
+function EntryPoints({ role, organizationSlug }: { role: XpexRole; organizationSlug?: string }) {
+  const courseLink = organizationSlug ? `/orgs/${organizationSlug}/courses` : null
+  if (role === 'polo' && organizationSlug) return <section aria-label="Acessos administrativos"><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid"><Link href={courseLink!} className="xpex-card block p-5"><span className="xpex-label">Operacional</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Gerencie o catálogo real da organização.</p><span className="xpex-primary mt-4">Abrir cursos</span></Link><Link href={`/orgs/${organizationSlug}/course-studio`} className="xpex-card block p-5"><span className="xpex-label">IA editorial</span><h3 className="mt-2 text-lg font-black text-white">Fábrica de Cursos IA</h3><p className="mt-2 text-sm text-slate-400">Criar, revisar, aprovar e publicar cursos.</p><span className="xpex-primary mt-4">Abrir fábrica</span></Link><Link href="/xpex/admin" className="xpex-card block p-5"><span className="xpex-label">Governança</span><h3 className="mt-2 text-lg font-black text-white">Painel Admin</h3><p className="mt-2 text-sm text-slate-400">Acesse o centro administrativo nativo da XPeX.</p><span className="xpex-primary mt-4">Abrir painel</span></Link></div></section>
+  return <section aria-label={`Próximas experiências para ${role}`}><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid">{role === 'aluno' && courseLink ? <Link href={courseLink} className="xpex-card block p-5"><span className="xpex-label">Catálogo disponível</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Encontre cursos publicados e autorizados para sua organização.</p><span className="xpex-primary mt-4">Ver cursos</span></Link> : <XpexComingSoon title="Cursos" description="O catálogo estará disponível quando sua organização oferecer cursos."/>}<XpexComingSoon title="Trilhas" description="As trilhas aparecerão quando forem disponibilizadas para sua conta."/><XpexComingSoon title="Laboratório de IA" description="Este módulo ainda não está disponível para estudantes."/></div></section>
+}
