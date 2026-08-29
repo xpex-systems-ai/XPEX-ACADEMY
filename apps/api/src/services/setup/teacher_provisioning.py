@@ -1,10 +1,13 @@
 """Explicit, one-shot provisioning for an already existing XPeX teacher."""
 
+import asyncio
 import logging
 import os
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from config.config import get_learnhouse_config
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.organizations import Organization
@@ -20,6 +23,14 @@ TEACHER_ROLE_UUID = "role_global_instructor"
 
 class TeacherProvisioningRefused(RuntimeError):
     pass
+
+
+def _to_async_url(url: str) -> str:
+    if "+asyncpg" in url:
+        return url
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
 
 
 async def provision_configured_teacher(db_session: AsyncSession) -> str:
@@ -94,3 +105,25 @@ async def provision_configured_teacher(db_session: AsyncSession) -> str:
         changed,
     )
     return "provisioned" if changed else "already-provisioned"
+
+
+async def _run() -> None:
+    config = get_learnhouse_config()
+    engine = create_async_engine(
+        _to_async_url(config.database_config.sql_connection_string),  # type: ignore
+        pool_pre_ping=True,
+    )
+    try:
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            result = await provision_configured_teacher(session)
+            print(f"Teacher provisioning: {result}")
+    finally:
+        await engine.dispose()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(_run())
+    except TeacherProvisioningRefused as exc:
+        print(f"Teacher provisioning refused: {exc}")
+        raise SystemExit(2) from None
