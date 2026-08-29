@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { xpexAuthenticatedNavigation } from './xpex-navigation'
 import type { XpexRole } from './xpex-types'
+import './xpex-tokens.css'
 import './xpex.css'
 
 const roleLabels: Record<XpexRole, string> = { aluno: 'Aluno', professora: 'Professora', polo: 'Polo' }

@@ -31,7 +31,7 @@ export function XpexFeatureCard({ icon: Icon, eyebrow, title, description, tone 
 
 export function XpexProgressBar({ value, label }: { value: number; label: string }) {
   const safeValue = Math.min(100, Math.max(0, value))
-  return <div><div className="mb-2 flex justify-between text-xs font-semibold text-slate-300"><span>{label}</span><span>{safeValue}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={label} aria-valuenow={safeValue} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-gradient-to-r from-[#0B1D3A] via-[#00D4FF] to-[#FF7A00]" style={{ width: `${safeValue}%` }} /></div></div>
+  return <div><div className="mb-2 flex justify-between text-xs font-semibold text-slate-300"><span>{label}</span><span>{safeValue}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={label} aria-valuenow={safeValue} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full xpex-progress-fill" style={{ width: `${safeValue}%` }} /></div></div>
 }
 
 export function XpexMetricCard({ icon: Icon, label, value, detail, tone = 'blue' }: { icon: LucideIcon; label: string; value: string; detail: string; tone?: 'orange' | 'blue' }) {
