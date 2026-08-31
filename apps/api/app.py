@@ -24,6 +24,7 @@ from src.core.middleware.cors import configure_cors
 from src.router import v1_router
 from src.routers.content_files import router as content_files_router
 from src.routers.local_content import router as local_content_router
+from src.routers.mercadopago_webhooks import router as mercadopago_webhooks_router
 
 
 learnhouse_config: LearnHouseConfig = get_learnhouse_config()
@@ -70,6 +71,9 @@ else:
     app.include_router(local_content_router)
 
 app.include_router(v1_router)
+# Public provider callback. Authentication is the Mercado Pago HMAC signature;
+# this endpoint intentionally does not depend on a LearnHouse browser session.
+app.include_router(mercadopago_webhooks_router, prefix="/api/webhooks", tags=["mercadopago"])
 
 
 @app.get("/")
