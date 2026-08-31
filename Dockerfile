@@ -114,6 +114,11 @@ COPY ./apps/api/docker-entrypoint.sh /app/api/docker-entrypoint.sh
 COPY ./docker/start.sh /app/start.sh
 RUN chmod +x /app/api/docker-entrypoint.sh /app/render-nginx-config.sh /app/start.sh
 
+# Railway pre-deploy commands run from the image working directory. Keep it at
+# the API root so the existing gated provisioning command can resolve `src`.
+# Runtime scripts keep absolute paths or explicit PM2 --cwd values.
+WORKDIR /app/api
+
 ENV PORT=80 WEB_PORT=8000 LEARNHOUSE_PORT=9000 COLLAB_PORT=4000 HOSTNAME=0.0.0.0 LEARNHOUSE_API_URL=http://localhost:9000 LEARNHOUSE_OSS=true NEXT_PUBLIC_LEARNHOUSE_OSS=true
 
 EXPOSE 80 9000 4000
