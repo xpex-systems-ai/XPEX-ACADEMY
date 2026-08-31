@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 import pytest
 from sqlmodel import select
-
 from src.db.organizations import Organization
 from src.db.roles import Role, RoleTypeEnum
 from src.db.user_organizations import UserOrganization
