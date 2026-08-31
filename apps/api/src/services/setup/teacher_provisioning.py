@@ -5,12 +5,11 @@ import logging
 import os
 from datetime import UTC, datetime
 
+from config.config import get_learnhouse_config
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from config.config import get_learnhouse_config
 from src.db.organizations import Organization
 from src.db.roles import Role
 from src.db.user_organizations import UserOrganization
