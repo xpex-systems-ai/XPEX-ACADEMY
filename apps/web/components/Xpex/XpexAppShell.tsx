@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 import { xpexNavigation } from './xpex-navigation'
 import type { XpexRole } from './xpex-types'
+import './xpex-tokens.css'
 import './xpex.css'
 
 // Governance marker for the public preview: its indicators "não persistem".
