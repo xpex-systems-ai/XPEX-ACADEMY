@@ -4,79 +4,62 @@ Status: ACTIVE
 Updated: 2026-08-31
 
 ## Mission
-
 Secure infrastructure credits, technical partnerships, education sponsorships and, after the evidence package is ready, strategic investment for XPeX Academy AI.
 
 ## Evidence-safe positioning
-
 XPeX Academy AI is a Brazilian education and AI initiative built on the open-source LearnHouse learning engine. XPeX adds its own product experience, curation, AI-assisted workflows and local educational operation while preserving LearnHouse as the learning source of truth.
 
-The current objective is to complete and sustain the first verified production deployment. We do not claim large-scale production, unverified student counts, formal partnerships, accreditation, funding or production readiness without evidence.
+Current infrastructure evidence includes XPEX-ACADEMY, PostgreSQL and Redis on Railway with successful deployments. This is infrastructure evidence, not a claim that the full student production launch gate has passed.
 
-Current infrastructure evidence available to the operator includes an active Railway project with XPEX-ACADEMY, PostgreSQL and Redis services and recent successful deployments. The full student production launch gate remains evidence-driven and must be proven before public production claims.
+## Capital strategy
+Credits and infrastructure support come before equity because they extend runway without dilution. Equity outreach runs in parallel only after the Evidence Pack has enough verified material for diligence.
 
-## Survival priority
+| Priority | Target / Program | Lane | Verified public opportunity | XPeX action | Status |
+|---|---|---|---|---|---|
+| P0 | AWS Activate | Infrastructure | Founders: US$1,000; Portfolio: up to US$100,000, subject to eligibility | Prepare application evidence: functional company site, startup age/stage, AWS account; seek Activate Provider path for larger package | QUALIFIED_CONDITIONAL |
+| P0 | Google for Startups Cloud | Infrastructure / AI | Start: up to US$2,000; Scale: up to US$200,000, or up to US$350,000 for AI startups | Corporate classification must be checked because educational institutions are excluded; do not misrepresent XPeX | QUALIFIED_CONDITIONAL |
+| P0 | Mercado Pago Partner Program | Payments / revenue | Free developer/platform partner program; certification + Integrator ID; financial incentives depend on qualified integrations/volume | Integrate payment lane, obtain certification, Integrator ID and partner profile; incentives are revenue, not venture investment | QUALIFIED_ACTIONABLE |
+| P0 | Mercado Pago Platform Program | Payments / platform | SaaS, service and open-source platforms can participate; official checkout integration can qualify for partner route | Evaluate XPeX product/payment architecture and apply under the truthful platform category | QUALIFIED_ACTIONABLE |
+| P0 | GitHub for Startups | Dev infrastructure | Startup program route exists; eligibility must be verified before application | Verify funding/partner affiliation and prior-credit status | QUALIFIED_CONDITIONAL |
+| P1 | Railway | Runtime / DB | Existing XPeX runtime; no current guaranteed startup-credit amount recorded | Prepare discretionary education/social-impact infrastructure partnership ask | READY_FOR_OUTREACH |
+| P1 | Vercel for Startups | Frontend / AI | Startup-credit route subject to current partner/eligibility rules | Verify XPeX project/deployment evidence and partner eligibility | RESEARCHED |
+| P1 | Cloudflare for Startups | Edge / storage / AI | Startup route to qualify | Verify corporate eligibility and current benefits | RESEARCHED |
+| P1 | NVIDIA Inception | AI ecosystem | Startup ecosystem program | Verify company/product eligibility; prepare technical AI profile | RESEARCHED |
+| P1 | LearnHouse | Open source / education | Collaboration/community rather than assumed funding | Prepare upstream/open-source collaboration outreach | READY_FOR_OUTREACH |
+| P1 | HeyGen | AI media | Tooling/partnership lane | Produce evidence-safe institutional video and qualify partnership route | TOOLING_ACTIVE |
+| P2 | PayPal | Payments | Payment infrastructure lane; no investment claim without a verified program | Research Brazil business integration and partnership routes separately | QUEUED |
+| P2 | Mercado Livre | Ecosystem | Do not conflate Mercado Livre corporate ecosystem with Mercado Pago partner incentives | Research only verified startup/strategic programs | QUEUED |
 
-Credits and infrastructure support come before equity fundraising because they can extend runway without dilution and directly address the current bottleneck.
-
-| Priority | Target / Program | Category | Public maximum / entry benefit | XPeX ask | Eligibility / blocker to verify | Status |
-|---|---|---|---:|---|---|---|
-| P0 | AWS Activate | Cloud / AI | Founders up to US$5k; Portfolio up to US$200k | Compute, DB, storage, AI credits | Paid AWS account; stage; provider Org ID for Portfolio | RESEARCHED |
-| P0 | Google for Startups Cloud Program | Cloud / AI | US$2k pre-funded; up to US$200k early-stage / US$350k AI-first | Cloud + AI infrastructure | Stage and program eligibility | RESEARCHED |
-| P0 | Cloudflare for Startups | Edge / AI / storage | Public program advertises startup credit tiers, including bootstrapped entry tier | Workers, R2, security, AI | Company age/site/email and tier criteria | RESEARCHED |
-| P0 | Microsoft for Startups | Cloud / AI / GTM | Up to US$150k over time; enhanced benefits through Investor Network | Azure + AI + GTM | Must meet startup eligibility; education institutions excluded, so XPeX corporate/product structure must be verified | RESEARCHED |
-| P0 | GitHub for Startups | Dev platform | Public startup credit/Enterprise program | GitHub Enterprise / developer tooling | Partner affiliation, funding stage and prior-credit rules must be verified | RESEARCHED |
-| P1 | Vercel for Startups | Frontend / AI | Up to US$30k | Frontend, AI Gateway, workflows | Requires approved startup partner + proof | RESEARCHED |
-| P1 | Railway | Runtime / DB | No verified current public startup-credit amount in this ledger | Existing runtime sponsorship / credits | Direct partnership route to research | ACTIVE_INFRA |
-| P1 | Supabase | Database / platform | Credit balance/program routes exist; no guaranteed startup grant recorded here | DB / auth / storage partnership | Current program/contact route to verify | RESEARCHED |
-| P1 | LearnHouse | Open source / education | N/A | Community collaboration, upstream contribution, technical guidance, introductions | Relationship/community route, not assumed funding | READY_FOR_OUTREACH |
-| P1 | HeyGen | AI video | N/A | Education / AI-video partnership and campaign tooling | Partnership route to qualify | INTEGRATED_TOOLING |
-| P2 | NVIDIA Inception | AI ecosystem | Benefits depend on program | AI ecosystem / technical support | Current eligibility to verify | QUEUED |
-| P2 | DigitalOcean Startups Program | Cloud | Hatch retired; replacement startup program exists | Compute / managed DB credits | Current benefit and eligibility to verify | QUEUED |
+## Important qualification rules
+- Mercado Pago incentives are not an investor cheque. They are partner/integration incentives and can become a revenue channel.
+- AWS/Google credits are non-dilutive infrastructure support, not cash deposited into PayPal/Mercado Pago.
+- Investor money requires an actual fundraising instrument, legal entity/payment/banking diligence and investor approval. Never route funds or promise deposits before those controls exist.
+- Never claim approval, partnership, investment or credits until the provider confirms it.
 
 ## Investor lane
+Build a separate qualified investor ledger for pre-seed/seed investors and angels with AI, EdTech, future-of-work, developer infrastructure, Brazil/LatAm or impact theses.
 
-Do not mass-email investors until the Evidence Pack is complete. Investor qualification will focus on pre-seed/seed funds and angels with EdTech, AI, future-of-work, developer infrastructure, Brazil/LatAm or impact theses.
-
-Required investor fields:
-- fund / investor name
-- thesis fit
-- stage
-- geography
-- typical check size (verified source only)
-- warm-intro path
-- official submission/contact channel
-- evidence URL
-- status
-- next action
+Required fields: fund/investor; thesis fit; stage; geography; verified check-size if public; official submission/contact channel; warm-intro path; evidence source; status; next action.
 
 ## Partner message
+> XPeX Academy AI is building a practical education and AI deployment in Brazil on top of open-source learning infrastructure. We have reached the stage where persistent compute, PostgreSQL, Redis, storage, transactional email and AI inference determine how quickly we can complete and sustain the first verified production cohort. We are seeking technology credits, technical partnership, open-source collaboration and education sponsorship. We can provide architecture, repository evidence, deployment roadmap and a controlled pilot plan. We do not represent unverified scale or partnerships as facts.
 
-Core message:
+## Execution pipeline
+SCOUT -> QUALIFY -> VERIFY -> PERSONALIZE -> VIDEO/ASSET -> QUALITY GATE -> SEND/APPLY -> TRACK -> FOLLOW UP -> NEGOTIATE -> DILIGENCE -> CLOSE
 
-> XPeX Academy AI is building a practical education and AI deployment in Brazil on top of open-source learning infrastructure. We have reached the stage where persistent compute, PostgreSQL, Redis, storage, transactional email and AI inference determine how quickly we can complete and sustain the first verified production cohort. We are seeking technology credits, technical partnership, open-source collaboration and education sponsorship. We can provide the architecture, repository evidence, deployment roadmap and a controlled pilot plan. We will not represent unverified scale or partnerships as facts.
-
-## Outreach system
-
-SCOUT -> QUALIFY -> VERIFY -> PERSONALIZE -> VIDEO/ASSET -> HUMAN QUALITY GATE -> SEND -> TRACK -> FOLLOW UP -> NEGOTIATE
-
-Every target receives a distinct ask. No guessed email addresses, no fabricated metrics and no automated LinkedIn abuse.
-
-## Evidence Pack to build
-
+## Evidence Pack
 1. One-page institutional brief.
-2. Architecture diagram and current deployment evidence.
+2. Architecture and current deployment evidence.
 3. Production-readiness matrix: working / pending / blocked.
-4. 60-second institutional video.
+4. Institutional video.
 5. Partner landing page.
 6. Infrastructure budget and 12-month runway scenarios.
-7. Pilot impact model with targets clearly labeled as targets.
-8. Founder/company/legal facts once verified.
-9. Open-source attribution and contribution story.
-10. Data room index for qualified investors.
+7. Pilot impact model with targets explicitly marked as targets.
+8. Founder/company/legal facts after verification.
+9. Open-source attribution/contribution story.
+10. Investor data-room index.
 
 ## Pipeline states
-
 DISCOVERED -> RESEARCHED -> QUALIFIED -> READY_FOR_OUTREACH -> CONTACTED -> REPLIED -> MEETING -> DUE_DILIGENCE -> CREDIT/SPONSORSHIP/INVESTMENT -> CLOSED
 
-Rejected or ineligible targets are retained with reason so agents do not repeat failed work.
+Rejected/ineligible targets remain recorded with reason so agents do not repeat failed work.
