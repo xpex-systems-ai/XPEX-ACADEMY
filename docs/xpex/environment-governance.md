@@ -12,7 +12,7 @@ Separar com clareza desenvolvimento, preview, Beta pública e produção estáve
 - Projeto oficial da Vercel: `xpex-academy-ai`.
 - Root Directory oficial: `apps/web`.
 - A branch `dev` está conectada ao target público de produção da Vercel.
-- Os projetos `xpex-academy` e `xpex-academy-536s` permanecem em quarentena operacional: não devem receber domínios, variáveis ou novos deploys.
+- Os projetos `xpex-academy`, `xpex-academy-536s`, `xpex-academy-3rb4` e `xpex-academy-sfh6` permanecem em quarentena operacional: não devem receber domínios, variáveis ou novos deploys.
 
 ## Política temporária da Beta pública
 
@@ -54,16 +54,15 @@ Nenhuma alteração deve ser enviada diretamente para `dev` como fluxo normal.
 
 ## Guardas versionadas para escopos Vercel incorretos
 
-Os projetos duplicados estavam ligados ao mesmo repositório com Root Directories incompatíveis e disparavam builds caros para cada commit. Para impedir novos builds nesses escopos sem excluir projetos ou tocar em domínios e secrets, o repositório mantém guardas condicionais em `/vercel.json` e `/apps/vercel.json`.
+Os projetos duplicados estavam ligados ao mesmo repositório com Root Directories incompatíveis e disparavam builds caros para cada commit. Para impedir novos builds nesses escopos sem excluir projetos ou tocar em domínios e secrets, o repositório mantém a mesma guarda condicional em `/vercel.json`, `/apps/vercel.json` e `/apps/web/vercel.json`.
 
-As duas guardas usam `ignoreCommand` e consultam `VERCEL_PROJECT_ID`:
+As três guardas usam `ignoreCommand` e consultam `VERCEL_PROJECT_ID`:
 
-- `prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y` (`xpex-academy`) retorna código `0` e o deployment é ignorado;
-- `prj_lusVrpATbArDHBafb4VQAvh14TyE` (`xpex-academy-536s`) retorna código `0` e o deployment é ignorado;
-- qualquer outro Project ID retorna código `1`, permitindo que o build continue;
-- o projeto oficial `xpex-academy-ai`, ID `prj_EvLi9wcPcy2p7op1ChdvI8kPksKV`, permanece habilitado.
+- somente o projeto oficial `xpex-academy-ai`, ID `prj_EvLi9wcPcy2p7op1ChdvI8kPksKV`, retorna código `1` e continua o build;
+- qualquer outro Project ID, inclusive um duplicado criado futuramente, retorna código `0` e o deployment é ignorado;
+- os quatro projetos duplicados já observados permanecem preservados, sem build, domínio ou promoção.
 
-A primeira tentativa com `git.deploymentEnabled: false` foi rejeitada antes do merge porque também impedia a criação do Preview oficial. A configuração condicional evita esse efeito global.
+A primeira tentativa com `git.deploymentEnabled: false` foi rejeitada antes do merge porque também impedia a criação do Preview oficial. A allowlist condicional evita esse efeito global e impede que novos escopos incorretos voltem a produzir checks vermelhos no mesmo commit.
 
 Essas guardas são uma quarentena técnica. Elas não transformam os projetos duplicados em fallback e não substituem a futura desconexão da integração Git pelo painel da Vercel.
 

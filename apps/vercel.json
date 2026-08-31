@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "if [ \"$VERCEL_PROJECT_ID\" = \"prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y\" ] || [ \"$VERCEL_PROJECT_ID\" = \"prj_lusVrpATbArDHBafb4VQAvh14TyE\" ]; then exit 0; else exit 1; fi",
+  "ignoreCommand": "if [ \"$VERCEL_PROJECT_ID\" = \"prj_EvLi9wcPcy2p7op1ChdvI8kPksKV\" ]; then exit 1; else exit 0; fi",
   "github": {
     "autoJobCancelation": true
   }
