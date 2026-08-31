@@ -20,6 +20,11 @@
   --xpex-color-status-error: #ef4444;
   --xpex-color-status-info: #00d4ff;
 
+  /* Compatibility aliases for existing XPeX CSS during incremental migration. */
+  --xpex-border: var(--xpex-color-border-default);
+  --xpex-cyan: var(--xpex-color-brand-accent);
+  --xpex-orange: var(--xpex-color-brand-secondary);
+
   --xpex-spacing-xs: 0.25rem;
   --xpex-spacing-sm: 0.5rem;
   --xpex-spacing-md: 1rem;
