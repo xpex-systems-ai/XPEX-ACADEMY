@@ -52,9 +52,6 @@ async def _reconcile_requested_admin_credentials(db_session: AsyncSession) -> bo
 
     user = (await db_session.execute(select(User).where(User.email == email))).scalars().first()
     if user is None:
-        # A legacy installation may already own the historical "admin" username.
-        # Reuse that account by moving it to the canonical email instead of
-        # attempting a duplicate username insert that aborts API startup.
         user = (await db_session.execute(select(User).where(User.username == "admin"))).scalars().first()
 
     if user is None:
@@ -71,7 +68,7 @@ async def _reconcile_requested_admin_credentials(db_session: AsyncSession) -> bo
         user.email_verified_at = str(datetime.now(UTC))
         user.failed_login_attempts = 0
         user.locked_until = None
-        user.password_changed_at = datetime.now(UTC)
+        user.password_changed_at = datetime.now()
         user.update_date = str(datetime.now(UTC))
         db_session.add(user)
 
