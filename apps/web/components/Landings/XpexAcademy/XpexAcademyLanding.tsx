@@ -4,6 +4,7 @@ import { XPEX_BRAND } from '@/lib/xpex-brand'
 import '../../Xpex/xpex.css'
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#00D4FF]'
+const academyLoginHref = '/login?next=%2Fxpex'
 
 const pillars = [
   { icon: BookOpen, title: 'Aprendizagem guiada', description: 'Cursos estruturados, atividades práticas e progresso real em uma jornada contínua.' },
@@ -38,7 +39,7 @@ export function XpexAcademyLanding() {
             <a href="#metodologia" className={`hover:text-[#00D4FF] ${focusRing}`}>Metodologia</a>
             <a href="#curso" className={`hover:text-[#00D4FF] ${focusRing}`}>Curso</a>
           </div>
-          <Link href="/login?next=%2Fxpex%2Faluno" className={`rounded-full bg-[#FF7A00] px-5 py-3 text-sm font-black text-white shadow-[0_0_28px_rgba(255,106,0,0.24)] transition hover:-translate-y-0.5 hover:bg-[#FF8A2A] ${focusRing}`}>Entrar na Academy</Link>
+          <Link href={academyLoginHref} className={`rounded-full bg-[#FF7A00] px-5 py-3 text-sm font-black text-white shadow-[0_0_28px_rgba(255,106,0,0.24)] transition hover:-translate-y-0.5 hover:bg-[#FF8A2A] ${focusRing}`}>Entrar na Academy</Link>
         </nav>
       </header>
 
@@ -49,7 +50,7 @@ export function XpexAcademyLanding() {
             <h1 className="max-w-4xl text-5xl font-black tracking-[-0.055em] md:text-7xl">Aprenda inteligência artificial. <span className="text-[#00D4FF]">Construa o seu futuro.</span></h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#B8C4D6] md:text-xl">Uma plataforma de aprendizagem prática para estudar, experimentar, construir projetos e evoluir com apoio de inteligência artificial.</p>
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-              <Link href="/login?next=%2Fxpex%2Faluno" className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#FF7A00] px-6 py-4 text-sm font-black shadow-[0_0_35px_rgba(255,106,0,0.28)] transition hover:-translate-y-0.5 hover:bg-[#FF8A2A] ${focusRing}`}>Começar agora <ArrowRight size={18} /></Link>
+              <Link href={academyLoginHref} className={`inline-flex items-center justify-center gap-2 rounded-full bg-[#FF7A00] px-6 py-4 text-sm font-black shadow-[0_0_35px_rgba(255,106,0,0.28)] transition hover:-translate-y-0.5 hover:bg-[#FF8A2A] ${focusRing}`}>Começar agora <ArrowRight size={18} /></Link>
               <a href="#curso" className={`inline-flex items-center justify-center rounded-full border border-[#00D4FF]/30 bg-white/5 px-6 py-4 text-sm font-bold text-[#00D4FF] backdrop-blur transition hover:bg-[#00D4FF]/10 ${focusRing}`}>Conhecer o primeiro curso</a>
             </div>
             <div className="mt-7 flex flex-wrap gap-3 text-sm text-[#B8C4D6]">{['curso publicado', 'progresso persistente', 'atividades reais', 'GX integrado'].map(item => <span key={item} className="rounded-full border border-white/10 bg-[#101A2B]/75 px-3 py-2">{item}</span>)}</div>
@@ -80,7 +81,7 @@ export function XpexAcademyLanding() {
             <h2 className="mt-4 text-3xl font-black md:text-5xl">Inteligência Artificial — do Básico ao Avançado</h2>
             <p className="mt-5 max-w-4xl text-lg leading-8 text-[#B8C4D6]">Uma formação progressiva que percorre fundamentos de IA, LLMs, Prompt Engineering, produtividade, automação, APIs, RAG, agentes, projetos reais e aplicação profissional.</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{['11 módulos', 'atividades práticas', 'progresso persistente', 'projeto final'].map(item => <div key={item} className="rounded-2xl border border-white/10 bg-[#07101C]/75 p-5 font-bold"><CheckCircle2 className="mb-4 text-[#00D4FF]" />{item}</div>)}</div>
-            <Link href="/login?next=%2Fxpex%2Faluno" className={`mt-8 inline-flex items-center gap-2 rounded-full bg-[#FF7A00] px-6 py-4 text-sm font-black hover:bg-[#FF8A2A] ${focusRing}`}>Entrar e estudar <ArrowRight size={18} /></Link>
+            <Link href={academyLoginHref} className={`mt-8 inline-flex items-center gap-2 rounded-full bg-[#FF7A00] px-6 py-4 text-sm font-black hover:bg-[#FF8A2A] ${focusRing}`}>Entrar e estudar <ArrowRight size={18} /></Link>
           </div>
         </section>
 
@@ -95,7 +96,7 @@ export function XpexAcademyLanding() {
             <GraduationCap className="mx-auto text-[#00D4FF]" size={36} />
             <h2 className="mt-5 text-3xl font-black md:text-5xl">Seu próximo passo começa aqui.</h2>
             <p className="mx-auto mt-5 max-w-2xl leading-8 text-[#B8C4D6]">Entre na XpeX Academy, acesse seu curso e continue aprendendo com uma experiência criada para prática e evolução contínua.</p>
-            <Link href="/login?next=%2Fxpex%2Faluno" className={`mt-8 inline-flex items-center gap-2 rounded-full bg-[#FF7A00] px-7 py-4 text-sm font-black hover:bg-[#FF8A2A] ${focusRing}`}>Entrar na Academy <ArrowRight size={18} /></Link>
+            <Link href={academyLoginHref} className={`mt-8 inline-flex items-center gap-2 rounded-full bg-[#FF7A00] px-7 py-4 text-sm font-black hover:bg-[#FF8A2A] ${focusRing}`}>Entrar na Academy <ArrowRight size={18} /></Link>
           </div>
         </section>
       </main>
