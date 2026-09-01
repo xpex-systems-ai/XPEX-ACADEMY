@@ -132,7 +132,7 @@ async def create_checkout(
         statement = select(Course).where(
             Course.course_uuid == payload.course_uuid,
             Course.org_id == org.id,
-            Course.published == True,  # noqa: E712
+            Course.published == True,
         )
         course = (await db_session.execute(statement)).scalars().first()
         if not course:
