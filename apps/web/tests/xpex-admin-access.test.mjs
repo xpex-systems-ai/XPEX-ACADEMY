@@ -54,7 +54,8 @@ describe('native OSS administration entry', () => {
 
   test('does not reveal platform-admin navigation to organization managers', () => {
     expect(experience).toContain('resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)')
-    expect(experience).toContain('adminAccess={isSuperadmin}')
+    expect(experience).toContain('const adminAccess = isSuperadmin')
+    expect(experience).toContain('adminAccess={adminAccess}')
     expect(shell).toContain('{adminAccess && <AdminEntry')
     expect(shell).toContain('href="/xpex/admin"')
   })
