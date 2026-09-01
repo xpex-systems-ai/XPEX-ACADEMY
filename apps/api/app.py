@@ -11,20 +11,20 @@
 
 import logging
 
-import uvicorn
 import sentry_sdk
-from sentry_sdk.integrations.logging import LoggingIntegration
+import uvicorn
+from config.config import LearnHouseConfig, get_learnhouse_config
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
-
-from config.config import LearnHouseConfig, get_learnhouse_config
+from sentry_sdk.integrations.logging import LoggingIntegration
 from src.core.ee_hooks import register_ee_middlewares
 from src.core.events.events import shutdown_app, startup_app
 from src.core.middleware.cors import configure_cors
 from src.router import v1_router
 from src.routers.content_files import router as content_files_router
 from src.routers.local_content import router as local_content_router
-
+from src.routers.mercadopago import router as mercadopago_router
+from src.routers.mercadopago_webhooks import router as mercadopago_webhooks_router
 
 learnhouse_config: LearnHouseConfig = get_learnhouse_config()
 
@@ -53,23 +53,33 @@ app = FastAPI(
     version="1.3.1",
 )
 
-# Middleware
 configure_cors(app)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 register_ee_middlewares(app)
 
-# Lifecycle
 app.add_event_handler("startup", startup_app(app))
 app.add_event_handler("shutdown", shutdown_app(app))
 
-# Content delivery — S3-aware router when S3 is enabled, local otherwise.
-# Both paths enforce access control; neither serves raw StaticFiles.
 if learnhouse_config.hosting_config.content_delivery.type == "s3api":
     app.include_router(content_files_router)
 else:
     app.include_router(local_content_router)
 
 app.include_router(v1_router)
+# Authenticated financial control plane. The service layer additionally requires
+# organization admin/maintainer authority before creating a checkout.
+app.include_router(
+    mercadopago_router,
+    prefix="/api/v1/xpex/mercadopago",
+    tags=["xpex", "mercadopago"],
+)
+# Public provider callback. Authentication is the Mercado Pago HMAC signature;
+# this endpoint intentionally does not depend on a LearnHouse browser session.
+app.include_router(
+    mercadopago_webhooks_router,
+    prefix="/api/webhooks",
+    tags=["mercadopago"],
+)
 
 
 @app.get("/")
