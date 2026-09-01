@@ -1,0 +1,29 @@
+.xpex-premium-shell .xpex-root {
+  --xpex-premium-bg: #03060a;
+  --xpex-premium-ink: #f7fbff;
+  --xpex-premium-muted: #91a4ba;
+  --xpex-premium-line: rgba(123, 171, 215, 0.16);
+  --xpex-premium-line-strong: rgba(123, 171, 215, 0.28);
+  --xpex-premium-glass: rgba(8, 16, 27, 0.78);
+  --xpex-premium-glass-strong: rgba(10, 20, 34, 0.92);
+  --xpex-premium-orange: #ff7a00;
+  --xpex-premium-orange-soft: #ff9c3f;
+  --xpex-premium-cyan: #00d4ff;
+  --xpex-premium-blue: #087cff;
+  --xpex-premium-purple: #9b5cff;
+  --xpex-premium-success: #35e69a;
+  --xpex-premium-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --xpex-premium-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.28);
+  background:
+    radial-gradient(900px 520px at 12% -8%, rgba(255, 122, 0, 0.10), transparent 68%),
+    radial-gradient(1000px 620px at 92% 0%, rgba(0, 212, 255, 0.10), transparent 70%),
+    radial-gradient(740px 540px at 65% 78%, rgba(155, 92, 255, 0.05), transparent 72%),
+    linear-gradient(145deg, #020509 0%, #06101b 42%, #03070c 100%);
+}
+
+.xpex-premium-shell .xpex-root::before {
+  background-image:
+    linear-gradient(rgba(125, 166, 204, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 166, 204, 0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
