@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from src.services.xpex import mercadopago_gateway as gateway
 from src.services.xpex.mercadopago_gateway import (
     MercadoPagoNotConfigured,
@@ -62,6 +63,7 @@ class _Session:
         self._execute_results = iter(execute_results)
         self.added = []
         self.commit = AsyncMock()
+        self.rollback = AsyncMock()
 
     async def execute(self, _statement):
         return _ScalarResult(next(self._execute_results))
@@ -70,32 +72,55 @@ class _Session:
         self.added.append(value)
 
 
-@pytest.mark.asyncio
-async def test_payment_webhook_refetches_provider_updates_checkout_and_commits(monkeypatch):
-    checkout = SimpleNamespace(status="PENDING", updated_at=None)
-    session = _Session([None, checkout])
-    provider_payment = {
+def _checkout(status="PENDING"):
+    return SimpleNamespace(
+        status=status,
+        updated_at=None,
+        unit_price=50.0,
+        quantity=2,
+        currency="BRL",
+    )
+
+
+def _provider_payment(**overrides):
+    payment = {
         "id": 987654,
         "status": "approved",
         "status_detail": "accredited",
         "payment_type_id": "credit_card",
         "external_reference": "xpex:7:xpmc_123",
+        "transaction_amount": 100.0,
+        "currency_id": "BRL",
+        "live_mode": True,
     }
-    fetch_payment = AsyncMock(return_value=provider_payment)
-    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+    payment.update(overrides)
+    return payment
 
+
+def _payment_payload(**overrides):
     payload = {
         "id": "notif-1",
         "action": "payment.updated",
         "type": "payment",
-        "live_mode": False,
+        "live_mode": True,
         "data": {"id": "987654"},
     }
+    payload.update(overrides)
+    return payload
 
-    result = await process_verified_webhook(payload, "987654", session)
+
+@pytest.mark.asyncio
+async def test_payment_webhook_refetches_provider_updates_checkout_and_commits(monkeypatch):
+    checkout = _checkout()
+    session = _Session([None, checkout])
+    fetch_payment = AsyncMock(return_value=_provider_payment())
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(_payment_payload(), "987654", session)
 
     assert result["status"] == "processed"
     assert result["payment_status"] == "APPROVED"
+    assert result["processing_state"] == "VERIFIED"
     assert checkout.status == "APPROVED"
     fetch_payment.assert_awaited_once_with("987654")
     session.commit.assert_awaited_once()
@@ -104,6 +129,78 @@ async def test_payment_webhook_refetches_provider_updates_checkout_and_commits(m
     assert event.verified is True
     assert event.normalized_status == "APPROVED"
     assert event.external_reference == "xpex:7:xpmc_123"
+    assert event.provider_snapshot["transaction_amount"] == 100.0
+    assert event.provider_snapshot["currency_id"] == "BRL"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("amount", "currency"),
+    [(99.99, "BRL"), (100.0, "USD"), (None, "BRL")],
+)
+async def test_approved_payment_requires_exact_amount_and_currency(
+    monkeypatch, amount, currency
+):
+    checkout = _checkout()
+    session = _Session([None, checkout])
+    fetch_payment = AsyncMock(
+        return_value=_provider_payment(transaction_amount=amount, currency_id=currency)
+    )
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(_payment_payload(), "987654", session)
+
+    assert result["status"] == "processed"
+    assert result["payment_status"] == "APPROVED"
+    assert result["processing_state"] == "VERIFIED_NOT_RECONCILED"
+    assert checkout.status == "PENDING"
+    assert session.added[0].processing_state == "VERIFIED_NOT_RECONCILED"
+
+
+@pytest.mark.asyncio
+async def test_sandbox_payment_cannot_approve_live_checkout(monkeypatch):
+    checkout = _checkout()
+    session = _Session([None, checkout])
+    fetch_payment = AsyncMock(return_value=_provider_payment(live_mode=False))
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(
+        _payment_payload(live_mode=False), "987654", session
+    )
+
+    assert result["processing_state"] == "VERIFIED_NOT_RECONCILED"
+    assert checkout.status == "PENDING"
+    assert session.added[0].live_mode is False
+
+
+@pytest.mark.asyncio
+async def test_stale_nonterminal_event_cannot_downgrade_approved_checkout(monkeypatch):
+    checkout = _checkout(status="APPROVED")
+    session = _Session([None, checkout])
+    fetch_payment = AsyncMock(return_value=_provider_payment(status="pending"))
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(
+        _payment_payload(id="notif-stale"), "987654", session
+    )
+
+    assert result["payment_status"] == "PENDING"
+    assert checkout.status == "APPROVED"
+
+
+@pytest.mark.asyncio
+async def test_refund_can_reverse_approved_checkout(monkeypatch):
+    checkout = _checkout(status="APPROVED")
+    session = _Session([None, checkout])
+    fetch_payment = AsyncMock(return_value=_provider_payment(status="refunded"))
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(
+        _payment_payload(id="notif-refund"), "987654", session
+    )
+
+    assert result["payment_status"] == "REFUNDED"
+    assert checkout.status == "REFUNDED"
 
 
 @pytest.mark.asyncio
@@ -113,15 +210,7 @@ async def test_duplicate_webhook_is_idempotent_and_skips_provider_refetch(monkey
     fetch_payment = AsyncMock()
     monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
 
-    payload = {
-        "id": "notif-1",
-        "action": "payment.updated",
-        "type": "payment",
-        "live_mode": False,
-        "data": {"id": "987654"},
-    }
-
-    result = await process_verified_webhook(payload, "987654", session)
+    result = await process_verified_webhook(_payment_payload(), "987654", session)
 
     assert result == {
         "status": "duplicate",
@@ -130,6 +219,25 @@ async def test_duplicate_webhook_is_idempotent_and_skips_provider_refetch(monkey
     fetch_payment.assert_not_awaited()
     session.commit.assert_not_awaited()
     assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_concurrent_duplicate_unique_conflict_returns_duplicate(monkeypatch):
+    checkout = _checkout()
+    winner = SimpleNamespace(event_key="notif-1:payment.updated:987654")
+    session = _Session([None, checkout, winner])
+    session.commit.side_effect = IntegrityError("insert", {}, Exception("unique"))
+    fetch_payment = AsyncMock(return_value=_provider_payment())
+    monkeypatch.setattr(gateway, "_fetch_payment", fetch_payment)
+
+    result = await process_verified_webhook(_payment_payload(), "987654", session)
+
+    assert result == {
+        "status": "duplicate",
+        "event_key": "notif-1:payment.updated:987654",
+    }
+    session.rollback.assert_awaited_once()
+    fetch_payment.assert_awaited_once_with("987654")
 
 
 @pytest.mark.asyncio
