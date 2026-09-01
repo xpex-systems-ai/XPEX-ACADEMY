@@ -2,8 +2,11 @@ import hashlib
 import hmac
 
 import pytest
-
-from src.services.xpex.mercadopago_gateway import MercadoPagoNotConfigured, _headers, verify_webhook_signature
+from src.services.xpex.mercadopago_gateway import (
+    MercadoPagoNotConfigured,
+    _headers,
+    verify_webhook_signature,
+)
 
 
 def _signature(secret: str, data_id: str, request_id: str, ts: str) -> str:
