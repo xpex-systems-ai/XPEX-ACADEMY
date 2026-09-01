@@ -6,6 +6,8 @@ const source = relativePath => readFileSync(new URL(relativePath, import.meta.ur
 describe('native OSS administration entry', () => {
   const legacyAdminPage = source('../app/admin/(dashboard)/page.tsx')
   const nativeAdminPage = source('../app/xpex/admin/page.tsx')
+  const serverAuth = source('../lib/auth/server.ts')
+  const sessionMerge = source('../lib/auth/server-session.ts')
   const experience = source('../components/Xpex/AuthenticatedXpexExperience.tsx')
   const shell = source('../components/Xpex/XpexAuthenticatedShell.tsx')
   const proxy = source('../proxy.ts')
@@ -26,12 +28,20 @@ describe('native OSS administration entry', () => {
     )
   })
 
-  test('requires a real session and a server-authoritative administrative capability', () => {
+  test('requires a real session and explicit canonical superadmin state', () => {
     expect(nativeAdminPage).toContain('const session = await getServerSession()')
     expect(nativeAdminPage).toContain("if (!session?.user) redirect('/login?next=%2Fxpex%2Fadmin')")
-    expect(nativeAdminPage).toContain('await listCourseStudioDrafts(organization.slug, session.tokens.access_token')
-    expect(nativeAdminPage).toContain("if (!isSuperadmin && !capabilityAdmin) redirect('/xpex?admin=forbidden')")
+    expect(nativeAdminPage).toContain('const isSuperadmin = session.user.is_superadmin === true')
+    expect(nativeAdminPage).toContain("if (!isSuperadmin) redirect('/xpex?admin=forbidden')")
+    expect(nativeAdminPage).not.toContain('capabilityAdmin')
     expect(nativeAdminPage).not.toMatch(/xpeacademy@outlook\.com/i)
+  })
+
+  test('never lets stale profile/token claims elevate platform superadmin access', () => {
+    expect(serverAuth).toContain('mergeAuthoritativeSessionUser(')
+    expect(sessionMerge).toContain('is_superadmin: canonicalSessionUser.is_superadmin === true')
+    expect(sessionMerge).not.toContain('canonicalSessionUser.is_superadmin === true ||')
+    expect(sessionMerge).not.toContain('profileUser.is_superadmin === true')
   })
 
   test('keeps the auth handoff deterministic and leaves authority at the destination', () => {
@@ -42,10 +52,9 @@ describe('native OSS administration entry', () => {
     expect(proxy).not.toContain("if (pathname === '/redirect_from_auth')")
   })
 
-  test('reveals navigation only from server-authoritative role resolution', () => {
+  test('does not reveal platform-admin navigation to organization managers', () => {
     expect(experience).toContain('resolveXpexPoloAccess(memberships, organizationSlug, isSuperadmin)')
-    expect(experience).toContain('const adminAccess = poloAccess?.isManager ?? isSuperadmin')
-    expect(experience).toContain('adminAccess={adminAccess}')
+    expect(experience).toContain('adminAccess={isSuperadmin}')
     expect(shell).toContain('{adminAccess && <AdminEntry')
     expect(shell).toContain('href="/xpex/admin"')
   })
