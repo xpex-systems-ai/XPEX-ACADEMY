@@ -1,6 +1,10 @@
 import { cookies } from 'next/headers'
 import { getBackendUrl } from '@services/config/config'
 import type { LearnHouseMembership } from '@/lib/xpex/access'
+import {
+  mergeAuthoritativeSessionUser,
+  type AuthoritativeSessionUser,
+} from '@/lib/auth/server-session'
 
 function getAuthBackendUrl(): string {
   const backendUrl = getBackendUrl().replace(/\/+$/, '')
@@ -11,13 +15,7 @@ const ACCESS_TOKEN_COOKIE = 'LH_access'
 const REFRESH_TOKEN_COOKIE = 'LH_refresh'
 
 export interface Session {
-  user: {
-    username?: string
-    first_name?: string
-    last_name?: string
-    is_superadmin?: boolean
-    [key: string]: unknown
-  } | undefined
+  user: AuthoritativeSessionUser | undefined
   roles?: LearnHouseMembership[] | undefined
   tokens?: {
     access_token?: string | undefined
@@ -45,16 +43,13 @@ async function readSessionFromBackend(backendUrl: string, accessToken: string) {
   const sessionData = await sessionResponse.json()
   if (profileResponse.ok) {
     const liveProfile = await profileResponse.json()
-    // /users/session is rebuilt from the canonical database user row, while
-    // /users/profile can reflect the identity embedded in an older access token.
-    // Never allow token-derived profile data to downgrade a database-confirmed
-    // superadmin. Keep the session payload authoritative for overlapping fields.
-    sessionData.user = {
-      ...liveProfile,
-      ...sessionData.user,
-      is_superadmin:
-        sessionData.user?.is_superadmin === true || liveProfile.is_superadmin === true,
-    }
+    // /users/session is rebuilt from the canonical database user row and is
+    // authoritative for platform-wide authorization. Profile/token data may
+    // enrich display fields, but it must never elevate is_superadmin.
+    sessionData.user = mergeAuthoritativeSessionUser(
+      sessionData.user,
+      liveProfile,
+    )
   }
 
   return sessionData
