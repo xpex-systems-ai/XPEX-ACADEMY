@@ -2,6 +2,7 @@
 import {
   Buildings,
   ChartBar,
+  CreditCard,
   Key,
   SignOut,
   User,
@@ -31,14 +32,11 @@ function AdminTopMenu() {
 
   return (
     <>
-      {/* Spacer to push content below the fixed menu */}
       <div className="h-14" />
-      {/* Fixed menu bar */}
       <div
         className="fixed top-0 left-0 right-0 h-14 bg-black border-b border-white/[0.08] flex items-center text-white px-4 gap-6"
         style={{ zIndex: 'var(--z-overlay)' }}
       >
-        {/* Logo */}
         <Link className="flex items-center gap-2 transition-opacity hover:opacity-70 shrink-0" href="/admin">
           <img src="/lrn-dash.svg" alt="Learnhouse logo" className="h-7 w-7" />
           <span className="font-semibold text-sm text-white">Admin</span>
@@ -47,7 +45,6 @@ function AdminTopMenu() {
           </span>
         </Link>
 
-        {/* Navigation */}
         <nav className="flex items-center gap-1">
           <NavLink
             href="/admin/organizations"
@@ -69,12 +66,15 @@ function AdminTopMenu() {
             icon={<Key size={16} weight="fill" />}
             label="Developers"
           />
+          <NavLink
+            href="/admin/payments-live"
+            icon={<CreditCard size={16} weight="fill" />}
+            label="MP Live Test"
+          />
         </nav>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* User section */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             {avatarUrl ? (
