@@ -8,7 +8,6 @@ import {
   type LearnHouseMembership,
 } from '@/lib/xpex/access'
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
-import { listCourseStudioDrafts } from '@services/xpex/courseStudio'
 import type { XpexRole } from '@components/Xpex/xpex-types'
 
 export const dynamic = 'force-dynamic'
@@ -23,30 +22,17 @@ export default async function XpexAdminPage() {
   const membershipRoles = organization?.slug ? resolveXpexAccess(memberships, organization.slug) : []
   const isSuperadmin = session.user.is_superadmin === true
 
-  let capabilityAdmin = false
-  if (!isSuperadmin && organization?.slug && session.tokens?.access_token) {
-    try {
-      await listCourseStudioDrafts(organization.slug, session.tokens.access_token, { limit: 1, offset: 0 })
-      capabilityAdmin = true
-    } catch {
-      capabilityAdmin = false
-    }
-  }
+  // /xpex/admin is the platform-wide native XPeX administration surface.
+  // Organization/polo capabilities are intentionally insufficient here:
+  // non-superadmins are routed back to the role-aware XPeX workspace, where
+  // the backend-authoritative organization scope remains enforced.
+  if (!isSuperadmin) redirect('/xpex?admin=forbidden')
 
-  if (!isSuperadmin && !capabilityAdmin) redirect('/xpex?admin=forbidden')
-
-  const shellRole: XpexRole = isSuperadmin
-    ? 'polo'
-    : membershipRoles.includes('polo')
-      ? 'polo'
-      : membershipRoles.includes('professora')
-        ? 'professora'
-        : 'aluno'
-  const allowedRoles: XpexRole[] = isSuperadmin
-    ? (['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexRole[])
-    : membershipRoles.length
-      ? membershipRoles
-      : [shellRole]
+  const shellRole: XpexRole = 'polo'
+  const allowedRoles: XpexRole[] = [
+    'polo',
+    ...membershipRoles.filter(role => role !== 'polo'),
+  ] as XpexRole[]
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Administrador XPeX'
   const courseStudioPath = organization?.slug ? xpexCourseStudioRoute(organization.slug) : null
@@ -71,7 +57,7 @@ export default async function XpexAdminPage() {
               </p>
             </div>
             <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-300">
-              {isSuperadmin ? 'Superadmin ativo' : 'Admin autorizado'}
+              Superadmin ativo
             </span>
           </div>
         </header>
@@ -87,7 +73,7 @@ export default async function XpexAdminPage() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Status label="Usuário" value={displayName} />
             <Status label="Organização" value={organization?.name || organization?.slug || 'Global / não vinculada'} />
-            <Status label="Acesso" value={isSuperadmin ? 'Superadmin' : 'Administrador autorizado'} />
+            <Status label="Acesso" value="Superadmin" />
             <Status label="Modo" value="XPeX OSS Admin" />
           </div>
         </section>
