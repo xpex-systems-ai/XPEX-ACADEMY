@@ -17,7 +17,6 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, Field
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.courses import Course
 from src.db.organizations import Organization
 from src.db.users import PublicUser
@@ -76,7 +75,12 @@ def _headers(*, idempotency_key: str | None = None) -> dict[str, str]:
     return headers
 
 
-def verify_webhook_signature(x_signature: str, x_request_id: str, data_id: str, secret: str) -> bool:
+def verify_webhook_signature(
+    x_signature: str,
+    x_request_id: str,
+    data_id: str,
+    secret: str,
+) -> bool:
     parts: dict[str, str] = {}
     for item in (x_signature or "").split(","):
         key, sep, value = item.strip().partition("=")
@@ -93,32 +97,65 @@ def verify_webhook_signature(x_signature: str, x_request_id: str, data_id: str, 
     if x_request_id:
         manifest_parts.append(f"request-id:{x_request_id};")
     manifest_parts.append(f"ts:{ts};")
-    expected = hmac.new(secret.encode(), "".join(manifest_parts).encode(), hashlib.sha256).hexdigest()
+    expected = hmac.new(
+        secret.encode(),
+        "".join(manifest_parts).encode(),
+        hashlib.sha256,
+    ).hexdigest()
     return hmac.compare_digest(expected, supplied)
 
 
-async def _authorized_org(slug: str, user: PublicUser, db_session: AsyncSession) -> Organization:
-    org = (await db_session.execute(select(Organization).where(Organization.slug == slug))).scalars().first()
+async def _authorized_org(
+    slug: str,
+    user: PublicUser,
+    db_session: AsyncSession,
+) -> Organization:
+    result = await db_session.execute(select(Organization).where(Organization.slug == slug))
+    org = result.scalars().first()
     if not org or org.id is None:
         raise HTTPException(status_code=404, detail="Organization not found")
     if not await is_org_admin(user.id, org.id, db_session):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Organization administrator access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization administrator access required",
+        )
     return org
 
 
-async def create_checkout(payload: CheckoutRequest, user: PublicUser, db_session: AsyncSession) -> CheckoutResponse:
+async def create_checkout(
+    payload: CheckoutRequest,
+    user: PublicUser,
+    db_session: AsyncSession,
+) -> CheckoutResponse:
     org = await _authorized_org(payload.organization_slug, user, db_session)
     if payload.course_uuid:
-        course = (await db_session.execute(select(Course).where(Course.course_uuid == payload.course_uuid, Course.org_id == org.id, Course.published == True))).scalars().first()
+        statement = select(Course).where(
+            Course.course_uuid == payload.course_uuid,
+            Course.org_id == org.id,
+            Course.published == True,  # noqa: E712
+        )
+        course = (await db_session.execute(statement)).scalars().first()
         if not course:
             raise HTTPException(status_code=404, detail="Published course not found")
 
     checkout_id = f"xpmc_{uuid4()}"
     external_reference = f"xpex:{org.id}:{checkout_id}"
     body: dict = {
-        "items": [{"id": payload.course_uuid or checkout_id, "title": payload.title, "quantity": payload.quantity, "currency_id": "BRL", "unit_price": payload.unit_price}],
+        "items": [
+            {
+                "id": payload.course_uuid or checkout_id,
+                "title": payload.title,
+                "quantity": payload.quantity,
+                "currency_id": "BRL",
+                "unit_price": payload.unit_price,
+            }
+        ],
         "external_reference": external_reference,
-        "metadata": {"xpex_checkout_id": checkout_id, "xpex_org_id": org.id, "course_uuid": payload.course_uuid},
+        "metadata": {
+            "xpex_checkout_id": checkout_id,
+            "xpex_org_id": org.id,
+            "course_uuid": payload.course_uuid,
+        },
     }
     integrator_id = os.getenv("MERCADOPAGO_INTEGRATOR_ID", "").strip()
     if integrator_id:
@@ -126,7 +163,15 @@ async def create_checkout(payload: CheckoutRequest, user: PublicUser, db_session
     notification_url = os.getenv("MERCADOPAGO_NOTIFICATION_URL", "").strip()
     if notification_url:
         body["notification_url"] = notification_url
-    back_urls = {k: v for k, v in {"success": payload.success_url, "pending": payload.pending_url, "failure": payload.failure_url}.items() if v}
+    back_urls = {
+        key: value
+        for key, value in {
+            "success": payload.success_url,
+            "pending": payload.pending_url,
+            "failure": payload.failure_url,
+        }.items()
+        if value
+    }
     if back_urls:
         body["back_urls"] = back_urls
         if "success" in back_urls:
@@ -134,46 +179,92 @@ async def create_checkout(payload: CheckoutRequest, user: PublicUser, db_session
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.post(f"{MP_API_BASE}/checkout/preferences", headers=_headers(idempotency_key=checkout_id), json=body)
+            response = await client.post(
+                f"{MP_API_BASE}/checkout/preferences",
+                headers=_headers(idempotency_key=checkout_id),
+                json=body,
+            )
     except httpx.HTTPError:
-        raise MercadoPagoProviderError("Mercado Pago checkout transport request failed") from None
+        raise MercadoPagoProviderError(
+            "Mercado Pago checkout transport request failed"
+        ) from None
     if response.status_code >= 400:
-        raise MercadoPagoProviderError(f"Mercado Pago checkout failed with HTTP {response.status_code}")
+        raise MercadoPagoProviderError(
+            f"Mercado Pago checkout failed with HTTP {response.status_code}"
+        )
     data = response.json()
     preference_id = str(data.get("id") or "")
     if not preference_id:
-        raise MercadoPagoProviderError("Mercado Pago checkout response did not include preference id")
+        raise MercadoPagoProviderError(
+            "Mercado Pago checkout response did not include preference id"
+        )
 
     now = _now()
     record = XPeXMercadoPagoCheckout(
-        checkout_id=checkout_id, preference_id=preference_id, org_id=int(org.id), created_by_user_id=user.id,
-        course_uuid=payload.course_uuid, title=payload.title, quantity=payload.quantity, unit_price=payload.unit_price,
-        currency="BRL", status="PENDING", external_reference=external_reference,
-        init_point=data.get("init_point"), sandbox_init_point=data.get("sandbox_init_point"),
-        provider_metadata={"collector_id": data.get("collector_id")}, created_at=now, updated_at=now,
+        checkout_id=checkout_id,
+        preference_id=preference_id,
+        org_id=int(org.id),
+        created_by_user_id=user.id,
+        course_uuid=payload.course_uuid,
+        title=payload.title,
+        quantity=payload.quantity,
+        unit_price=payload.unit_price,
+        currency="BRL",
+        status="PENDING",
+        external_reference=external_reference,
+        init_point=data.get("init_point"),
+        sandbox_init_point=data.get("sandbox_init_point"),
+        provider_metadata={"collector_id": data.get("collector_id")},
+        created_at=now,
+        updated_at=now,
     )
     db_session.add(record)
     await db_session.commit()
-    return CheckoutResponse(checkout_id=checkout_id, preference_id=preference_id, status=record.status, init_point=record.init_point, sandbox_init_point=record.sandbox_init_point, external_reference=external_reference)
+    return CheckoutResponse(
+        checkout_id=checkout_id,
+        preference_id=preference_id,
+        status=record.status,
+        init_point=record.init_point,
+        sandbox_init_point=record.sandbox_init_point,
+        external_reference=external_reference,
+    )
 
 
 async def _fetch_payment(payment_id: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(f"{MP_API_BASE}/v1/payments/{payment_id}", headers=_headers())
+            response = await client.get(
+                f"{MP_API_BASE}/v1/payments/{payment_id}",
+                headers=_headers(),
+            )
     except httpx.HTTPError:
-        raise MercadoPagoProviderError("Mercado Pago payment verification transport request failed") from None
+        raise MercadoPagoProviderError(
+            "Mercado Pago payment verification transport request failed"
+        ) from None
     if response.status_code >= 400:
-        raise MercadoPagoProviderError(f"Mercado Pago payment verification failed with HTTP {response.status_code}")
+        raise MercadoPagoProviderError(
+            f"Mercado Pago payment verification failed with HTTP {response.status_code}"
+        )
     return response.json()
 
 
-async def process_verified_webhook(payload: dict, data_id: str, db_session: AsyncSession) -> dict:
+async def process_verified_webhook(
+    payload: dict,
+    data_id: str,
+    db_session: AsyncSession,
+) -> dict:
     notification_id = str(payload.get("id") or "")
     action = str(payload.get("action") or "")
     resource_type = str(payload.get("type") or "")
-    event_key = f"{notification_id}:{action}:{data_id}" if notification_id else f"{action}:{data_id}"
-    existing = (await db_session.execute(select(XPeXMercadoPagoEvent).where(XPeXMercadoPagoEvent.event_key == event_key))).scalars().first()
+    event_key = (
+        f"{notification_id}:{action}:{data_id}"
+        if notification_id
+        else f"{action}:{data_id}"
+    )
+    statement = select(XPeXMercadoPagoEvent).where(
+        XPeXMercadoPagoEvent.event_key == event_key
+    )
+    existing = (await db_session.execute(statement)).scalars().first()
     if existing:
         return {"status": "duplicate", "event_key": event_key}
 
@@ -187,19 +278,39 @@ async def process_verified_webhook(payload: dict, data_id: str, db_session: Asyn
 
     now = _now()
     event = XPeXMercadoPagoEvent(
-        event_key=event_key, notification_id=notification_id or None, action=action, resource_type=resource_type,
-        resource_id=data_id, live_mode=bool(payload.get("live_mode")), verified=True,
-        processing_state="VERIFIED", normalized_status=normalized_status, external_reference=external_reference,
-        provider_snapshot={"id": snapshot.get("id"), "status": snapshot.get("status"), "status_detail": snapshot.get("status_detail"), "payment_type_id": snapshot.get("payment_type_id")},
-        created_at=now, updated_at=now,
+        event_key=event_key,
+        notification_id=notification_id or None,
+        action=action,
+        resource_type=resource_type,
+        resource_id=data_id,
+        live_mode=bool(payload.get("live_mode")),
+        verified=True,
+        processing_state="VERIFIED",
+        normalized_status=normalized_status,
+        external_reference=external_reference,
+        provider_snapshot={
+            "id": snapshot.get("id"),
+            "status": snapshot.get("status"),
+            "status_detail": snapshot.get("status_detail"),
+            "payment_type_id": snapshot.get("payment_type_id"),
+        },
+        created_at=now,
+        updated_at=now,
     )
     db_session.add(event)
 
     if external_reference:
-        checkout = (await db_session.execute(select(XPeXMercadoPagoCheckout).where(XPeXMercadoPagoCheckout.external_reference == external_reference))).scalars().first()
+        checkout_statement = select(XPeXMercadoPagoCheckout).where(
+            XPeXMercadoPagoCheckout.external_reference == external_reference
+        )
+        checkout = (await db_session.execute(checkout_statement)).scalars().first()
         if checkout:
             checkout.status = normalized_status or checkout.status
             checkout.updated_at = now
             db_session.add(checkout)
     await db_session.commit()
-    return {"status": "processed", "event_key": event_key, "payment_status": normalized_status}
+    return {
+        "status": "processed",
+        "event_key": event_key,
+        "payment_status": normalized_status,
+    }
