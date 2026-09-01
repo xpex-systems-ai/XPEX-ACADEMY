@@ -58,6 +58,20 @@ class CheckoutResponse(BaseModel):
     external_reference: str
 
 
+class CheckoutStatusResponse(BaseModel):
+    checkout_id: str
+    preference_id: str
+    status: str
+    organization_id: int
+    course_uuid: str | None
+    title: str
+    quantity: int
+    unit_price: float
+    currency: str
+    external_reference: str
+    updated_at: str
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -156,6 +170,37 @@ async def _authorized_org(
             detail="Organization administrator access required",
         )
     return org
+
+
+async def get_checkout_status(
+    checkout_id: str,
+    user: PublicUser,
+    db_session: AsyncSession,
+) -> CheckoutStatusResponse:
+    statement = select(XPeXMercadoPagoCheckout).where(
+        XPeXMercadoPagoCheckout.checkout_id == checkout_id
+    )
+    checkout = (await db_session.execute(statement)).scalars().first()
+    if not checkout:
+        raise HTTPException(status_code=404, detail="Checkout not found")
+    if not await is_org_admin(user.id, checkout.org_id, db_session):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization administrator access required",
+        )
+    return CheckoutStatusResponse(
+        checkout_id=checkout.checkout_id,
+        preference_id=checkout.preference_id,
+        status=checkout.status,
+        organization_id=checkout.org_id,
+        course_uuid=checkout.course_uuid,
+        title=checkout.title,
+        quantity=checkout.quantity,
+        unit_price=checkout.unit_price,
+        currency=checkout.currency,
+        external_reference=checkout.external_reference,
+        updated_at=checkout.updated_at,
+    )
 
 
 async def create_checkout(
