@@ -8,9 +8,11 @@ from src.security.auth import get_current_user
 from src.services.xpex.mercadopago_gateway import (
     CheckoutRequest,
     CheckoutResponse,
+    CheckoutStatusResponse,
     MercadoPagoNotConfigured,
     MercadoPagoProviderError,
     create_checkout,
+    get_checkout_status,
 )
 
 router = APIRouter()
@@ -28,3 +30,12 @@ async def mercadopago_checkout(
         raise HTTPException(status_code=503, detail=str(exc)) from None
     except MercadoPagoProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from None
+
+
+@router.get("/checkout/{checkout_id}", response_model=CheckoutStatusResponse)
+async def mercadopago_checkout_status(
+    checkout_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await get_checkout_status(checkout_id, current_user, db_session)
