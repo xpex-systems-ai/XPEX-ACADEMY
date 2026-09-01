@@ -10,11 +10,13 @@ import hashlib
 import hmac
 import os
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
 import httpx
 from fastapi import HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.courses.courses import Course
@@ -24,6 +26,8 @@ from src.db.xpex_mercadopago import XPeXMercadoPagoCheckout, XPeXMercadoPagoEven
 from src.services.courses.locks import is_org_admin
 
 MP_API_BASE = "https://api.mercadopago.com"
+_NON_DOWNGRADABLE_AFTER_APPROVAL = {"PENDING", "IN_PROCESS", "AUTHORIZED", "REJECTED", "CANCELLED"}
+_REVERSAL_STATUSES = {"REFUNDED", "CHARGED_BACK"}
 
 
 class MercadoPagoNotConfigured(RuntimeError):
@@ -103,6 +107,38 @@ def verify_webhook_signature(
         hashlib.sha256,
     ).hexdigest()
     return hmac.compare_digest(expected, supplied)
+
+
+def _money(value: object) -> Decimal | None:
+    try:
+        return Decimal(str(value)).quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _payment_matches_checkout(snapshot: dict, checkout: XPeXMercadoPagoCheckout) -> bool:
+    paid_amount = _money(snapshot.get("transaction_amount"))
+    expected_amount = _money(Decimal(str(checkout.unit_price)) * checkout.quantity)
+    currency = str(snapshot.get("currency_id") or "").upper()
+    expected_currency = str(checkout.currency or "").upper()
+    return (
+        paid_amount is not None
+        and expected_amount is not None
+        and paid_amount == expected_amount
+        and currency == expected_currency
+    )
+
+
+def _safe_checkout_status(current: str, incoming: str | None) -> str:
+    current = (current or "PENDING").upper()
+    incoming = (incoming or "").upper()
+    if not incoming:
+        return current
+    if current == "APPROVED" and incoming in _NON_DOWNGRADABLE_AFTER_APPROVAL:
+        return current
+    if current in _REVERSAL_STATUSES and incoming not in _REVERSAL_STATUSES:
+        return current
+    return incoming
 
 
 async def _authorized_org(
@@ -271,10 +307,12 @@ async def process_verified_webhook(
     snapshot: dict = {}
     normalized_status = None
     external_reference = None
+    provider_live_mode = None
     if resource_type == "payment" and data_id:
         snapshot = await _fetch_payment(data_id)
         normalized_status = str(snapshot.get("status") or "").upper() or None
         external_reference = snapshot.get("external_reference")
+        provider_live_mode = snapshot.get("live_mode")
 
     now = _now()
     event = XPeXMercadoPagoEvent(
@@ -283,7 +321,7 @@ async def process_verified_webhook(
         action=action,
         resource_type=resource_type,
         resource_id=data_id,
-        live_mode=bool(payload.get("live_mode")),
+        live_mode=bool(provider_live_mode if provider_live_mode is not None else payload.get("live_mode")),
         verified=True,
         processing_state="VERIFIED",
         normalized_status=normalized_status,
@@ -293,6 +331,9 @@ async def process_verified_webhook(
             "status": snapshot.get("status"),
             "status_detail": snapshot.get("status_detail"),
             "payment_type_id": snapshot.get("payment_type_id"),
+            "transaction_amount": snapshot.get("transaction_amount"),
+            "currency_id": snapshot.get("currency_id"),
+            "live_mode": provider_live_mode,
         },
         created_at=now,
         updated_at=now,
@@ -305,12 +346,33 @@ async def process_verified_webhook(
         )
         checkout = (await db_session.execute(checkout_statement)).scalars().first()
         if checkout:
-            checkout.status = normalized_status or checkout.status
-            checkout.updated_at = now
-            db_session.add(checkout)
-    await db_session.commit()
+            can_reconcile_approval = (
+                normalized_status != "APPROVED"
+                or (
+                    provider_live_mode is True
+                    and _payment_matches_checkout(snapshot, checkout)
+                )
+            )
+            if can_reconcile_approval:
+                checkout.status = _safe_checkout_status(checkout.status, normalized_status)
+                checkout.updated_at = now
+                db_session.add(checkout)
+            elif normalized_status == "APPROVED":
+                event.processing_state = "VERIFIED_NOT_RECONCILED"
+                db_session.add(event)
+
+    try:
+        await db_session.commit()
+    except IntegrityError:
+        await db_session.rollback()
+        existing = (await db_session.execute(statement)).scalars().first()
+        if existing:
+            return {"status": "duplicate", "event_key": event_key}
+        raise
+
     return {
         "status": "processed",
         "event_key": event_key,
         "payment_status": normalized_status,
+        "processing_state": event.processing_state,
     }
