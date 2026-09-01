@@ -11,6 +11,7 @@ from src.db.organizations import Organization, OrganizationCreate
 from src.db.user_organizations import UserOrganization
 from src.db.users import User, UserCreate
 from src.security.rbac.constants import ADMIN_ROLE_ID
+from src.security.security import security_hash_password
 from src.services.setup.setup import (
     install_create_organization,
     install_create_organization_user,
@@ -28,14 +29,102 @@ def _to_async_url(url: str) -> str:
     return url
 
 
-async def reconcile_initial_install(db_session: AsyncSession) -> None:
-    """Reconcile bootstrap state without changing established installations.
+async def _reconcile_requested_admin_credentials(db_session: AsyncSession) -> bool:
+    """Explicitly reconcile one canonical superadmin account from Railway vars.
 
-    Bootstrap is opt-in once any data exists. This lets a partially installed
-    deployment finish when its initial admin email is still configured, while a
-    mature deployment whose one-time bootstrap variables were removed only gets
-    the idempotent global-role refresh.
+    Disabled by default. When XPEX_ADMIN_PASSWORD_SYNC_ENABLED=true, this updates
+    or creates the configured administrator using the password already stored in
+    Railway, without logging or exposing it.
     """
+    enabled = os.environ.get("XPEX_ADMIN_PASSWORD_SYNC_ENABLED", "").strip().lower() == "true"
+    if not enabled:
+        return False
+
+    email = (os.environ.get("LEARNHOUSE_INITIAL_ADMIN_EMAIL") or "").strip().lower()
+    password = os.environ.get("LEARNHOUSE_INITIAL_ADMIN_PASSWORD") or ""
+    org_name = os.environ.get("LEARNHOUSE_INITIAL_ORG_NAME", "Kelle Digital Lab")
+    org_slug = os.environ.get("LEARNHOUSE_INITIAL_ORG_SLUG", "kelle-digital-lab").strip().lower()
+
+    if not email or not password:
+        raise RuntimeError("Admin credential sync requested without email/password")
+
+    await install_default_elements(db_session)
+    organizations = (await db_session.execute(select(Organization))).scalars().all()
+    org = next((item for item in organizations if item.slug == org_slug), None)
+    if org is None:
+        org = await install_create_organization(
+            OrganizationCreate(
+                name=org_name,
+                description=org_name,
+                slug=org_slug,
+                email="",
+                logo_image="",
+                thumbnail_image="",
+                about="",
+                label="",
+            ),
+            db_session,
+        )
+
+    user = (
+        await db_session.execute(select(User).where(User.email == email))
+    ).scalars().first()
+    if user is None:
+        created = await install_create_organization_user(
+            UserCreate(username="admin", email=email, password=password),
+            org_slug,
+            db_session,
+            is_superadmin=True,
+        )
+        user = (
+            await db_session.execute(select(User).where(User.id == created.id))
+        ).scalars().one()
+    else:
+        user.username = "admin"
+        user.password = security_hash_password(password)
+        user.is_superadmin = True
+        user.email_verified = True
+        user.email_verified_at = str(datetime.now(UTC))
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.password_changed_at = datetime.now(UTC)
+        user.update_date = str(datetime.now(UTC))
+        db_session.add(user)
+
+    membership = (
+        await db_session.execute(
+            select(UserOrganization).where(
+                UserOrganization.user_id == user.id,
+                UserOrganization.org_id == org.id,
+            )
+        )
+    ).scalars().first()
+    now = str(datetime.now(UTC))
+    if membership is None:
+        db_session.add(
+            UserOrganization(
+                user_id=user.id or 0,
+                org_id=org.id or 0,
+                role_id=ADMIN_ROLE_ID,
+                creation_date=now,
+                update_date=now,
+            )
+        )
+    elif membership.role_id != ADMIN_ROLE_ID:
+        membership.role_id = ADMIN_ROLE_ID
+        membership.update_date = now
+        db_session.add(membership)
+
+    await db_session.commit()
+    logger.warning("Canonical administrator credentials reconciled for email=%s", email)
+    return True
+
+
+async def reconcile_initial_install(db_session: AsyncSession) -> None:
+    """Reconcile bootstrap state without changing established installations."""
+    if await _reconcile_requested_admin_credentials(db_session):
+        return
+
     await install_default_elements(db_session)
 
     organizations = (await db_session.execute(select(Organization))).scalars().all()
@@ -53,9 +142,6 @@ async def reconcile_initial_install(db_session: AsyncSession) -> None:
             logger.info("Empty installation has no complete bootstrap configuration; skipping seed data")
             return
     else:
-        # Bootstrap credentials are installation inputs, not a standing
-        # authorization policy. Never promote an existing account at startup;
-        # operators must use the explicit, audited provisioning command.
         logger.info("Established installation detected; initial seed reconciliation skipped")
         return
 
