@@ -128,7 +128,11 @@ export async function AuthenticatedXpexExperience({
   let learningDataFailed = false
   let launchReadiness = null
   let launchReadinessFailed = false
-  const adminAccess = poloAccess?.isManager ?? isSuperadmin
+
+  // Platform-wide native admin navigation is superadmin-only. Organization
+  // managers keep their Polo workspace and organization-scoped capabilities,
+  // but never receive a platform-admin entry point in the XPeX shell.
+  const adminAccess = isSuperadmin
 
   if (session.tokens?.access_token) {
     if (role === 'aluno') {
