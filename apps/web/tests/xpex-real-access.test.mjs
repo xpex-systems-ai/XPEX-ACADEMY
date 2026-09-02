@@ -139,6 +139,7 @@ describe('production-aligned Academy authentication', () => {
   const serverAuth = readFileSync(new URL('../lib/auth/server.ts', import.meta.url), 'utf8')
   const learningDashboard = readFileSync(new URL('../lib/xpex/learning-dashboard.ts', import.meta.url), 'utf8')
   const authService = readFileSync(new URL('../services/auth/auth.ts', import.meta.url), 'utf8')
+  const authContext = readFileSync(new URL('../components/Contexts/AuthContext.tsx', import.meta.url), 'utf8')
 
   test('resolves backend URLs through runtime configuration on server requests', () => {
     expect(serverAuth).toContain("import { getBackendUrl } from '@services/config/config'")
@@ -151,6 +152,17 @@ describe('production-aligned Academy authentication', () => {
     expect(authService).toContain("fetch('/api/auth/login'")
     expect(authService).toContain("fetch('/api/auth/refresh'")
     expect(authService).toContain("fetch('/api/auth/logout'")
+  })
+
+  test('settles stale refresh work before replacing credentials cookies', () => {
+    const credentialsLogin = authContext.slice(
+      authContext.indexOf('// Regular credentials login'),
+      authContext.indexOf("const response = await fetch('/api/auth/login'"),
+    )
+    expect(credentialsLogin).toContain('if (refreshPromiseRef.current)')
+    expect(credentialsLogin).toContain('await refreshPromiseRef.current.catch(() => null)')
+    expect(credentialsLogin).toContain('authEpochRef.current++')
+    expect(credentialsLogin).toContain('authFailureHandledRef.current = false')
   })
 })
 
