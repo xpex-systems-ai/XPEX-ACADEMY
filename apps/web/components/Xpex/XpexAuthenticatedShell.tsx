@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { xpexAuthenticatedNavigation } from './xpex-navigation'
+import { getUriWithOrg } from '@services/config/config'
 import type { XpexRole } from './xpex-types'
 import './xpex-tokens.css'
 import './xpex.css'
@@ -39,7 +40,23 @@ function StudentNavigation({ organizationSlug, adminAccess = false, onNavigate }
 export function XpexRoleNavigation({ role, organizationSlug, adminAccess = false, onNavigate }: { role: XpexRole; organizationSlug: string; adminAccess?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname()
   if (role === 'aluno') return <StudentNavigation organizationSlug={organizationSlug} adminAccess={adminAccess} onNavigate={onNavigate}/>
-  return <nav className="xpex-role-nav" aria-label={`Navegação da área ${roleLabels[role]}`}>{xpexAuthenticatedNavigation[role].map(({ label, icon: Icon }, index) => { const destination = index === 0 ? `/xpex/${role}` : `/xpex/${role}?section=${index}`; const isCurrent = index === 0 && (pathname === '/xpex' || pathname === `/xpex/${role}`); return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}><Icon aria-hidden="true" size={18}/><span>{label}</span></Link> })}{adminAccess && <AdminEntry onNavigate={onNavigate}/>}</nav>
+  const destinations: Record<string, string> = role === 'polo'
+    ? {
+        'Visão Geral': '/xpex/polo',
+        'Alunos': '/xpex/polo/alunos',
+        'Turmas': getUriWithOrg(organizationSlug, '/dash/users/settings/usergroups'),
+        'Cursos': getUriWithOrg(organizationSlug, '/dash/courses'),
+        'Conteúdos': getUriWithOrg(organizationSlug, '/dash/library'),
+        'Relatórios': getUriWithOrg(organizationSlug, '/dash/analytics'),
+        'Configurações': getUriWithOrg(organizationSlug, '/dash/org/settings/general'),
+      }
+    : {
+        'Visão Geral': '/xpex/professora',
+        'Conteúdos': '/xpex/professora#cursos',
+        'Atividades': '/xpex/professora#atividades',
+      }
+  const items = xpexAuthenticatedNavigation[role].filter(({ label }) => destinations[label])
+  return <nav className="xpex-role-nav" aria-label={`Navegação da área ${roleLabels[role]}`}>{items.map(({ label, icon: Icon }) => { const destination = destinations[label]!; const destinationPath = destination.split('#')[0].split('?')[0]; const isCurrent = pathname === destinationPath || (destinationPath !== `/xpex/${role}` && pathname.startsWith(`${destinationPath}/`)); return <Link key={label} href={destination} aria-current={isCurrent ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${isCurrent ? 'xpex-nav-active' : ''}`}><Icon aria-hidden="true" size={18}/><span>{label}</span></Link> })}{adminAccess && <AdminEntry onNavigate={onNavigate}/>}</nav>
 }
 
 export function XpexSidebar({ role, organizationSlug, adminAccess = false, open, close }: { role: XpexRole; organizationSlug: string; adminAccess?: boolean; open: boolean; close: () => void }) {
