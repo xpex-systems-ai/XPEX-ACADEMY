@@ -234,8 +234,32 @@ const LoginClient = (props: LoginClientProps) => {
         turnstileRef.current?.reset();
       } else {
         track(AnalyticsEvent.LoginSucceeded, { method: 'credentials' })
-        // Authentication and cookie persistence are complete at this point.
-        // Go straight to the requested guarded page; no intermediate bridge.
+        // The bearer response can be used by this client before the browser has
+        // made the new httpOnly cookies visible to the following Server
+        // Component navigation. Wait for a same-origin cookie-backed request
+        // before entering a guarded XPeX page; otherwise fast browsers can reach
+        // /xpex without cookies and be sent straight back to /login.
+        const sessionCookiesReady = await fetch('/api/auth/refresh', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        }).then(async response => {
+          if (!response.ok) return false
+          const refreshed = await response.json().catch(() => null)
+          return Boolean(refreshed?.access_token)
+        }).catch(() => false)
+
+        if (!sessionCookiesReady) {
+          track(AnalyticsEvent.LoginFailed, { method: 'credentials', error_type: 'session_cookie_barrier' })
+          setError(t('auth.login_session_failed', { defaultValue: 'Login confirmado, mas a sessão não pôde ser aberta. Tente novamente.' }))
+          setShowErrorModal(true)
+          setSubmitting(false)
+          setIsSubmitting(false)
+          return
+        }
+
+        // The cookie-backed refresh succeeded, so the server-side guard will
+        // see the same authenticated session on the destination request.
         window.location.href = callbackUrl;
       }
     },

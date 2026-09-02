@@ -176,6 +176,8 @@ describe('PR-03 conditional authenticated entry', () => {
     expect(authPagesBlock).toContain('new URL(`/auth${pathname}${search}`')
     expect(login).not.toContain("const isAuthenticated = session?.status === 'authenticated'")
     expect(login).not.toContain('router.replace(safeAuthReturnPath')
+    expect(login).toContain("fetch('/api/auth/refresh'")
+    expect(login).toContain('if (!sessionCookiesReady)')
     expect(login).toContain("window.location.href = callbackUrl")
   })
 
