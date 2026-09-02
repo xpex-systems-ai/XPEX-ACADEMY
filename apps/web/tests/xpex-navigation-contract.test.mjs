@@ -66,6 +66,15 @@ describe('XPeX canonical navigation contract', () => {
     expect(studentBlock).not.toContain('xpexPoloCoursesRoute')
     expect(studentBlock).not.toContain('/xpex/control-center')
   })
+
+  test('routes polo navigation to implemented pages instead of fake query sections', () => {
+    const shell = readFileSync(join(webRoot, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
+    expect(shell).not.toContain('?section=${index}')
+    expect(shell).toContain("'Alunos': '/xpex/polo/alunos'")
+    for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {
+      expect(shell).toContain(route)
+    }
+  })
 })
 
 describe('pt-BR login copy', () => {
