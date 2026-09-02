@@ -472,6 +472,11 @@ export default async function proxy(req: NextRequest) {
       return NextResponse.redirect(login)
     }
     const response = NextResponse.next()
+    // Authenticated HTML/RSC is user-specific. Never let a browser/CDN reuse a
+    // cached anonymous redirect or another session's XPeX payload (304), even
+    // when the application build itself has not changed.
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate')
+    response.headers.set('Vary', 'Cookie')
     setInstanceCookies(response, instance)
     return response
   }
