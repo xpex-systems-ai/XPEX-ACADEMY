@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import React from 'react'
 import Providers from '@components/Providers'
+import XpexLegacySurfaceGuard from '@components/Xpex/XpexLegacySurfaceGuard'
 
 export default function RootLayout({
   children,
@@ -21,6 +22,7 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
+          <XpexLegacySurfaceGuard />
           <div className="animate-fade-in">{children}</div>
         </Providers>
       </body>
