@@ -166,6 +166,8 @@ describe('production-aligned Academy authentication', () => {
     expect(credentialsLogin).toContain('credentialLoginInProgressRef.current = true')
     expect(credentialsLogin).toContain('clearSessionMarker()')
     expect(authContext).toContain('if (credentialLoginInProgressRef.current) return')
+    expect(authContext).toContain('lastCredentialLoginAtRef.current = Date.now()')
+    expect(authContext).toContain('Date.now() - lastCredentialLoginAtRef.current < 10_000')
   })
 })
 
