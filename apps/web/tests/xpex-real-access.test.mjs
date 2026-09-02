@@ -186,6 +186,8 @@ describe('PR-03 conditional authenticated entry', () => {
   const shell = readFileSync(new URL('../components/Xpex/XpexAuthenticatedShell.tsx', import.meta.url), 'utf8')
   const dashboard = readFileSync(new URL('../components/Xpex/experiences/AuthenticatedDashboard.tsx', import.meta.url), 'utf8')
   const betaStudent = readFileSync(new URL('../app/beta/aluno/page.tsx', import.meta.url), 'utf8')
+  const xpexPage = readFileSync(new URL('../app/xpex/page.tsx', import.meta.url), 'utf8')
+  const xpexRolePage = readFileSync(new URL('../app/xpex/[role]/page.tsx', import.meta.url), 'utf8')
 
   test('preserves next=/xpex, falls back to home, and lets stale sessions reach login', () => {
     expect(safeAuthReturnPath('/xpex')).toBe('/xpex')
@@ -210,6 +212,15 @@ describe('PR-03 conditional authenticated entry', () => {
   test('does not send stale auth cookies with public organization lookups', () => {
     expect(organizationService).toContain("requestOptions.credentials = 'omit'")
     expect(organizationService).toContain("credentials: 'omit'")
+  })
+
+  test('never caches authenticated XPeX HTML or RSC responses', () => {
+    expect(proxy).toContain("response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate')")
+    expect(proxy).toContain("response.headers.set('Vary', 'Cookie')")
+    expect(xpexPage).toContain("export const dynamic = 'force-dynamic'")
+    expect(xpexPage).toContain('export const revalidate = 0')
+    expect(xpexRolePage).toContain("export const dynamic = 'force-dynamic'")
+    expect(xpexRolePage).toContain('export const revalidate = 0')
   })
 
   test('redirects only an authenticated pilot member from home to XpeX without a loop', () => {
