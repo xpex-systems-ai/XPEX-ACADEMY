@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.organizations import Organization, OrganizationCreate
 from src.db.user_organizations import UserOrganization
 from src.db.users import User, UserCreate
+from src.core.redis import get_redis_client
 from src.security.rbac.constants import ADMIN_ROLE_ID
 from src.security.security import security_hash_password
 from src.services.setup.setup import (
@@ -19,6 +20,22 @@ from src.services.setup.setup import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _invalidate_user_session_cache(user_id: int | None) -> None:
+    """Discard role/profile data cached before bootstrap reconciliation."""
+    if user_id is None:
+        return
+    try:
+        redis_client = get_redis_client()
+        if redis_client is not None:
+            redis_client.delete(f"session:{user_id}")
+    except Exception:
+        logger.debug(
+            "Session cache invalidation failed for reconciled user %s",
+            user_id,
+            exc_info=True,
+        )
 
 
 def _to_async_url(url: str) -> str:
@@ -119,6 +136,7 @@ async def _reconcile_requested_admin_credentials(db_session: AsyncSession) -> bo
 
     await _ensure_admin_membership(db_session, user, org)
     await db_session.commit()
+    _invalidate_user_session_cache(user.id)
     logger.warning("Canonical administrator credentials reconciled for email=%s", email)
     return True
 
@@ -202,6 +220,7 @@ async def _reconcile_requested_polo_credentials(db_session: AsyncSession) -> boo
 
     await _ensure_admin_membership(db_session, user, org)
     await db_session.commit()
+    _invalidate_user_session_cache(user.id)
     logger.warning("Canonical polo administrator credentials reconciled for email=%s", email)
     return True
 
