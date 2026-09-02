@@ -37,9 +37,20 @@ export async function getOrganizationContextInfo(
   next: any,
   access_token?: string
 ) {
+  const requestOptions = RequestBodyWithAuthHeader('GET', null, next, access_token)
+
+  // Organization branding is public when no bearer token was supplied. Do not
+  // attach same-origin cookies in that case: a stale LH_access/LH_refresh cookie
+  // makes the backend reject an otherwise public org lookup with 401, replacing
+  // the login form with the global "session expired" boundary before the user
+  // can submit fresh credentials.
+  if (!access_token) {
+    requestOptions.credentials = 'omit'
+  }
+
   const result = await fetch(
     `${getAPIUrl()}orgs/slug/${org_slug}`,
-    RequestBodyWithAuthHeader('GET', null, next, access_token)
+    requestOptions
   )
   const res = await errorHandling(result)
   return res
@@ -71,6 +82,9 @@ export async function getOrganizationContextInfoWithoutCredentials(
     method: 'GET',
     headers: HeadersConfig,
     redirect: 'follow',
+    // This is intentionally a public lookup. Sending stale authentication
+    // cookies can turn a public request into a rejected authenticated one.
+    credentials: 'omit',
     cache: 'no-store',
   }
 
