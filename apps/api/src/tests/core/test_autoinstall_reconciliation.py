@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
 
 from sqlmodel import select
-from src.core.events.autoinstall import reconcile_initial_install
+from src.core.events.autoinstall import (
+    _invalidate_user_session_cache,
+    reconcile_initial_install,
+)
 from src.db.organizations import Organization, OrganizationCreate
 from src.db.user_organizations import UserOrganization
 from src.db.users import User
@@ -166,3 +169,20 @@ async def test_partial_install_without_password_does_not_block_boot(db, monkeypa
     await reconcile_initial_install(db)
 
     assert await _counts(db) == (1, 0, 0)
+
+
+def test_reconciled_user_session_cache_is_invalidated(monkeypatch):
+    deleted = []
+
+    class RedisStub:
+        def delete(self, key):
+            deleted.append(key)
+
+    monkeypatch.setattr(
+        "src.core.events.autoinstall.get_redis_client",
+        lambda: RedisStub(),
+    )
+
+    _invalidate_user_session_cache(42)
+
+    assert deleted == ["session:42"]
