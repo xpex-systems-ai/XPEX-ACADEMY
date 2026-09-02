@@ -7,7 +7,12 @@ import { useEffect } from 'react'
  * Keeps the XPeX fork visually coherent by preventing authenticated users from
  * falling back into LearnHouse's legacy list/hub surfaces. LearnHouse remains
  * the learning/data engine; deep operational routes (course player/editor,
- * boards, admin children, auth and embeds) are intentionally untouched.
+ * boards, admin children, auth, embeds and configuration subpages) are
+ * intentionally untouched.
+ *
+ * IMPORTANT: keep this allowlist exact. Do not redirect whole /dash/* trees:
+ * nested LearnHouse routes still host operational editors/settings that XPeX
+ * has not replaced yet.
  */
 const LEGACY_XPEX_SURFACES = new Set([
   '/home',
@@ -19,6 +24,14 @@ const LEGACY_XPEX_SURFACES = new Set([
   '/users',
   '/organization',
   '/analysis',
+  '/dash/courses',
+  '/dash/library',
+  '/dash/podcasts',
+  '/dash/communities',
+  '/dash/playgrounds',
+  '/dash/boards',
+  '/dash/assignments',
+  '/dash/analytics',
 ])
 
 export default function XpexLegacySurfaceGuard() {
