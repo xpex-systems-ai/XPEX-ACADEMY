@@ -7,7 +7,7 @@ import UserAvatar from '@components/Objects/UserAvatar'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
-import { getUriWithOrg, getMainDomainUri, isMultiOrgModeEnabled } from '@services/config/config'
+import { getUriWithOrg, getMainDomainUri, getDeploymentMode, isMultiOrgModeEnabled } from '@services/config/config'
 import { getOrgLogoMediaDirectory } from '@services/media/media'
 import Tooltip from '@components/Objects/StyledElements/Tooltip/Tooltip'
 import {
@@ -51,10 +51,12 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
   const { track } = useLHAnalytics()
   const colors = getMenuColorClasses(primaryColor)
 
-  // The user's organizations (deduped) from the session roles — used by the
-  // "My Organizations" submenu. Only relevant in multi-org (SaaS) mode, where
-  // the apex hub (/home, /new, /billing) exists.
+  // The root organization-management hub only exists for SaaS multi-tenancy.
+  // Gate on BOTH tenancy and deployment mode so an OSS/EE instance with a
+  // stale/mismatched tenancy cookie never exposes links that intentionally 404.
   const multiOrg = isMultiOrgModeEnabled()
+  const deploymentMode = getDeploymentMode()
+  const hubAvailable = multiOrg && deploymentMode !== 'oss' && deploymentMode !== 'ee'
   const myOrgs = useMemo(() => {
     const roles = session?.data?.roles || []
     const seen = new Set<number>()
@@ -254,7 +256,7 @@ export const HeaderProfileBox = ({ primaryColor = '' }: { primaryColor?: string 
                     <span>{t('account.purchases')}</span>
                   </Link>
                 </DropdownMenuItem>
-                {multiOrg && (
+                {hubAvailable && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>

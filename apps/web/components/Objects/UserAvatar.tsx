@@ -21,6 +21,12 @@ type UserAvatarProps = {
   shadow?: string
 }
 
+// A stale avatar reference can be mounted many times across the native shell.
+// Remember failed URLs for the lifetime of the client bundle so every remount
+// does not generate another avoidable 404. A full reload naturally retries,
+// allowing a restored/replaced object to recover without permanent caching.
+const failedAvatarUrls = new Set<string>()
+
 function UserAvatar(props: UserAvatarProps) {
   const session = useLHSession() as any
   const access_token = session?.data?.tokens?.access_token
@@ -124,9 +130,9 @@ function UserAvatar(props: UserAvatarProps) {
 
   const emptyAvatarUrl = getUriWithOrg(params.orgslug, '/empty_avatar.png')
   const resolvedAvatarUrl = getAvatarUrl()
-  // Tracking the failed URL (rather than a boolean) resets automatically when
-  // the resolved source changes, avoiding a setState-in-effect.
-  const hasError = erroredUrl === resolvedAvatarUrl
+  // Tracking the failed URL resets automatically when the source changes.
+  // The module-level cache additionally prevents repeated 404s from remounts.
+  const hasError = erroredUrl === resolvedAvatarUrl || failedAvatarUrls.has(resolvedAvatarUrl)
 
   const avatarImage = (
     <img
@@ -137,6 +143,7 @@ function UserAvatar(props: UserAvatarProps) {
       onError={() => {
         // Fall back to the empty avatar placeholder when the image fails to load
         if (resolvedAvatarUrl !== emptyAvatarUrl) {
+          failedAvatarUrls.add(resolvedAvatarUrl)
           setErroredUrl(resolvedAvatarUrl)
         }
       }}
