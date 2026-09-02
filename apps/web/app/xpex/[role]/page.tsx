@@ -4,6 +4,9 @@ import type { XpexExperienceRole } from '@/lib/xpex/access'
 
 const roles = new Set<XpexExperienceRole>(['aluno', 'professora', 'polo'])
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function XpexRolePage({ params }: { params: Promise<{ role: string }> }) {
   const { role } = await params
   if (!roles.has(role as XpexExperienceRole)) notFound()
