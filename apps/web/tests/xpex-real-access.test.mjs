@@ -163,6 +163,9 @@ describe('production-aligned Academy authentication', () => {
     expect(credentialsLogin).toContain('await refreshPromiseRef.current.catch(() => null)')
     expect(credentialsLogin).toContain('authEpochRef.current++')
     expect(credentialsLogin).toContain('authFailureHandledRef.current = false')
+    expect(credentialsLogin).toContain('credentialLoginInProgressRef.current = true')
+    expect(credentialsLogin).toContain('clearSessionMarker()')
+    expect(authContext).toContain('if (credentialLoginInProgressRef.current) return')
   })
 })
 
