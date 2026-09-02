@@ -140,6 +140,7 @@ describe('production-aligned Academy authentication', () => {
   const learningDashboard = readFileSync(new URL('../lib/xpex/learning-dashboard.ts', import.meta.url), 'utf8')
   const authService = readFileSync(new URL('../services/auth/auth.ts', import.meta.url), 'utf8')
   const authContext = readFileSync(new URL('../components/Contexts/AuthContext.tsx', import.meta.url), 'utf8')
+  const authGateway = readFileSync(new URL('../app/api/auth/[...path]/route.ts', import.meta.url), 'utf8')
 
   test('resolves backend URLs through runtime configuration on server requests', () => {
     expect(serverAuth).toContain("import { getBackendUrl } from '@services/config/config'")
@@ -168,6 +169,12 @@ describe('production-aligned Academy authentication', () => {
     expect(authContext).toContain('if (credentialLoginInProgressRef.current) return')
     expect(authContext).toContain('lastCredentialLoginAtRef.current = Date.now()')
     expect(authContext).toContain('Date.now() - lastCredentialLoginAtRef.current < 10_000')
+  })
+
+  test('clears duplicate domain cookies before storing fresh login tokens', () => {
+    expect(authGateway).toContain('function appendClearDomainScopedAuthCookies')
+    expect(authGateway).toContain("if (pathSegments === 'login')")
+    expect(authGateway).toContain('appendClearDomainScopedAuthCookies(response, request)')
   })
 })
 
