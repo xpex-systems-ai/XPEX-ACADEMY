@@ -94,6 +94,29 @@ function appendClearAuthCookies(response: NextResponse, request: NextRequest) {
   }
 }
 
+// Credential login replaces the host-scoped cookies below, but browsers may
+// still carry older domain-scoped cookies with the same names from a previous
+// tenancy configuration. Clear that duplicate scope first so Next.js server
+// components cannot read an obsolete token while the client uses the fresh
+// bearer returned by the login response.
+function appendClearDomainScopedAuthCookies(response: NextResponse, request: NextRequest) {
+  const securePart = request.nextUrl.protocol === 'https:' ? '; Secure' : ''
+  const host = request.headers.get('host') || ''
+  const { topDomain } = getDomainFromRequest(request)
+  if (isLocalhost(host) || !topDomain || topDomain === 'localhost') return
+
+  const domain = `.${topDomain}`
+  const clear = (name: string, httpOnly: boolean) => {
+    response.headers.append(
+      'Set-Cookie',
+      `${name}=; Path=/; Domain=${domain}; Max-Age=0${httpOnly ? '; HttpOnly' : ''}; SameSite=Lax${securePart}`,
+    )
+  }
+
+  for (const name of CLEAR_HTTPONLY) clear(name, true)
+  for (const name of CLEAR_MARKERS) clear(name, false)
+}
+
 async function proxyRequest(
   request: NextRequest,
   method: string
@@ -257,6 +280,10 @@ async function proxyRequest(
   // Extract and set auth cookies if this is a token-returning endpoint
   if (backendResponse.ok && shouldExtractTokens(pathSegments) && responseData) {
     const cookieOptions = getCookieOptions(request)
+
+    if (pathSegments === 'login') {
+      appendClearDomainScopedAuthCookies(response, request)
+    }
 
     // Handle different response structures
     const tokens = responseData.tokens || responseData
