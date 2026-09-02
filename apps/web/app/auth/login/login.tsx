@@ -7,11 +7,9 @@ import { useFormik } from 'formik'
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Info, Lock, Mail, Shield, X, Clock } from 'lucide-react'
 import { checkSSOEnabled, redirectToSSOLogin } from '@services/auth/sso'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@components/Contexts/AuthContext'
 import { getLEARNHOUSE_TOP_DOMAIN_VAL, getDeploymentMode, isOnCustomDomain } from '@services/config/config'
-import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useTranslation } from 'react-i18next'
 import { resendVerificationEmail } from '@services/auth/auth'
 import AuthLayout from '@components/Auth/AuthLayout'
@@ -33,19 +31,6 @@ const LoginClient = (props: LoginClientProps) => {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const turnstileRef = React.useRef<TurnstileWidgetHandle>(null)
   const turnstileRequired = useTurnstileRequired()
-  const router = useRouter();
-  const session = useLHSession() as any;
-  const isAuthenticated = session?.status === 'authenticated'
-
-  // A signed-in user has nothing to do on /login → bounce to the requested
-  // same-origin destination. Guarded by !isSubmitting so a fresh login does
-  // not race the onSubmit navigation below.
-  useEffect(() => {
-    if (isAuthenticated && !isSubmitting) {
-      router.replace(safeAuthReturnPath(new URLSearchParams(window.location.search).get('next')))
-    }
-  }, [isAuthenticated, isSubmitting, router])
-
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState<string | null>(null)
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
