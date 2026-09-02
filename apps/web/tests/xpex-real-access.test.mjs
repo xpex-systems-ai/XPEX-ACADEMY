@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import { resolveXpexAccess, resolveXpexOrganization, resolveXpexPoloAccess, safeLoginNext, xpexRoleForMembership } from '../lib/xpex/access.ts'
 import { safeAuthReturnPath } from '../lib/proxyPaths.ts'
 
+const organizationService = readFileSync(new URL('../services/organizations/orgs.ts', import.meta.url), 'utf8')
+
 const membership = (role_uuid, slug = 'kelle-digital-lab', name) => ({ role: { name, role_uuid }, org: { slug } })
 
 describe('XpeX server-authoritative role mapping', () => {
@@ -179,6 +181,11 @@ describe('PR-03 conditional authenticated entry', () => {
     expect(login).toContain("fetch('/api/auth/refresh'")
     expect(login).toContain('if (!sessionCookiesReady)')
     expect(login).toContain("window.location.href = callbackUrl")
+  })
+
+  test('does not send stale auth cookies with public organization lookups', () => {
+    expect(organizationService).toContain("requestOptions.credentials = 'omit'")
+    expect(organizationService).toContain("credentials: 'omit'")
   })
 
   test('redirects only an authenticated pilot member from home to XpeX without a loop', () => {
