@@ -44,7 +44,10 @@ function normalizeRoleValue(value: string | undefined): string | null {
 
 export function xpexRoleForMembership(membership: LearnHouseMembership): XpexExperienceRole | null {
   const roleUuid = normalizeRoleValue(membership.role?.role_uuid)
-  if (roleUuid && CANONICAL_ROLE_UUIDS[roleUuid]) return CANONICAL_ROLE_UUIDS[roleUuid]
+  // A supplied UUID is authoritative. Never fall back to a display name when
+  // that identifier is unknown: a custom role named "Admin" must not inherit
+  // the polo experience.
+  if (roleUuid) return CANONICAL_ROLE_UUIDS[roleUuid] ?? null
 
   const roleName = normalizeRoleValue(membership.role?.name)
   return roleName ? CANONICAL_ROLE_NAMES[roleName] ?? null : null
