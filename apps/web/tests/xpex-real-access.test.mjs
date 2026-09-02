@@ -174,8 +174,9 @@ describe('PR-03 conditional authenticated entry', () => {
     expect(authPagesBlock).not.toContain("req.cookies.get('LH_session')")
     expect(authPagesBlock).not.toContain('NextResponse.redirect')
     expect(authPagesBlock).toContain('new URL(`/auth${pathname}${search}`')
-    expect(login).toContain("const isAuthenticated = session?.status === 'authenticated'")
-    expect(login).toContain('if (isAuthenticated && !isSubmitting)')
+    expect(login).not.toContain("const isAuthenticated = session?.status === 'authenticated'")
+    expect(login).not.toContain('router.replace(safeAuthReturnPath')
+    expect(login).toContain("window.location.href = callbackUrl")
   })
 
   test('redirects only an authenticated pilot member from home to XpeX without a loop', () => {
