@@ -28,6 +28,11 @@ export function isVercelPreviewHost(value?: string | null): boolean {
   return normalizeProxyHost(value).endsWith('.vercel.app')
 }
 
+/** Match Railway-assigned public service hosts, but not the apex or lookalikes. */
+export function isRailwayServiceHost(value?: string | null): boolean {
+  return normalizeProxyHost(value).endsWith('.up.railway.app')
+}
+
 /** Decide whether the public landing page owns this root request. */
 export function isPublicRootRequest(
   pathname: string,
@@ -44,5 +49,8 @@ export function isPublicRootRequest(
     .filter(Boolean)
     .some((configuredHost) => configuredHost === currentHost)
 
-  return isProxyLocalhost(host) || isConfiguredApex || isVercelPreviewHost(currentHost)
+  return isProxyLocalhost(host)
+    || isConfiguredApex
+    || isVercelPreviewHost(currentHost)
+    || isRailwayServiceHost(currentHost)
 }
