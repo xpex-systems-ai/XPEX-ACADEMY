@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   isPublicRootRequest,
   isProxyLocalhost,
+  isRailwayServiceHost,
   isVercelPreviewHost,
   normalizeProxyHost,
 } from '../lib/proxyHosts.ts'
@@ -20,6 +21,15 @@ describe('public root host routing', () => {
       'xpex-academy-isnyr3at9-gxeon.vercel.app',
       [],
     )).toBe(true)
+  })
+
+  test('recognizes Railway service hosts as the public application root', () => {
+    expect(isRailwayServiceHost('xpex-academy-ai.up.railway.app')).toBe(true)
+    expect(isRailwayServiceHost('up.railway.app')).toBe(false)
+    expect(isRailwayServiceHost('xpex.up.railway.app.evil.com')).toBe(false)
+    expect(isRailwayServiceHost('fakeup.railway.app')).toBe(false)
+    expect(isPublicRootRequest('/', 'xpex-academy-ai.up.railway.app', [])).toBe(true)
+    expect(isPublicRootRequest('/login', 'xpex-academy-ai.up.railway.app', [])).toBe(false)
   })
 
   test('normalizes protocol, port, trailing slash and letter case', () => {
