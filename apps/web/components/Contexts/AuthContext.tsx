@@ -545,6 +545,20 @@ export function SessionProvider({
           }
 
           // Regular credentials login
+          // A stale-cookie refresh may still be running from SessionProvider's
+          // mount effect while the user submits a new login. Let that request
+          // settle before creating fresh cookies; otherwise its late 401 can
+          // clear the successful login response and bounce /xpex back here.
+          if (refreshPromiseRef.current) {
+            await refreshPromiseRef.current.catch(() => null)
+          }
+
+          // Start a new auth epoch so any older session/profile reconciliation
+          // that is still unwinding cannot overwrite the new login state.
+          authEpochRef.current++
+          authFailureHandledRef.current = false
+          sessionCacheRef.current = null
+
           // Use Next.js API route to ensure cookies are set correctly
           const response = await fetch('/api/auth/login', {
             method: 'POST',
