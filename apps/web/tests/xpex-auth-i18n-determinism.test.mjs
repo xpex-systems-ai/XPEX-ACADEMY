@@ -147,7 +147,8 @@ describe('XpeX login branding and auth preservation', () => {
     expect(login).toContain('<TurnstileWidget')
     expect(login).toContain('href="/forgot"')
     expect(login).toContain('safeAuthReturnPath')
-    expect(login).toContain('/redirect_from_auth?next=')
+    expect(login).toContain('window.location.href = callbackUrl')
+    expect(login).not.toContain('/redirect_from_auth?next=')
   })
 
   test('provides responsive, keyboard-focus and reduced-motion affordances', () => {
