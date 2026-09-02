@@ -195,6 +195,7 @@ export function SessionProvider({
   const isRefreshingRef = useRef(false)
   const authFailureHandledRef = useRef(false)
   const credentialLoginInProgressRef = useRef(false)
+  const lastCredentialLoginAtRef = useRef(0)
   // Monotonic auth epoch: bumped on every logout/clear. An in-flight refresh that
   // resolves AFTER a logout (cross-tab or same-tab) checks this before committing
   // and aborts, so it can't resurrect a session that was just invalidated.
@@ -636,6 +637,7 @@ export function SessionProvider({
             }
           }
 
+          lastCredentialLoginAtRef.current = Date.now()
           credentialLoginInProgressRef.current = false
 
           // Notify other tabs
@@ -793,6 +795,12 @@ export function SessionProvider({
       // A 401 from stale pre-login work must never revoke the fresh session
       // currently being established by an explicit credentials submission.
       if (credentialLoginInProgressRef.current) return
+      // Requests started by the previous anonymous/stale-cookie render can
+      // finish just after the authenticated navigation. The server and API
+      // still enforce every authorization boundary; this short grace window
+      // only prevents those obsolete client events from logging out a session
+      // that was successfully validated moments ago.
+      if (Date.now() - lastCredentialLoginAtRef.current < 10_000) return
       // Never force a sign-out/redirect for a visitor who was never signed in.
       // Anonymous users on public content get expected 401s from auth-only
       // endpoints; only an ACTUAL expired session (marker present) should redirect.
