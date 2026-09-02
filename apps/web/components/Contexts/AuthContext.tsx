@@ -194,6 +194,7 @@ export function SessionProvider({
   const refreshPromiseRef = useRef<Promise<{ access_token: string; expiry?: number } | null> | null>(null)
   const isRefreshingRef = useRef(false)
   const authFailureHandledRef = useRef(false)
+  const credentialLoginInProgressRef = useRef(false)
   // Monotonic auth epoch: bumped on every logout/clear. An in-flight refresh that
   // resolves AFTER a logout (cross-tab or same-tab) checks this before committing
   // and aborts, so it can't resurrect a session that was just invalidated.
@@ -558,6 +559,8 @@ export function SessionProvider({
           authEpochRef.current++
           authFailureHandledRef.current = false
           sessionCacheRef.current = null
+          credentialLoginInProgressRef.current = true
+          clearSessionMarker()
 
           // Use Next.js API route to ensure cookies are set correctly
           const response = await fetch('/api/auth/login', {
@@ -575,6 +578,7 @@ export function SessionProvider({
           const data = await response.json()
 
           if (!response.ok) {
+            credentialLoginInProgressRef.current = false
             // Return error in same format as NextAuth
             const errorData = data.detail || data
             return {
@@ -592,6 +596,7 @@ export function SessionProvider({
 
           // Validate response structure
           if (!data.tokens?.access_token) {
+            credentialLoginInProgressRef.current = false
             return {
               ok: false,
               error: JSON.stringify({ code: 'INVALID_RESPONSE', message: 'Invalid server response' }),
@@ -630,6 +635,8 @@ export function SessionProvider({
               timestamp: Date.now(),
             }
           }
+
+          credentialLoginInProgressRef.current = false
 
           // Notify other tabs
           broadcastChannelRef.current?.postMessage({ type: 'LOGIN' })
@@ -707,6 +714,7 @@ export function SessionProvider({
           status: 400,
         }
       } catch (error: any) {
+        credentialLoginInProgressRef.current = false
         console.error('Sign in error:', error)
         return {
           ok: false,
@@ -782,6 +790,9 @@ export function SessionProvider({
 
     const onAuthExpired = (event: Event) => {
       if (authFailureHandledRef.current) return
+      // A 401 from stale pre-login work must never revoke the fresh session
+      // currently being established by an explicit credentials submission.
+      if (credentialLoginInProgressRef.current) return
       // Never force a sign-out/redirect for a visitor who was never signed in.
       // Anonymous users on public content get expected 401s from auth-only
       // endpoints; only an ACTUAL expired session (marker present) should redirect.
