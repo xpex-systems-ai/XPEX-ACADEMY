@@ -26,10 +26,7 @@ async function getAdminLaunchContext() {
   if (!organizationSlug || !accessToken) redirect('/xpex/admin?organization=missing')
 
   const membershipRoles = resolveXpexAccess(memberships, organizationSlug)
-  const allowedRoles: XpexRole[] = [
-    'polo',
-    ...membershipRoles.filter(role => role !== 'polo'),
-  ] as XpexRole[]
+  const allowedRoles: XpexRole[] = ['polo', ...membershipRoles.filter(role => role !== 'polo')] as XpexRole[]
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Administrador XPeX'
 
@@ -58,16 +55,17 @@ async function enrollStudent(formData: FormData) {
   const courseUuid = String(formData.get('course_uuid') ?? '').trim()
   if (!email || !courseUuid) redirect('/xpex/admin/alunos?error=Informe%20aluno%20e%20curso%20publicado.')
 
+  let message: string
   try {
     const result = await enrollXpexLaunchStudent(accessToken, organizationSlug, email, courseUuid)
-    const message = result?.status === 'already_enrolled'
+    message = result?.status === 'already_enrolled'
       ? 'Aluno já estava matriculado neste curso.'
       : 'Matrícula realizada com sucesso.'
-    redirect(`/xpex/admin/alunos?status=${encodeURIComponent(message)}`)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Falha ao realizar matrícula.'
-    redirect(`/xpex/admin/alunos?error=${encodeURIComponent(message)}`)
+    const failure = error instanceof Error ? error.message : 'Falha ao realizar matrícula.'
+    redirect(`/xpex/admin/alunos?error=${encodeURIComponent(failure)}`)
   }
+  redirect(`/xpex/admin/alunos?status=${encodeURIComponent(message)}`)
 }
 
 export default async function AdminStudentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -85,14 +83,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
   }
 
   return (
-    <XpexAuthenticatedShell
-      role="polo"
-      allowedRoles={allowedRoles}
-      displayName={displayName}
-      organizationSlug={organizationSlug}
-      adminAccess
-      adminNavigation
-    >
+    <XpexAuthenticatedShell role="polo" allowedRoles={allowedRoles} displayName={displayName} organizationSlug={organizationSlug} adminAccess adminNavigation>
       <section className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-cyan-500/20 bg-slate-950/75 p-6 md:p-8">
           <div>
