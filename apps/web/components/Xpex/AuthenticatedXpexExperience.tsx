@@ -66,6 +66,8 @@ export async function AuthenticatedXpexExperience({
 
   const memberships: LearnHouseMembership[] | undefined = session.roles
   const isSuperadmin = session.user.is_superadmin === true
+  if (isSuperadmin && !requestedRole) redirect('/xpex/admin')
+
   const hasOrganizationMembership = memberships?.some(({ org }) => Boolean(org?.slug)) ?? false
   const requestedOperationalRole = requestedRole === 'polo' || requestedRole === 'professora'
 

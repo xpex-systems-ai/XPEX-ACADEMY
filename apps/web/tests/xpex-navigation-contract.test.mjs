@@ -89,6 +89,11 @@ describe('XPeX canonical navigation contract', () => {
     expect(existsSync(adminStudents)).toBe(true)
     expect(readFileSync(adminStudents, 'utf8')).toContain("session.user.is_superadmin !== true")
   })
+
+  test('routes generic superadmin entry to the admin workspace before selecting a polo role', () => {
+    const experience = readFileSync(join(webRoot, 'components/Xpex/AuthenticatedXpexExperience.tsx'), 'utf8')
+    expect(experience).toContain("if (isSuperadmin && !requestedRole) redirect('/xpex/admin')")
+  })
 })
 
 describe('pt-BR login copy', () => {
