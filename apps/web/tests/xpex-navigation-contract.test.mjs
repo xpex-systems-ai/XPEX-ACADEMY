@@ -75,6 +75,20 @@ describe('XPeX canonical navigation contract', () => {
       expect(shell).toContain(route)
     }
   })
+
+  test('keeps superadmin navigation inside admin workspace for native operations', () => {
+    const shell = readFileSync(join(webRoot, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
+    const admin = readFileSync(join(webRoot, 'app/xpex/admin/page.tsx'), 'utf8')
+    const adminStudents = join(webRoot, 'app/xpex/admin/alunos/page.tsx')
+
+    expect(shell).toContain("'Visão Geral': '/xpex/admin'")
+    expect(shell).toContain("'Alunos': '/xpex/admin/alunos'")
+    expect(shell).toContain("adminNavigation ? '/xpex/admin' : `/xpex/${role}`")
+    expect(shell).toContain("adminNavigation ? 'Superadmin' : roleLabels[role]")
+    expect(admin).toContain('adminNavigation')
+    expect(existsSync(adminStudents)).toBe(true)
+    expect(readFileSync(adminStudents, 'utf8')).toContain("session.user.is_superadmin !== true")
+  })
 })
 
 describe('pt-BR login copy', () => {
