@@ -8,10 +8,15 @@ as a visual layer; final duration always follows the reviewed narration.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from src.services.xpex.video_factory import VideoAsset
-from src.services.xpex.video_media import VideoMediaError, _run_ffmpeg, probe_duration_seconds
+from src.services.xpex.video_media import (
+    VideoMediaError,
+    _run_ffmpeg,
+    probe_duration_seconds,
+)
 
 
 def compose_motion_lesson_video(
@@ -78,8 +83,6 @@ def compose_motion_lesson_video(
     duration = probe_duration_seconds(str(output))
     # The caller persists the artifact and overwrites checksum/URI using durable storage.
     # A temporary checksum placeholder is intentionally deterministic and valid until then.
-    import hashlib
-
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     return VideoAsset(
         uri=str(output),
