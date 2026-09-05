@@ -23,7 +23,12 @@ from config.config import get_learnhouse_config
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.courses.activities import Activity, ActivityLockType, ActivitySubTypeEnum, ActivityTypeEnum
+from src.db.courses.activities import (
+    Activity,
+    ActivityLockType,
+    ActivitySubTypeEnum,
+    ActivityTypeEnum,
+)
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.chapters import Chapter
 from src.db.courses.courses import Course
@@ -79,7 +84,7 @@ def _load_video_map(raw: str | None) -> dict[int, str]:
         return {}
     payload = json.loads(raw)
     if not isinstance(payload, dict):
-        raise ValueError("video map must be a JSON object")
+        raise TypeError("video map must be a JSON object")
     result: dict[int, str] = {}
     for key, value in payload.items():
         module = int(key)
