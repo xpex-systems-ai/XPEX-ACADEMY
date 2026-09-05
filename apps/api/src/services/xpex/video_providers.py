@@ -131,6 +131,12 @@ def _fal_routed_url(provider_model: str) -> str:
     mapped = provider_model.strip().strip("/")
     if not mapped:
         raise VideoProviderNotConfigured("Hugging Face Fal video provider model is not configured")
+    # Hugging Face exposes Fal provider mappings as e.g.
+    # `fal-ai/wan/v2.2-5b/text-to-video`, while the routed transport namespace
+    # already includes `/fal-ai/`. Normalize the provider prefix to avoid
+    # producing an invalid `/fal-ai/fal-ai/...` URL.
+    if mapped.startswith("fal-ai/"):
+        mapped = mapped.removeprefix("fal-ai/")
     return f"{HF_ROUTER_BASE}/fal-ai/{mapped}?_subdomain=queue"
 
 
