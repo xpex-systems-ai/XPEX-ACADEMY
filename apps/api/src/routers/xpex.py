@@ -5,7 +5,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
-from src.services.xpex.course_factory import FactoryRunResponse, run_flagship_course_factory
+from src.services.xpex.course_factory import (
+    FactoryRunResponse,
+    run_flagship_course_factory,
+)
 from src.services.xpex.dashboard import get_student_dashboard
 from src.services.xpex.editorial_listing import list_editorial_drafts_page
 from src.services.xpex.editorial_studio import (
