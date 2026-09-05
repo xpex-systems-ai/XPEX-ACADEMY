@@ -24,7 +24,6 @@ from src.services.xpex.video_factory import (
 )
 from src.services.xpex.video_local_tts import synthesize_local_narration
 from src.services.xpex.video_media import (
-    compose_lesson_video,
     draft_artifact_key,
     extract_review_frame,
     materialize_storage_key,
@@ -32,9 +31,12 @@ from src.services.xpex.video_media import (
     probe_duration_seconds,
     write_caption_artifact,
 )
+from src.services.xpex.video_motion import compose_motion_lesson_video
 from src.services.xpex.video_providers import (
     ProviderBinary,
+    VideoProviderNotConfigured,
     generate_image,
+    generate_video_clip,
     review_multimodal_draft,
     synthesize_narration,
     transcribe_audio,
@@ -55,6 +57,8 @@ def _extension(mime_type: str, fallback: str) -> str:
         "audio/mpeg": ".mp3",
         "image/png": ".png",
         "image/jpeg": ".jpg",
+        "video/mp4": ".mp4",
+        "video/webm": ".webm",
     }.get(mime_type, fallback)
 
 
@@ -86,12 +90,21 @@ def _duration_from_text(text: str) -> int:
     return max(30, min(round(words / 2.2), 3600))
 
 
-async def _produce_narration(text: str, registry: VideoModelRegistry) -> ProviderBinary:
-    """Prefer an explicitly configured HF TTS model; otherwise use local pt-BR TTS.
+def _motion_prompt(source: VideoLessonSource, manifest: LessonVideoManifest) -> str:
+    directions = " ".join(scene.visual_direction for scene in manifest.storyboard)
+    return (
+        "Premium cinematic educational motion visual for XPeX Academy, 16:9. "
+        f"Lesson: {source.lesson.title}. Learning objective: {source.lesson.objective}. "
+        f"Visual direction: {directions} "
+        "Modern dark-tech learning aesthetic, elegant cyan and warm orange accents, "
+        "clear conceptual AI imagery, subtle camera movement, polished enterprise academy quality. "
+        "No third-party logos, no fake browser UI, no credentials, no watermarks, "
+        "no dense on-screen text, no unverifiable metrics."
+    )
 
-    The fallback is intentional and fail-closed: no implicit external provider or
-    browser credential is introduced when hosted TTS is unavailable.
-    """
+
+async def _produce_narration(text: str, registry: VideoModelRegistry) -> ProviderBinary:
+    """Prefer an explicitly configured HF TTS model; otherwise use local pt-BR TTS."""
     if registry.tts_model:
         return await synthesize_narration(text, registry)
     return await synthesize_local_narration(text)
@@ -116,21 +129,21 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 order=1,
                 narration=source.lesson.objective,
                 visual_direction=(
-                    "XPeX branded educational title card. Show only verified concepts from the lesson."
+                    "XPeX branded educational opening with abstract AI systems and a clear focal concept."
                 ),
             ),
             StoryboardScene(
                 order=2,
                 narration=source.lesson.explanation,
                 visual_direction=(
-                    "Clear educational diagram or interface-neutral illustration explaining the concept."
+                    "Cinematic educational visualization explaining the concept with moving diagrams and data flows."
                 ),
             ),
             StoryboardScene(
                 order=3,
                 narration=source.lesson.practice,
                 visual_direction=(
-                    "Practical visual summary. Do not fabricate screenshots, credentials, metrics or UI state."
+                    "Practical visual summary showing learning-by-doing without fabricating screenshots or UI state."
                 ),
                 deterministic_capture=True,
             ),
@@ -140,10 +153,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
     async def narrating(manifest: LessonVideoManifest) -> LessonVideoManifest:
         if manifest.video_script is None:
             raise ValueError("video script is required before narration")
-        audio = await _produce_narration(
-            manifest.video_script.narration_text,
-            source.registry,
-        )
+        audio = await _produce_narration(manifest.video_script.narration_text, source.registry)
         with tempfile.TemporaryDirectory(prefix="xpex-narration-") as directory:
             local_audio = _write_provider_binary(audio, directory, "narration", ".wav")
             duration = await asyncio.to_thread(probe_duration_seconds, local_audio)
@@ -167,10 +177,10 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         if not manifest.storyboard:
             raise ValueError("storyboard is required before asset generation")
         prompt = (
-            "Professional 16:9 educational illustration for XPeX Academy. "
+            "Professional 16:9 educational cover illustration for XPeX Academy. "
             f"Lesson: {source.lesson.title}. Objective: {source.lesson.objective}. "
-            "Clean modern composition, no logos from third parties, no fake browser UI, no credentials, "
-            "no text except simple generic labels."
+            "Dark-tech premium composition, cyan and warm orange accents, no third-party logos, "
+            "no fake browser UI, no credentials, no dense text."
         )
         image = await generate_image(prompt, source.registry)
         with tempfile.TemporaryDirectory(prefix="xpex-assets-") as directory:
@@ -187,14 +197,19 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         return manifest
 
     async def rendering(manifest: LessonVideoManifest) -> LessonVideoManifest:
-        if manifest.narration is None or not manifest.assets:
-            raise ValueError("narration and visual asset are required before rendering")
-        with tempfile.TemporaryDirectory(prefix="xpex-render-") as directory:
-            image_path = await asyncio.to_thread(
-                materialize_storage_key,
-                manifest.assets[0].uri,
-                str(Path(directory) / "visual.png"),
+        if manifest.narration is None or not manifest.assets or not manifest.storyboard:
+            raise ValueError("narration, storyboard and visual asset are required before rendering")
+        if not (
+            source.registry.video_model
+            and source.registry.video_provider_model
+            and source.registry.video_provider == "fal-ai"
+        ):
+            raise VideoProviderNotConfigured(
+                "XPeX motion-video standard requires XPEX_HF_VIDEO_MODEL, "
+                "XPEX_HF_VIDEO_PROVIDER=fal-ai and XPEX_HF_VIDEO_PROVIDER_MODEL"
             )
+
+        with tempfile.TemporaryDirectory(prefix="xpex-render-") as directory:
             narration_suffix = _extension(manifest.narration.mime_type, ".wav")
             narration_path = await asyncio.to_thread(
                 materialize_storage_key,
@@ -202,12 +217,27 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             output_path = str(Path(directory) / "lesson-draft.mp4")
+            motion = await generate_video_clip(
+                _motion_prompt(source, manifest),
+                source.registry,
+                duration_seconds=5,
+            )
+            motion_path = _write_provider_binary(motion, directory, "motion-source", ".mp4")
+            motion_key = draft_artifact_key(
+                batch_id=source.batch_id,
+                lesson_id=manifest.lesson_id,
+                revision=manifest.revision,
+                filename=Path(motion_path).name,
+            )
+            motion_ref = await asyncio.to_thread(_stored_ref, motion_path, motion_key)
+            manifest.assets.append(motion_ref)
             rendered = await asyncio.to_thread(
-                compose_lesson_video,
-                image_path=image_path,
+                compose_motion_lesson_video,
+                clip_path=motion_path,
                 narration_path=narration_path,
                 output_path=output_path,
             )
+
             key = draft_artifact_key(
                 batch_id=source.batch_id,
                 lesson_id=manifest.lesson_id,
@@ -231,11 +261,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             audio_bytes = Path(narration_path).read_bytes()
-            transcript = await transcribe_audio(
-                audio_bytes,
-                manifest.narration.mime_type,
-                source.registry,
-            )
+            transcript = await transcribe_audio(audio_bytes, manifest.narration.mime_type, source.registry)
             video_path = await asyncio.to_thread(
                 materialize_storage_key,
                 manifest.video_draft.uri,

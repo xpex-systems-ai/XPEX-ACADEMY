@@ -5,6 +5,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
+from src.services.xpex.course_factory import (
+    FactoryRunResponse,
+    run_flagship_course_factory,
+)
 from src.services.xpex.dashboard import get_student_dashboard
 from src.services.xpex.editorial_listing import list_editorial_drafts_page
 from src.services.xpex.editorial_studio import (
@@ -114,6 +118,22 @@ async def launch_student_enroll(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     return await enroll_launch_student(payload, current_user, db_session)
+
+
+@router.post("/course-factory/flagship-ai", response_model=FactoryRunResponse)
+async def course_factory_flagship_ai(
+    request: Request,
+    organization_slug: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    """Run/resume XPEX-AI-COURSE-FACTORY-001 for an authorized organization admin."""
+    return await run_flagship_course_factory(
+        request,
+        organization_slug,
+        current_user,
+        db_session,
+    )
 
 
 @router.post("/course-studio/drafts", response_model=EditorialDraftResponse)
