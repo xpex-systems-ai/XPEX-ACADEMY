@@ -66,11 +66,12 @@ async def _verify_dashboard(
 
 
 async def run(
-    first_name: str,
-    last_name: str,
+    first_name: str | None,
+    last_name: str | None,
     org_slug: str,
     execute: bool,
     user_uuid: str | None = None,
+    auto_unique_learner: bool = False,
 ) -> int:
     config = get_learnhouse_config()
     sql_url = config.database_config.sql_connection_string  # type: ignore[attr-defined]
@@ -90,21 +91,31 @@ async def run(
                 select(User, UserOrganization, Role)
                 .join(UserOrganization, UserOrganization.user_id == User.id)
                 .join(Role, Role.id == UserOrganization.role_id)
-                .where(
-                    UserOrganization.org_id == org.id,
+                .where(UserOrganization.org_id == org.id)
+            )
+
+            if auto_unique_learner:
+                student_query = student_query.where(
+                    Role.role_uuid == EXPECTED_STUDENT_ROLE_UUID
+                )
+            else:
+                if not first_name or not last_name:
+                    print("BLOCKED missing_student_name_target")
+                    return 3
+                student_query = student_query.where(
                     func.lower(User.first_name) == first_name.strip().lower(),
                     func.lower(User.last_name) == last_name.strip().lower(),
                 )
-            )
-            if user_uuid:
-                student_query = student_query.where(User.user_uuid == user_uuid.strip())
+                if user_uuid:
+                    student_query = student_query.where(User.user_uuid == user_uuid.strip())
 
             candidates = list((await session.execute(student_query)).all())
             if len(candidates) != 1:
                 print(
                     f"BLOCKED student_match_count={len(candidates)} "
                     f"org_id={org.id} org_slug={org.slug} "
-                    f"exact_uuid_filter={bool(user_uuid)}"
+                    f"exact_uuid_filter={bool(user_uuid) and not auto_unique_learner} "
+                    f"auto_unique_learner={auto_unique_learner}"
                 )
                 return 3
 
@@ -231,12 +242,15 @@ async def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--first-name", required=True)
-    parser.add_argument("--last-name", required=True)
+    parser.add_argument("--first-name")
+    parser.add_argument("--last-name")
     parser.add_argument("--org-slug", required=True)
     parser.add_argument("--user-uuid")
+    parser.add_argument("--auto-unique-learner", action="store_true")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
+    if not args.auto_unique_learner and (not args.first_name or not args.last_name):
+        parser.error("--first-name and --last-name are required unless --auto-unique-learner is used")
     raise SystemExit(
         asyncio.run(
             run(
@@ -245,6 +259,7 @@ def main() -> None:
                 args.org_slug,
                 args.execute,
                 args.user_uuid,
+                args.auto_unique_learner,
             )
         )
     )
