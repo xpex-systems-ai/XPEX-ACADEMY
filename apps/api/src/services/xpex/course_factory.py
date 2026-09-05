@@ -9,23 +9,23 @@ state rather than duplicating the course or video jobs.
 
 from __future__ import annotations
 
+from fastapi import HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from fastapi import HTTPException, Request
 
 from src.db.organizations import Organization
 from src.db.users import PublicUser
 from src.db.xpex_editorial import XPeXEditorialDraft
 from src.services.courses.locks import is_org_admin
 from src.services.xpex.editorial_studio import (
+    EditorialDraftResponse,
     EditorialGenerateRequest,
     EditorialMutationRequest,
-    EditorialDraftResponse,
-    generate_editorial_draft,
-    review_editorial_draft,
     approve_editorial_draft,
+    generate_editorial_draft,
     publish_editorial_draft,
+    review_editorial_draft,
 )
 from src.services.xpex.video_studio import (
     VideoJobResponse,
