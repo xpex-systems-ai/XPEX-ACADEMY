@@ -24,7 +24,6 @@ from src.services.xpex.video_factory import (
 )
 from src.services.xpex.video_local_tts import synthesize_local_narration
 from src.services.xpex.video_media import (
-    compose_lesson_video,
     draft_artifact_key,
     extract_review_frame,
     materialize_storage_key,
@@ -35,6 +34,7 @@ from src.services.xpex.video_media import (
 from src.services.xpex.video_motion import compose_motion_lesson_video
 from src.services.xpex.video_providers import (
     ProviderBinary,
+    VideoProviderNotConfigured,
     generate_image,
     generate_video_clip,
     review_multimodal_draft,
@@ -199,6 +199,16 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
     async def rendering(manifest: LessonVideoManifest) -> LessonVideoManifest:
         if manifest.narration is None or not manifest.assets or not manifest.storyboard:
             raise ValueError("narration, storyboard and visual asset are required before rendering")
+        if not (
+            source.registry.video_model
+            and source.registry.video_provider_model
+            and source.registry.video_provider == "fal-ai"
+        ):
+            raise VideoProviderNotConfigured(
+                "XPeX motion-video standard requires XPEX_HF_VIDEO_MODEL, "
+                "XPEX_HF_VIDEO_PROVIDER=fal-ai and XPEX_HF_VIDEO_PROVIDER_MODEL"
+            )
+
         with tempfile.TemporaryDirectory(prefix="xpex-render-") as directory:
             narration_suffix = _extension(manifest.narration.mime_type, ".wav")
             narration_path = await asyncio.to_thread(
@@ -207,46 +217,26 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             output_path = str(Path(directory) / "lesson-draft.mp4")
-
-            # Prefer genuine text-to-video when the production registry is configured.
-            # The legacy still-image renderer remains a fail-closed compatibility fallback.
-            if (
-                source.registry.video_model
-                and source.registry.video_provider_model
-                and source.registry.video_provider == "fal-ai"
-            ):
-                motion = await generate_video_clip(
-                    _motion_prompt(source, manifest),
-                    source.registry,
-                    duration_seconds=5,
-                )
-                motion_path = _write_provider_binary(motion, directory, "motion-source", ".mp4")
-                motion_key = draft_artifact_key(
-                    batch_id=source.batch_id,
-                    lesson_id=manifest.lesson_id,
-                    revision=manifest.revision,
-                    filename=Path(motion_path).name,
-                )
-                motion_ref = await asyncio.to_thread(_stored_ref, motion_path, motion_key)
-                manifest.assets.append(motion_ref)
-                rendered = await asyncio.to_thread(
-                    compose_motion_lesson_video,
-                    clip_path=motion_path,
-                    narration_path=narration_path,
-                    output_path=output_path,
-                )
-            else:
-                image_path = await asyncio.to_thread(
-                    materialize_storage_key,
-                    manifest.assets[0].uri,
-                    str(Path(directory) / "visual.png"),
-                )
-                rendered = await asyncio.to_thread(
-                    compose_lesson_video,
-                    image_path=image_path,
-                    narration_path=narration_path,
-                    output_path=output_path,
-                )
+            motion = await generate_video_clip(
+                _motion_prompt(source, manifest),
+                source.registry,
+                duration_seconds=5,
+            )
+            motion_path = _write_provider_binary(motion, directory, "motion-source", ".mp4")
+            motion_key = draft_artifact_key(
+                batch_id=source.batch_id,
+                lesson_id=manifest.lesson_id,
+                revision=manifest.revision,
+                filename=Path(motion_path).name,
+            )
+            motion_ref = await asyncio.to_thread(_stored_ref, motion_path, motion_key)
+            manifest.assets.append(motion_ref)
+            rendered = await asyncio.to_thread(
+                compose_motion_lesson_video,
+                clip_path=motion_path,
+                narration_path=narration_path,
+                output_path=output_path,
+            )
 
             key = draft_artifact_key(
                 batch_id=source.batch_id,
