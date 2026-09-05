@@ -29,7 +29,7 @@ fi
 
 # Optional guarded first-course bootstrap. Disabled by default. It is idempotent,
 # refuses ambiguous organization/course/author scope, and keeps startup alive if
-# the operation is blocked. Run it before enrollment so the course exists first.
+# the operation is blocked. Run it before media/enrollment so the course exists first.
 if [ "${XPEX_LAUNCH_COURSE_ON_START:-0}" = "1" ]; then
     echo "XPEX_LAUNCH course bootstrap requested"
     (
@@ -45,6 +45,25 @@ if [ "${XPEX_LAUNCH_COURSE_ON_START:-0}" = "1" ]; then
                 --execute
         fi
     ) || echo "XPEX_LAUNCH course bootstrap blocked; application startup will continue"
+fi
+
+# Optional one-shot publication of the MP4 bundle baked into this immutable image.
+# The provisioning utility is idempotent, requires exactly one canonical first course,
+# requires all 11 baked files to exist, and changes only course video activities/order.
+if [ "${XPEX_STATIC_COURSE_VIDEOS_ON_START:-0}" = "1" ]; then
+    echo "XPEX_STATIC course video bootstrap requested"
+    if [ -z "${XPEX_MEDIA_BASE_URL:-}" ]; then
+        echo "XPEX_STATIC BLOCKED missing XPEX_MEDIA_BASE_URL"
+    else
+        (
+            cd /app/api || exit 89
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course_videos.py \
+                --org-slug "${XPEX_LAUNCH_ORG_SLUG:-default}" \
+                --static-bundle \
+                --static-base-url "$XPEX_MEDIA_BASE_URL" \
+                --execute
+        ) || echo "XPEX_STATIC course video bootstrap blocked; application startup will continue"
+    fi
 fi
 
 # Optional guarded one-shot XPeX enrollment bootstrap. Disabled by default. The
