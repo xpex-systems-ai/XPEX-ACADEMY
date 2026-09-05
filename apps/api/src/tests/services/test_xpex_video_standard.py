@@ -28,6 +28,7 @@ def test_fal_poll_urls_keep_hugging_face_router_namespace() -> None:
 def test_xpex_full_video_pipeline_requires_motion_provider() -> None:
     registry = VideoModelRegistry(
         image_model="image-model",
+        tts_model="tts-model",
         stt_model="stt-model",
         multimodal_review_model="review-model",
     )
