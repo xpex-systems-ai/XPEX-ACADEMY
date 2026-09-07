@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Award, ExternalLink, LockKeyhole } from 'lucide-react'
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
+import { getUriWithOrg } from '@services/config/config'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
 import { getXpexStudentCertificates } from '@/lib/xpex/certificates'
 
@@ -37,7 +38,14 @@ export default async function XpexCertificatesPage() {
                 <h2>{certificate.courseTitle}</h2>
                 <p>Identificador: {certificate.certificateId}</p>
                 {certificate.issuedAt ? <p>Emitido em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(certificate.issuedAt))}</p> : null}
-                <Link href={`/orgs/${learning.organization.slug}/certificates/${encodeURIComponent(certificate.certificateId)}/verify`} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={getUriWithOrg(
+                    learning.organization.slug,
+                    `/certificates/${encodeURIComponent(certificate.certificateId)}/verify`,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Visualizar certificado <ExternalLink aria-hidden="true" size={16} />
                 </Link>
               </article>
