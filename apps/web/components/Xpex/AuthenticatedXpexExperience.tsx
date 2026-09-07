@@ -129,6 +129,29 @@ export async function AuthenticatedXpexExperience({
 
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Pessoa participante'
+  const organizationName = organization?.name
+
+  // Section-only Polo routes are intentionally lightweight. Once server-side
+  // authorization and organization scope are resolved, render the section directly
+  // instead of blocking unrelated navigation on dashboard/readiness endpoints.
+  if (role === 'polo' && poloSection) {
+    return (
+      <XpexAuthenticatedShell
+        role={role}
+        allowedRoles={roles}
+        displayName={displayName}
+        organizationSlug={organizationSlug}
+        adminAccess={isSuperadmin}
+      >
+        <XpexPoloSection
+          section={poloSection}
+          organizationName={organizationName}
+          organizationSlug={organizationSlug}
+        />
+      </XpexAuthenticatedShell>
+    )
+  }
+
   let learningData = null
   let learningDataFailed = false
   let launchReadiness = null
@@ -163,12 +186,9 @@ export async function AuthenticatedXpexExperience({
     }
   }
 
-  const organizationName = organization?.name
   return (
     <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug} adminAccess={adminAccess}>
-      {role === 'polo' && poloSection ? (
-        <XpexPoloSection section={poloSection} organizationName={organizationName} organizationSlug={organizationSlug} />
-      ) : role === 'aluno' ? (
+      {role === 'aluno' ? (
         <FuturisticStudentDashboard
           displayName={displayName}
           organizationName={organizationName}
