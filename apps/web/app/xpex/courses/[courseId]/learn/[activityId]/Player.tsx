@@ -28,7 +28,7 @@ function ActivityRenderer({ activity, courseUuid, orgUuid, orgSlug }: { activity
   if (activity.activity_type === 'TYPE_DYNAMIC' && activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') return <EmbedActivity activity={activity} />
   if (activity.activity_type === 'TYPE_DYNAMIC' && activity.activity_sub_type === 'SUBTYPE_DYNAMIC_RESOURCE') return <ResourceActivity activity={activity} orgslug={orgSlug} />
   if (activity.activity_type === 'TYPE_DYNAMIC') return <DynamicCanva content={activity.content as never} activity={activity} courseUuid={courseUuid} orgUuid={orgUuid} />
-  if (activity.activity_type === 'TYPE_ASSIGNMENT') return <XpexAssignment activityUuid={activity.activity_uuid} />
+  if (activity.activity_type === 'TYPE_ASSIGNMENT') return <XpexAssignment activityUuid={activity.activity_uuid} courseUuid={courseUuid} />
   return <div className="xpex-empty"><h2>Formato indisponível neste player</h2><p>Esta atividade não pode ser aberta ou concluída nesta experiência.</p></div>
 }
 
