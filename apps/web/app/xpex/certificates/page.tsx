@@ -1,14 +1,19 @@
-import { Award, LockKeyhole } from 'lucide-react'
+import Link from 'next/link'
+import { Award, ExternalLink, LockKeyhole } from 'lucide-react'
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
+import { getUriWithOrg } from '@services/config/config'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
+import { getXpexStudentCertificates } from '@/lib/xpex/certificates'
 
 export default async function XpexCertificatesPage() {
   const learning = await getAuthorizedStudentLearning('/xpex/certificates')
   if (!learning) return <XpexStudentDenied />
 
-  const completedCourses = learning.data.courses.filter(
-    (course) => (course.progress_percent ?? 0) >= 100,
+  const certificates = await getXpexStudentCertificates(
+    learning.accessToken,
+    learning.organization.id,
+    new Set(learning.data.courses.map((course) => course.course_id)),
   )
 
   return (
@@ -24,14 +29,25 @@ export default async function XpexCertificatesPage() {
           <h1>Certificados</h1>
           <p>Conclusões reais aparecem aqui quando os requisitos publicados forem atendidos.</p>
         </header>
-        {completedCourses.length > 0 ? (
+        {certificates.length > 0 ? (
           <div className="xpex-course-grid">
-            {completedCourses.map((course) => (
-              <article className="xpex-card" key={course.course_id}>
+            {certificates.map((certificate) => (
+              <article className="xpex-card" key={certificate.certificateId}>
                 <Award aria-hidden="true" size={28} />
-                <span className="xpex-badge">Curso concluído</span>
-                <h2>{course.title}</h2>
-                <p>100% das aulas contabilizadas deste curso foram concluídas.</p>
+                <span className="xpex-badge">Certificado emitido</span>
+                <h2>{certificate.courseTitle}</h2>
+                <p>Identificador: {certificate.certificateId}</p>
+                {certificate.issuedAt ? <p>Emitido em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(certificate.issuedAt))}</p> : null}
+                <Link
+                  href={getUriWithOrg(
+                    learning.organization.slug,
+                    `/certificates/${encodeURIComponent(certificate.certificateId)}/verify`,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visualizar certificado <ExternalLink aria-hidden="true" size={16} />
+                </Link>
               </article>
             ))}
           </div>

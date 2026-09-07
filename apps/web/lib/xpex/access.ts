@@ -2,7 +2,7 @@ export type XpexExperienceRole = 'aluno' | 'professora' | 'polo'
 
 export interface LearnHouseMembership {
   role?: { name?: string; role_uuid?: string }
-  org?: { slug?: string; name?: string }
+  org?: { id?: number; org_uuid?: string; slug?: string; name?: string }
 }
 
 export type XpexPoloCapability =
