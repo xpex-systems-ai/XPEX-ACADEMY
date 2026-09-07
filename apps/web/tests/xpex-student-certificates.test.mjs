@@ -22,10 +22,18 @@ describe('XPeX student certificate integrity', () => {
     expect(source).toContain('organizationId')
   })
 
-  test('links each persisted identifier to the canonical verification page', () => {
+  test('links each persisted identifier through the canonical tenant-aware verification route', () => {
     const page = read('app/xpex/certificates/page.tsx')
-    expect(page).toContain('certificate.certificateId')
+    expect(page).toContain("import { getUriWithOrg } from '@services/config/config'")
+    expect(page).toContain('getUriWithOrg(')
     expect(page).toContain('/certificates/${encodeURIComponent(certificate.certificateId)}/verify')
+    expect(page).not.toContain('href={`/orgs/${learning.organization.slug}/certificates/')
     expect(page).toContain('Certificado emitido')
+  })
+
+  test('degrades plan-denied certification access to an empty state', () => {
+    const source = read('lib/xpex/certificates.ts')
+    expect(source).toContain('if (response.status === 403) return []')
+    expect(source).toContain('if (!response.ok) throw new Error')
   })
 })
