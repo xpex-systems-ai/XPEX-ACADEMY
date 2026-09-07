@@ -15,6 +15,7 @@ import { XpexErrorState } from './XpexPrimitives'
 import { getXpexLearningDashboard } from '@/lib/xpex/learning-dashboard'
 import { getXpexTeacherDashboard } from '@/lib/xpex/teacher-dashboard'
 import { getXpexLaunchReadiness } from '@/lib/xpex/launch-readiness'
+import { XpexPoloSection, type XpexPoloSectionId } from './experiences/XpexPoloSection'
 
 function AccessDenied({ noOrganization = false }: { noOrganization?: boolean }) {
   return <main className="xpex-root grid min-h-screen place-items-center p-6"><div className="max-w-xl"><XpexErrorState title={noOrganization ? 'Sua conta está pronta' : 'Acesso não autorizado'} description={noOrganization ? 'Seu acesso ao ambiente de aprendizagem ainda precisa ser associado a uma organização ou matrícula válida.' : 'Sua conta não possui um papel autorizado nesta organização. Peça a uma pessoa administradora para revisar sua associação.'} /></div></main>
@@ -57,9 +58,11 @@ const AUTHORITATIVE_TEACHER_ACCESS: XpexPoloAccess = {
 export async function AuthenticatedXpexExperience({
   requestedRole,
   returnPath,
+  poloSection,
 }: {
   requestedRole?: XpexExperienceRole
   returnPath: string
+  poloSection?: XpexPoloSectionId
 }) {
   const session = await getServerSession()
   if (!session?.user) redirect(`/login?next=${encodeURIComponent(returnPath)}`)
@@ -163,7 +166,9 @@ export async function AuthenticatedXpexExperience({
   const organizationName = organization?.name
   return (
     <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug} adminAccess={adminAccess}>
-      {role === 'aluno' ? (
+      {role === 'polo' && poloSection ? (
+        <XpexPoloSection section={poloSection} organizationName={organizationName} organizationSlug={organizationSlug} />
+      ) : role === 'aluno' ? (
         <FuturisticStudentDashboard
           displayName={displayName}
           organizationName={organizationName}

@@ -55,11 +55,16 @@ export function XpexRoleNavigation({ role, organizationSlug, adminAccess = false
       ? {
           'Visão Geral': '/xpex/polo',
           'Alunos': '/xpex/polo/alunos',
-          'Turmas': getUriWithOrg(organizationSlug, '/dash/users/settings/usergroups'),
-          'Cursos': getUriWithOrg(organizationSlug, '/dash/courses'),
-          'Conteúdos': getUriWithOrg(organizationSlug, '/dash/library'),
-          'Relatórios': getUriWithOrg(organizationSlug, '/dash/analytics'),
-          'Configurações': getUriWithOrg(organizationSlug, '/dash/org/settings/general'),
+          'Turmas': '/xpex/polo/turmas',
+          'Cursos': '/xpex/polo/cursos',
+          'Trilhas': '/xpex/polo/trilhas',
+          'Mentorias': '/xpex/polo/mentorias',
+          'Eventos': '/xpex/polo/eventos',
+          'Conteúdos': '/xpex/polo/conteudos',
+          'Relatórios': '/xpex/polo/relatorios',
+          'Certificados': '/xpex/polo/certificados',
+          'Recursos': '/xpex/polo/recursos',
+          'Configurações': '/xpex/polo/configuracoes',
         }
       : {
           'Visão Geral': '/xpex/professora',
