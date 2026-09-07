@@ -25,3 +25,14 @@ score or direct XPeX progress mutation.
 
 The bootstrap remains guarded and idempotent. It creates real database records only
 when invoked with `--execute`; dry runs do not create production data.
+
+## Rollback
+
+Roll back application code first so no process writes `passing_score`, then execute
+`alembic downgrade -1` from revision `c8d9e0f1a2b3`. The downgrade drops only the new
+check and column and restores both parent heads; assignments, tasks, answers, grades,
+and attempts are retained. If production
+has already accepted non-default thresholds, prefer roll-forward recovery because
+dropping the column loses that configuration. The module-one assessment records may be
+unpublished through the native authoring flow; they must not be deleted while learner
+submissions exist.

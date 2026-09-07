@@ -30,6 +30,18 @@ describe('native XpeX student learning', () => {
     expect(read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')).toContain('canComplete &&')
   })
 
+  test('mounts the native persisted assignment flow with server result actions', () => {
+    const player = read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')
+    const assessment = read('app/xpex/courses/[courseId]/learn/[activityId]/XpexAssignment.tsx')
+    const activities = read('app/xpex/activities/page.tsx')
+    expect(player).toContain("activity.activity_type === 'TYPE_ASSIGNMENT'")
+    expect(assessment).toContain('submitAssignmentForGrading')
+    expect(assessment).toContain('getFinalGrade')
+    expect(assessment).toContain('retryAssignmentSubmission')
+    expect(assessment).toContain("result.passed ? 'Aprovado' : 'Reprovado'")
+    expect(activities).toContain('<h2>Avaliações</h2>')
+  })
+
   test('loads protected content only through the canonical activity read', () => {
     const page = read('app/xpex/courses/[courseId]/learn/[activityId]/page.tsx')
     expect(page).toContain('getActivityWithAuthHeader')

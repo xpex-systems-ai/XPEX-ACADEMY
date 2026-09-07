@@ -21,11 +21,16 @@ from src.db.courses.activities import (
     ActivitySubTypeEnum,
     ActivityTypeEnum,
 )
+from src.db.courses.assignments import (
+    Assignment,
+    AssignmentTask,
+    AssignmentTaskTypeEnum,
+    GradingTypeEnum,
+)
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.chapters import Chapter, LockType
 from src.db.courses.course_chapters import CourseChapter
 from src.db.courses.courses import Course, ThumbnailType
-from src.db.courses.assignments import Assignment, AssignmentTask, AssignmentTaskTypeEnum, GradingTypeEnum
 from src.db.organizations import Organization
 from src.db.resource_authors import (
     ResourceAuthor,
