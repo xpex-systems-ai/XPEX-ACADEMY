@@ -16,3 +16,11 @@ def test_every_launch_module_has_versioned_markdown_content():
     content_root = repo_root / "docs" / "courses" / COURSE_SLUG
     missing = [filename for _, filename in MODULES if not (content_root / filename).is_file()]
     assert missing == []
+
+
+def test_foundations_assessment_uses_native_quiz_rendering_schema():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "xpex_launch_course.py").read_text()
+    assert '"questionText": prompt' in script
+    assert '"text": label' in script
+    assert '"grading_mode": "exact_question"' in script
+    assert "passing_score=70" in script

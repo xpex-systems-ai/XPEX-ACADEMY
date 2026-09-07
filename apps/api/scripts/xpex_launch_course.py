@@ -91,10 +91,47 @@ async def _ensure_foundations_assessment(session: AsyncSession, org: Organizatio
         assignment = Assignment(title=ASSESSMENT_TITLE, description="Avalie sua compreensão dos fundamentos, limitações e uso responsável da IA.", due_date="", published=True, grading_type=GradingTypeEnum.PERCENTAGE, auto_grading=True, show_correct_answers=True, allow_retries=True, max_retries=0, passing_score=70, org_id=org.id, course_id=course.id, chapter_id=chapter.id, activity_id=activity.id, assignment_uuid=f"assignment_{uuid4()}", creation_date=now, update_date=now)
         session.add(assignment)
         await session.flush()
+    else:
+        assignment.title = ASSESSMENT_TITLE
+        assignment.description = "Avalie sua compreensão dos fundamentos, limitações e uso responsável da IA."
+        assignment.published = True
+        assignment.grading_type = GradingTypeEnum.PERCENTAGE
+        assignment.auto_grading = True
+        assignment.show_correct_answers = True
+        assignment.allow_retries = True
+        assignment.max_retries = 0
+        assignment.passing_score = 70
+        assignment.update_date = now
+        session.add(assignment)
+    questions = [
+        {
+            "questionUUID": qid,
+            "questionText": prompt,
+            "options": [
+                {
+                    "optionUUID": f"{qid}-{option_id}",
+                    "text": label,
+                    "type": "text",
+                    "fileID": "",
+                    "assigned_right_answer": correct,
+                }
+                for option_id, label, correct in options
+            ],
+        }
+        for qid, prompt, options in ASSESSMENT_QUESTIONS
+    ]
     task = (await session.execute(select(AssignmentTask).where(AssignmentTask.assignment_id == assignment.id))).scalars().first()
     if task is None:
-        questions = [{"questionUUID": qid, "question": prompt, "options": [{"optionUUID": f"{qid}-{oid}", "option": label, "assigned_right_answer": correct} for oid, label, correct in options]} for qid, prompt, options in ASSESSMENT_QUESTIONS]
         session.add(AssignmentTask(title="Fundamentos de IA", description="Selecione uma resposta em cada questão.", hint="Considere confiabilidade, risco e supervisão humana.", assignment_type=AssignmentTaskTypeEnum.QUIZ, contents={"grading_mode": "exact_question", "questions": questions}, max_grade_value=100, assignment_task_uuid=f"assignmenttask_{uuid4()}", creation_date=now, update_date=now, assignment_id=assignment.id, org_id=org.id, course_id=course.id, chapter_id=chapter.id, activity_id=activity.id))
+    else:
+        task.title = "Fundamentos de IA"
+        task.description = "Selecione uma resposta em cada questão."
+        task.hint = "Considere confiabilidade, risco e supervisão humana."
+        task.assignment_type = AssignmentTaskTypeEnum.QUIZ
+        task.contents = {"grading_mode": "exact_question", "questions": questions}
+        task.max_grade_value = 100
+        task.update_date = now
+        session.add(task)
 
 
 def _to_async_url(url: str) -> str:
