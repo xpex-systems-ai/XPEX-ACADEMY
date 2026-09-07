@@ -24,6 +24,10 @@ export async function getXpexStudentCertificates(
     `${backendUrl}/api/v1/certifications/user/all?org_id=${encodeURIComponent(organizationId)}`,
     { headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store' },
   )
+
+  // LearnHouse gates native certifications by plan. A plan-denied response must
+  // degrade to an honest empty state instead of crashing the student area.
+  if (response.status === 403) return []
   if (!response.ok) throw new Error(`XPeX certificates request failed (${response.status})`)
 
   const payload: unknown = await response.json()
