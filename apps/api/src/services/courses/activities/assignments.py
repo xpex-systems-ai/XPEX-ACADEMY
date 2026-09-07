@@ -673,9 +673,8 @@ def compute_assignment_grade(
     - Produce a human-readable `display_grade` (the canonical string the UI
       renders), plus `letter_grade`, `points_summary`, and `percentage_display`
       as secondary formats the UI can show side-by-side without doing math.
-    - Flag `passed` using a mode-aware threshold so it stays consistent with
-      the display: ALPHABET/GPA_SCALE pass at 60% (D / 0.7), everything else
-      passes at 50%.
+    - Flag `passed` using the assignment's configured threshold when supplied.
+      Legacy callers without a configured value retain the mode-aware defaults.
 
     The backend intentionally stores only the raw integer sum in
     AssignmentUserSubmission.grade; all formatting is derived on read.
@@ -698,11 +697,15 @@ def compute_assignment_grade(
         else (grading_type or "NUMERIC")
     )
 
-    # Mode-aware passing threshold — keeps `passed` aligned with the display
-    if gt_value in ("ALPHABET", "GPA_SCALE"):
+    # The persisted assignment setting is authoritative for every display mode.
+    # Mode-aware defaults exist only for legacy direct callers that do not have
+    # an Assignment row to supply.
+    if passing_score is not None:
+        passing_threshold = float(passing_score)
+    elif gt_value in ("ALPHABET", "GPA_SCALE"):
         passing_threshold = LETTER_PASSING_THRESHOLD_PERCENTAGE
     else:
-        passing_threshold = float(passing_score if passing_score is not None else DEFAULT_PASSING_THRESHOLD_PERCENTAGE)
+        passing_threshold = DEFAULT_PASSING_THRESHOLD_PERCENTAGE
     passed = percentage >= passing_threshold
 
     # Secondary formats — always available regardless of grading_type so the

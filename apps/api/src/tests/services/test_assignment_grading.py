@@ -365,8 +365,33 @@ class TestLetterAndGpaMapping:
 # --------------------------------------------------------------------------- #
 class TestComputeAssignmentGrade:
     def test_configurable_passing_score_is_authoritative(self):
-        assert compute_assignment_grade(69, 100, GradingTypeEnum.PERCENTAGE, passing_score=70)["passed"] is False
-        assert compute_assignment_grade(70, 100, GradingTypeEnum.PERCENTAGE, passing_score=70)["passed"] is True
+        for threshold in (50, 60, 70):
+            below = compute_assignment_grade(
+                threshold - 1,
+                100,
+                GradingTypeEnum.PERCENTAGE,
+                passing_score=threshold,
+            )
+            boundary = compute_assignment_grade(
+                threshold,
+                100,
+                GradingTypeEnum.PERCENTAGE,
+                passing_score=threshold,
+            )
+            assert below["passed"] is False
+            assert boundary["passed"] is True
+            assert boundary["passing_threshold"] == float(threshold)
+
+    def test_configured_score_overrides_letter_mode_legacy_default(self):
+        result = compute_assignment_grade(
+            69,
+            100,
+            GradingTypeEnum.ALPHABET,
+            passing_score=70,
+        )
+        assert result["letter_grade"] == "D"
+        assert result["passed"] is False
+        assert result["passing_threshold"] == 70.0
 
     def test_percentage_and_clamping(self):
         result = compute_assignment_grade(85, 100, GradingTypeEnum.NUMERIC)
