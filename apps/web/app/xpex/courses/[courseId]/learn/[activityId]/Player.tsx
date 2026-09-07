@@ -16,6 +16,7 @@ const MarkdownActivity = dynamic(() => import('@components/Objects/Activities/Ma
 const EmbedActivity = dynamic(() => import('@components/Objects/Activities/Embed/EmbedActivity'), { ssr: false })
 const ResourceActivity = dynamic(() => import('@components/Objects/Activities/Resource/ResourceActivity'), { ssr: false })
 const DynamicCanva = dynamic(() => import('@components/Objects/Activities/DynamicCanva/DynamicCanva'), { ssr: false })
+const XpexAssignment = dynamic(() => import('./XpexAssignment'), { ssr: false })
 
 type PlayerActivity = XpexLearningActivity & { content: Record<string, unknown>; details?: Record<string, unknown> | null; extra_metadata?: Record<string, unknown> | null; published: boolean; is_locked?: boolean }
 
@@ -27,7 +28,7 @@ function ActivityRenderer({ activity, courseUuid, orgUuid, orgSlug }: { activity
   if (activity.activity_type === 'TYPE_DYNAMIC' && activity.activity_sub_type === 'SUBTYPE_DYNAMIC_EMBED') return <EmbedActivity activity={activity} />
   if (activity.activity_type === 'TYPE_DYNAMIC' && activity.activity_sub_type === 'SUBTYPE_DYNAMIC_RESOURCE') return <ResourceActivity activity={activity} orgslug={orgSlug} />
   if (activity.activity_type === 'TYPE_DYNAMIC') return <DynamicCanva content={activity.content as never} activity={activity} courseUuid={courseUuid} orgUuid={orgUuid} />
-  if (activity.activity_type === 'TYPE_ASSIGNMENT') return <div className="xpex-empty"><h2>Atividade avaliativa</h2><p>A entrega e a avaliação desta atividade ainda não estão disponíveis no player XPeX. Nenhuma conclusão será registrada aqui.</p></div>
+  if (activity.activity_type === 'TYPE_ASSIGNMENT') return <XpexAssignment activityUuid={activity.activity_uuid} />
   return <div className="xpex-empty"><h2>Formato indisponível neste player</h2><p>Esta atividade não pode ser aberta ou concluída nesta experiência.</p></div>
 }
 

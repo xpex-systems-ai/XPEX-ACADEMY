@@ -45,6 +45,7 @@ class AssignmentBase(SQLModel):
     # submission is attempt 1, so a teacher who sets max_retries=3 gives the
     # student up to 3 graded attempts total (initial + 2 retries).
     max_retries: Optional[int] = 0
+    passing_score: int = Field(default=50, ge=0, le=100)
 
     org_id: int
     course_id: int
@@ -84,6 +85,7 @@ class AssignmentUpdate(SQLModel):
     show_correct_answers: Optional[bool] = None
     allow_retries: Optional[bool] = None
     max_retries: Optional[int] = None
+    passing_score: Optional[int] = Field(default=None, ge=0, le=100)
     org_id: Optional[int] = None
     course_id: Optional[int] = None
     chapter_id: Optional[int] = None

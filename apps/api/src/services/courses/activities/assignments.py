@@ -315,26 +315,56 @@ def _grade_quiz_task(contents: dict, submission_data: dict, task_max: int) -> in
         if q_uuid and o_uuid:
             answer_by_key[(q_uuid, o_uuid)] = bool(sub.get("answer"))
 
-    total_options = 0
-    correct_options = 0
+    exact_question_grading = contents.get("grading_mode") == "exact_question"
+    total_units = 0
+    correct_units = 0
     for question in questions:
         if not isinstance(question, dict):
             continue
         q_uuid = question.get("questionUUID")
         options = question.get("options") or []
+        if not options:
+            continue
+        if exact_question_grading:
+            total_units += 1
+        question_correct = True
         for option in options:
             if not isinstance(option, dict):
                 continue
-            total_options += 1
             o_uuid = option.get("optionUUID")
             expected = bool(option.get("assigned_right_answer"))
             student_answer = answer_by_key.get((q_uuid, o_uuid), False)
-            if student_answer == expected:
-                correct_options += 1
+            if not exact_question_grading:
+                total_units += 1
+                if student_answer == expected:
+                    correct_units += 1
+            if student_answer != expected:
+                question_correct = False
+        if exact_question_grading and question_correct:
+            correct_units += 1
 
-    if total_options == 0 or task_max <= 0:
+    if total_units == 0 or task_max <= 0:
         return 0
-    return round(correct_options / total_options * task_max)
+    return round(correct_units / total_units * task_max)
+
+
+def _student_safe_task(task: AssignmentTask, reveal_answers: bool) -> AssignmentTaskRead:
+    """Build a detached response and omit quiz answer keys until authorized."""
+    payload = AssignmentTaskRead.model_validate(task).model_dump()
+    if not reveal_answers and task.assignment_type == AssignmentTaskTypeEnum.QUIZ:
+        contents = dict(payload.get("contents") or {})
+        contents["questions"] = [
+            {
+                **question,
+                "options": [
+                    {key: value for key, value in option.items() if key != "assigned_right_answer"}
+                    for option in question.get("options", [])
+                ],
+            }
+            for question in contents.get("questions", [])
+        ]
+        payload["contents"] = contents
+    return AssignmentTaskRead.model_validate(payload)
 
 
 def _grade_form_task(contents: dict, submission_data: dict, task_max: int) -> int:
@@ -630,6 +660,7 @@ def compute_assignment_grade(
     max_grade: int,
     grading_type: GradingTypeEnum | str | None,
     overall_feedback: str | None = None,
+    passing_score: int | float | None = None,
 ) -> dict:
     """
     Build a normalized grade object from a raw grade sum and the configured
@@ -671,7 +702,7 @@ def compute_assignment_grade(
     if gt_value in ("ALPHABET", "GPA_SCALE"):
         passing_threshold = LETTER_PASSING_THRESHOLD_PERCENTAGE
     else:
-        passing_threshold = DEFAULT_PASSING_THRESHOLD_PERCENTAGE
+        passing_threshold = float(passing_score if passing_score is not None else DEFAULT_PASSING_THRESHOLD_PERCENTAGE)
     passed = percentage >= passing_threshold
 
     # Secondary formats — always available regardless of grading_type so the
@@ -1039,11 +1070,17 @@ async def read_assignment_tasks(
     # RBAC check
     await authorize_assignment_access(request, db_session, current_user, course.course_uuid, AccessAction.READ)
 
-    # return assignment tasks read
-    return [
-        AssignmentTaskRead.model_validate(assignment_task)
-        for assignment_task in (await db_session.execute(statement)).scalars().all()
-    ]
+    tasks = list((await db_session.execute(statement)).scalars().all())
+    is_instructor = await _is_assignment_instructor(request, current_user, course.course_uuid, db_session)
+    reveal_answers = is_instructor
+    if not reveal_answers and assignment.show_correct_answers:
+        graded = (await db_session.execute(select(AssignmentUserSubmission).where(
+            AssignmentUserSubmission.assignment_id == assignment.id,
+            AssignmentUserSubmission.user_id == current_user.id,
+            AssignmentUserSubmission.submission_status == AssignmentUserSubmissionStatus.GRADED,
+        ))).scalars().first()
+        reveal_answers = graded is not None
+    return [_student_safe_task(task, reveal_answers) for task in tasks]
 
 
 async def read_assignment_task(
@@ -1087,8 +1124,16 @@ async def read_assignment_task(
     # RBAC check
     await authorize_assignment_access(request, db_session, current_user, course.course_uuid, AccessAction.READ)
 
-    # return assignment task read
-    return AssignmentTaskRead.model_validate(assignmenttask)
+    is_instructor = await _is_assignment_instructor(request, current_user, course.course_uuid, db_session)
+    reveal_answers = is_instructor
+    if not reveal_answers and assignment.show_correct_answers:
+        graded = (await db_session.execute(select(AssignmentUserSubmission).where(
+            AssignmentUserSubmission.assignment_id == assignment.id,
+            AssignmentUserSubmission.user_id == current_user.id,
+            AssignmentUserSubmission.submission_status == AssignmentUserSubmissionStatus.GRADED,
+        ))).scalars().first()
+        reveal_answers = graded is not None
+    return _student_safe_task(assignmenttask, reveal_answers)
 
 
 async def put_assignment_task_reference_file(
@@ -2277,6 +2322,7 @@ async def read_assignment_submissions(
                 int(sub.grade or 0),
                 max_grade,
                 assignment.grading_type,
+                passing_score=assignment.passing_score,
             )
         else:
             row["grade_display"] = None
@@ -2759,6 +2805,7 @@ async def _apply_grade_and_finalize(
         max_grade,
         assignment.grading_type,
         overall_feedback=assignment_user_submission.overall_feedback,
+        passing_score=assignment.passing_score,
     )
 
     computed["tasks"] = _build_tasks_breakdown(
@@ -2937,6 +2984,7 @@ async def get_grade_assignment_submission(
         max_grade,
         assignment.grading_type,
         overall_feedback=assignment_user_submission.overall_feedback,
+        passing_score=assignment.passing_score,
     )
     grade_obj["tasks"] = _build_tasks_breakdown(
         assignment_tasks,

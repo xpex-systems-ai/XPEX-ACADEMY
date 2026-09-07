@@ -26,13 +26,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.db.courses.assignments import AssignmentTaskTypeEnum, GradingTypeEnum
+from src.db.courses.assignments import AssignmentTask, AssignmentTaskTypeEnum, GradingTypeEnum
 from src.services.courses.activities.assignments import (
     AUTO_GRADABLE_TASK_TYPES,
     _check_number_answer,
     _check_short_answer,
     _grade_form_task,
     _grade_quiz_task,
+    _student_safe_task,
     _percentage_to_gpa,
     _percentage_to_letter_grade,
     _server_verified_task_grade,
@@ -151,13 +152,25 @@ def _quiz_submission(answers: dict):
 
 
 class TestGradeQuizTask:
+    def test_student_payload_hides_answer_key(self):
+        task = AssignmentTask(
+            id=1, assignment_task_uuid="assignmenttask_safe", creation_date="now", update_date="now",
+            title="Quiz", description="", hint="", assignment_type=AssignmentTaskTypeEnum.QUIZ,
+            contents=_quiz_contents(), max_grade_value=100, assignment_id=1, org_id=1,
+            course_id=1, chapter_id=1, activity_id=1,
+        )
+        safe = _student_safe_task(task, reveal_answers=False)
+        assert "assigned_right_answer" not in safe.model_dump_json()
+        revealed = _student_safe_task(task, reveal_answers=True)
+        assert revealed.contents["questions"][0]["options"][0]["assigned_right_answer"] is True
+
     def test_all_correct_earns_full_marks(self):
         # Correct = check 'a' (right) and leave 'b' unchecked → both options match
         sub = _quiz_submission({"a": True, "b": False})
         assert _grade_quiz_task(_quiz_contents(), sub, 100) == 100
 
     def test_partial_earns_proportional(self):
-        # 'a' correct, 'b' wrongly checked → 1 of 2 options correct → 50
+        # Legacy quizzes retain option-level partial credit.
         sub = _quiz_submission({"a": True, "b": True})
         assert _grade_quiz_task(_quiz_contents(), sub, 100) == 50
 
@@ -167,9 +180,11 @@ class TestGradeQuizTask:
         assert _grade_quiz_task(_quiz_contents(), sub, 100) == 0
 
     def test_missing_submission_treated_as_unchecked(self):
-        # No submissions at all: 'a' should be checked but isn't (wrong),
-        # 'b' should be unchecked and is (correct) → 1 of 2 → 50
         assert _grade_quiz_task(_quiz_contents(), {"submissions": []}, 100) == 50
+
+    def test_exact_question_mode_does_not_award_unselected_distractors(self):
+        contents = {**_quiz_contents(), "grading_mode": "exact_question"}
+        assert _grade_quiz_task(contents, {"submissions": []}, 100) == 0
 
     def test_zero_options_returns_zero(self):
         assert _grade_quiz_task({"questions": []}, {"submissions": []}, 100) == 0
@@ -349,6 +364,10 @@ class TestLetterAndGpaMapping:
 # compute_assignment_grade
 # --------------------------------------------------------------------------- #
 class TestComputeAssignmentGrade:
+    def test_configurable_passing_score_is_authoritative(self):
+        assert compute_assignment_grade(69, 100, GradingTypeEnum.PERCENTAGE, passing_score=70)["passed"] is False
+        assert compute_assignment_grade(70, 100, GradingTypeEnum.PERCENTAGE, passing_score=70)["passed"] is True
+
     def test_percentage_and_clamping(self):
         result = compute_assignment_grade(85, 100, GradingTypeEnum.NUMERIC)
         assert result["grade"] == 85
