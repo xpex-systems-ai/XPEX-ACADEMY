@@ -10,7 +10,6 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.security.features_utils.usage import refund_ai_credit
 from src.services.ai.base import ask_ai_stream
 from src.services.ai.llm import model_for_tier
