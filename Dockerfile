@@ -69,11 +69,12 @@ RUN bun run build
 # ───────────────────────────────────────────────
 FROM python:3.14.3-slim-bookworm AS runner
 
-# Single apt layer: nginx, curl, netcat, node, pm2, and audiovisual runtime.
+# Single apt layer: nginx, curl, netcat, node, pm2, audiovisual runtime, and
+# a deterministic font used by the built-in XPeX MP4 lesson bundle.
 # ffmpeg/ffprobe are required by the guarded XPeX video render/review pipeline.
 # espeak-ng is a deterministic Portuguese TTS fallback when no audited hosted TTS is configured.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx curl netcat-openbsd ca-certificates gnupg unzip build-essential ffmpeg espeak-ng \
+    && apt-get install -y --no-install-recommends nginx curl netcat-openbsd ca-certificates gnupg unzip build-essential ffmpeg espeak-ng fonts-dejavu-core \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g pm2 \
@@ -95,6 +96,11 @@ COPY ./apps/api/uv.lock ./apps/api/pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip uv \
     && uv sync --no-dev
 COPY ./apps/api ./
+
+# Build the official first-course MP4 bundle into the immutable container image.
+# The files are served by FastAPI from /xpex-media, so they survive every runtime
+# restart and are rebuilt automatically on every image deploy without object-storage credentials.
+RUN python scripts/generate_xpex_static_videos.py --output /app/xpex-static-videos
 
 # Remove Enterprise Edition folder for public builds
 ARG LEARNHOUSE_PUBLIC=false

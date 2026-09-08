@@ -16,6 +16,7 @@ import uvicorn
 from config.config import LearnHouseConfig, get_learnhouse_config
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from sentry_sdk.integrations.logging import LoggingIntegration
 from src.core.ee_hooks import register_ee_middlewares
 from src.core.events.events import shutdown_app, startup_app
@@ -59,6 +60,15 @@ register_ee_middlewares(app)
 
 app.add_event_handler("startup", startup_app(app))
 app.add_event_handler("shutdown", shutdown_app(app))
+
+# The first official XPeX course ships with deterministic browser-safe MP4 lessons
+# baked into the container image. Mounting with check_dir=False keeps local/dev
+# startup safe when that optional build artifact directory is absent.
+app.mount(
+    "/xpex-media",
+    StaticFiles(directory="/app/xpex-static-videos", check_dir=False),
+    name="xpex-media",
+)
 
 if learnhouse_config.hosting_config.content_delivery.type == "s3api":
     app.include_router(content_files_router)

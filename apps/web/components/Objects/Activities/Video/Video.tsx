@@ -88,7 +88,14 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
     })
 
   if (activity.activity_sub_type === 'SUBTYPE_VIDEO_HOSTED') {
-    const { src, isHls } = getVideoSource()
+    // Native uploaded LearnHouse videos are resolved through the activity content
+    // directory. XPeX also supports an explicit hosted URI for immutable MP4s baked
+    // into the production image; this keeps those first-course lessons durable
+    // without weakening the existing HLS/upload path.
+    const explicitHostedSrc = activity.content?.uri?.trim()
+    const { src, isHls } = explicitHostedSrc
+      ? { src: explicitHostedSrc, isHls: false }
+      : getVideoSource()
     if (!src) return <MissingVideo reason="A atividade está marcada como vídeo hospedado, mas ainda não possui arquivo de mídia publicado." />
     const thumbnails = isHls
       ? resolveHlsThumbnails(activity, {
@@ -106,11 +113,13 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
           filename: activity.content?.filename,
         }).src
       : undefined
-    const captions = resolveActivityCaptions(activity, {
-      orgUuid: resolvedOrgUuid,
-      courseUuid: course?.course_uuid,
-      activityUuid: activity.activity_uuid,
-    })
+    const captions = explicitHostedSrc
+      ? []
+      : resolveActivityCaptions(activity, {
+          orgUuid: resolvedOrgUuid,
+          courseUuid: course?.course_uuid,
+          activityUuid: activity.activity_uuid,
+        })
     return (
       <div className="w-full max-w-full px-0 sm:px-4">
         <div className="my-0 w-full sm:my-3 md:my-5">
