@@ -17,6 +17,7 @@ import {
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
+import { getUriWithOrg } from '@services/config/config'
 import Copilot from '../../orgs/[orgslug]/(withmenu)/copilot/copilot'
 
 const discoveryRows = [
@@ -58,7 +59,6 @@ export default async function XpexAiLabPage() {
   const completedLessons = courses.reduce((sum, course) => sum + (course.completed_lessons || 0), 0)
   const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
   const activeCourses = courses.filter(course => (course.progress_percent ?? 0) < 100).length
-  const orgBase = `/orgs/${learning.organization.slug}`
   const continueCourse = learning.data.continue_learning
   const gxStage = progress < 25 ? 'Fundamentos' : progress < 70 ? 'Construção prática' : 'Projeto e especialização'
   const gxRecommendation = progress < 25
@@ -131,7 +131,9 @@ export default async function XpexAiLabPage() {
             </div>
             <div className="flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
               {row.items.map(({ title, eyebrow, description, icon: Icon, href, action, ...item }) => {
-                const destination = href && 'orgRoute' in item && item.orgRoute ? `${orgBase}/${href}` : href
+                const destination = href && 'orgRoute' in item && item.orgRoute
+                  ? getUriWithOrg(learning.organization.slug, `/${href}`)
+                  : href
                 return <article key={title} className="group relative min-h-[245px] min-w-[280px] max-w-[340px] flex-1 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#0b1625] p-5 transition duration-300 hover:-translate-y-1 hover:border-orange-500/45 hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
                   <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_85%_10%,rgba(0,174,255,0.13),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(255,98,0,0.12),transparent_35%)]" />
                   <div className="relative z-10 flex h-full flex-col">
