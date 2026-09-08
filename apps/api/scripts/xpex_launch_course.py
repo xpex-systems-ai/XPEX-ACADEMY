@@ -21,6 +21,12 @@ from src.db.courses.activities import (
     ActivitySubTypeEnum,
     ActivityTypeEnum,
 )
+from src.db.courses.assignments import (
+    Assignment,
+    AssignmentTask,
+    AssignmentTaskTypeEnum,
+    GradingTypeEnum,
+)
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.chapters import Chapter, LockType
 from src.db.courses.course_chapters import CourseChapter
@@ -58,6 +64,74 @@ MODULES = [
     ("IA aplicada a negócios e carreira", "10-negocios-carreira.md"),
     ("Projeto final", "11-projeto-final.md"),
 ]
+
+ASSESSMENT_TITLE = "Avaliação — Fundamentos de Inteligência Artificial"
+ASSESSMENT_QUESTIONS = [
+    ("q1", "Qual relação descreve melhor IA e Machine Learning?", [("a", "Machine Learning é uma abordagem dentro do campo mais amplo da IA", True), ("b", "IA e Machine Learning são termos sem qualquer diferença", False), ("c", "Toda IA precisa aprender continuamente sozinha", False), ("d", "Machine Learning existe apenas para gerar textos", False)]),
+    ("q2", "O que caracteriza melhor uma aplicação de IA generativa?", [("a", "Apenas ordenar registros já existentes", False), ("b", "Produzir novo conteúdo com base em padrões aprendidos", True), ("c", "Garantir respostas factualmente corretas", False), ("d", "Substituir qualquer decisão humana", False)]),
+    ("q3", "Como tratar uma resposta convincente produzida por um modelo generativo?", [("a", "Aceitá-la porque fluência comprova precisão", False), ("b", "Descartá-la porque modelos sempre erram", False), ("c", "Validá-la, pois a saída é probabilística e pode conter alucinações", True), ("d", "Publicá-la antes de verificar para economizar tempo", False)]),
+    ("q4", "Qual tarefa é uma candidata mais adequada para automação com IA?", [("a", "Decidir autonomamente um tratamento médico crítico", False), ("b", "Condenar uma pessoa sem revisão", False), ("c", "Autorizar transferências atípicas sem controle", False), ("d", "Classificar rascunhos repetitivos com revisão das exceções", True)]),
+    ("q5", "Qual prática é proporcional ao risco de uma decisão apoiada por IA?", [("a", "Aumentar validação e supervisão humana conforme cresce o impacto", True), ("b", "Usar a mesma revisão mínima em todos os casos", False), ("c", "Ocultar incertezas do responsável", False), ("d", "Transferir integralmente a responsabilidade ao modelo", False)]),
+]
+
+
+async def _ensure_foundations_assessment(session: AsyncSession, org: Organization, course: Course) -> None:
+    chapter = (await session.execute(select(Chapter).where(Chapter.course_id == course.id, Chapter.name == MODULES[0][0]))).scalars().first()
+    if chapter is None:
+        raise RuntimeError("module one missing")
+    now = str(datetime.now(UTC))
+    activity = (await session.execute(select(Activity).where(Activity.course_id == course.id, Activity.name == ASSESSMENT_TITLE))).scalars().one_or_none()
+    if activity is None:
+        activity = Activity(name=ASSESSMENT_TITLE, activity_type=ActivityTypeEnum.TYPE_ASSIGNMENT, activity_sub_type=ActivitySubTypeEnum.SUBTYPE_ASSIGNMENT_ANY, content={}, details={"xpex_module": 1, "xpex_assessment": True}, published=True, lock_type=ActivityLockType.AUTHENTICATED, org_id=org.id, course_id=course.id, activity_uuid=f"activity_{uuid4()}", creation_date=now, update_date=now, extra_metadata={"xpex_assessment": "foundations-v1"})
+        session.add(activity)
+        await session.flush()
+        session.add(ChapterActivity(order=2, chapter_id=chapter.id, activity_id=activity.id, course_id=course.id, org_id=org.id, creation_date=now, update_date=now))
+    assignment = (await session.execute(select(Assignment).where(Assignment.activity_id == activity.id))).scalars().one_or_none()
+    if assignment is None:
+        assignment = Assignment(title=ASSESSMENT_TITLE, description="Avalie sua compreensão dos fundamentos, limitações e uso responsável da IA.", due_date="", published=True, grading_type=GradingTypeEnum.PERCENTAGE, auto_grading=True, show_correct_answers=True, allow_retries=True, max_retries=0, passing_score=70, org_id=org.id, course_id=course.id, chapter_id=chapter.id, activity_id=activity.id, assignment_uuid=f"assignment_{uuid4()}", creation_date=now, update_date=now)
+        session.add(assignment)
+        await session.flush()
+    else:
+        assignment.title = ASSESSMENT_TITLE
+        assignment.description = "Avalie sua compreensão dos fundamentos, limitações e uso responsável da IA."
+        assignment.published = True
+        assignment.grading_type = GradingTypeEnum.PERCENTAGE
+        assignment.auto_grading = True
+        assignment.show_correct_answers = True
+        assignment.allow_retries = True
+        assignment.max_retries = 0
+        assignment.passing_score = 70
+        assignment.update_date = now
+        session.add(assignment)
+    questions = [
+        {
+            "questionUUID": qid,
+            "questionText": prompt,
+            "options": [
+                {
+                    "optionUUID": f"{qid}-{option_id}",
+                    "text": label,
+                    "type": "text",
+                    "fileID": "",
+                    "assigned_right_answer": correct,
+                }
+                for option_id, label, correct in options
+            ],
+        }
+        for qid, prompt, options in ASSESSMENT_QUESTIONS
+    ]
+    task = (await session.execute(select(AssignmentTask).where(AssignmentTask.assignment_id == assignment.id))).scalars().first()
+    if task is None:
+        session.add(AssignmentTask(title="Fundamentos de IA", description="Selecione uma resposta em cada questão.", hint="Considere confiabilidade, risco e supervisão humana.", assignment_type=AssignmentTaskTypeEnum.QUIZ, contents={"grading_mode": "exact_question", "questions": questions}, max_grade_value=100, assignment_task_uuid=f"assignmenttask_{uuid4()}", creation_date=now, update_date=now, assignment_id=assignment.id, org_id=org.id, course_id=course.id, chapter_id=chapter.id, activity_id=activity.id))
+    else:
+        task.title = "Fundamentos de IA"
+        task.description = "Selecione uma resposta em cada questão."
+        task.hint = "Considere confiabilidade, risco e supervisão humana."
+        task.assignment_type = AssignmentTaskTypeEnum.QUIZ
+        task.contents = {"grading_mode": "exact_question", "questions": questions}
+        task.max_grade_value = 100
+        task.update_date = now
+        session.add(task)
 
 
 def _to_async_url(url: str) -> str:
@@ -372,6 +446,7 @@ async def run(org_slug: str, execute: bool, author_uuid: str | None) -> int:
                     await _ensure_module(
                         session, org, course, order, module_name, markdown_file
                     )
+                await _ensure_foundations_assessment(session, org, course)
                 await session.commit()
             except RuntimeError as exc:
                 await session.rollback()

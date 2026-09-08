@@ -18,6 +18,8 @@ import { CheckCircle2, XCircle } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query/keys'
 import { applyManualGrade } from './applyManualGrade'
 
 type NumberAnswerContents = {
@@ -67,6 +69,7 @@ function TaskNumberAnswerObject({
   const assignmentTaskState = useAssignmentsTask() as any
   const assignmentTaskStateHook = useAssignmentsTaskDispatch() as any
   const assignment = useAssignments() as any
+  const queryClient = useQueryClient()
   // Same reveal gate as the other task types: teacher must opt in, and the
   // submission must already be GRADED before any correct-answer hint appears.
   const assignmentSubmission = useAssignmentSubmission() as any
@@ -199,6 +202,11 @@ function TaskNumberAnswerObject({
     if (res.success) {
       setUserSubmissions(res.data)
       setInitialAnswer(studentAnswer)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.assignments.taskSubmission(
+          assignment.assignment_object.assignment_uuid
+        ),
+      })
       toast.success(t('dashboard.assignments.editor.toasts.task_saved'))
     } else {
       toast.error(t('dashboard.assignments.editor.toasts.task_save_error'))

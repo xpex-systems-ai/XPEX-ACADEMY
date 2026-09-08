@@ -18,6 +18,8 @@ import { CheckCircle2, Plus, X, XCircle } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query/keys'
 import { applyManualGrade } from './applyManualGrade'
 
 type MatchMode = 'exact' | 'case_insensitive' | 'contains' | 'regex'
@@ -70,6 +72,7 @@ function TaskShortAnswerObject({
   const assignmentTaskState = useAssignmentsTask() as any
   const assignmentTaskStateHook = useAssignmentsTaskDispatch() as any
   const assignment = useAssignments() as any
+  const queryClient = useQueryClient()
   // Student-only reveal: after the submission is GRADED and the teacher
   // opted into showing correct answers, inline the accepted answer list
   // next to the student's input.
@@ -219,6 +222,11 @@ function TaskShortAnswerObject({
     if (res.success) {
       setUserSubmissions(res.data)
       setInitialAnswer(studentAnswer)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.assignments.taskSubmission(
+          assignment.assignment_object.assignment_uuid
+        ),
+      })
       toast.success(t('dashboard.assignments.editor.toasts.task_saved'))
     } else {
       toast.error(t('dashboard.assignments.editor.toasts.task_save_error'))

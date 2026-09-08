@@ -1,6 +1,5 @@
 import { useAssignments } from '@components/Contexts/Assignments/AssignmentContext';
 import { useAssignmentSubmission, useAssignmentTaskSubmissions } from '@components/Contexts/Assignments/AssignmentSubmissionContext';
-import { useCourse } from '@components/Contexts/CourseContext';
 import { useOrg } from '@components/Contexts/OrgContext';
 import { getTaskRefFileDir } from '@services/media/media';
 import TaskFileObject from 'app/orgs/[orgslug]/dash/assignments/[assignmentuuid]/_components/TaskEditor/Subs/TaskTypes/TaskFileObject';
@@ -18,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 function AssignmentStudentActivity() {
   const { t } = useTranslation()
   const assignments = useAssignments() as any;
-  const _course = useCourse() as any;
   const org = useOrg() as any;
   const submission = useAssignmentSubmission() as any;
   const taskSubmissionsMap = useAssignmentTaskSubmissions() as Record<string, any> | null;
@@ -45,8 +43,8 @@ function AssignmentStudentActivity() {
   // "Not Passed" inline while the same score is "Pass" at the assignment
   // level — exactly the mismatch the teacher tried to avoid.
   const gradingType = assignments?.assignment_object?.grading_type;
-  const passingThreshold =
-    gradingType === 'ALPHABET' || gradingType === 'GPA_SCALE' ? 60 : 50;
+  const passingThreshold = Number(assignments?.assignment_object?.passing_score ??
+    (gradingType === 'ALPHABET' || gradingType === 'GPA_SCALE' ? 60 : 50));
 
   useEffect(() => {
   }, [assignments, org])

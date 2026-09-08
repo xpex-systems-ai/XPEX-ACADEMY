@@ -2,12 +2,12 @@ import asyncio
 import logging
 import math
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
 from fastapi import HTTPException, Request, UploadFile
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.courses.activities import Activity
 from src.db.courses.assignments import (
     Assignment,
@@ -34,29 +34,36 @@ from src.db.courses.courses import Course
 from src.db.organizations import Organization
 from src.db.trail_runs import TrailRun
 from src.db.trail_steps import TrailStep
-from src.db.users import AnonymousUser, PublicUser, User, APITokenUser
+from src.db.users import AnonymousUser, APITokenUser, PublicUser, User
 from src.security.features_utils.usage import (
     check_limits_with_usage,
     decrease_feature_usage,
     increase_feature_usage,
 )
 from src.security.rbac import (
-    authorization_verify_based_on_roles,
-    authorization_verify_api_token_permissions,
-    check_resource_access,
     AccessAction,
+    authorization_verify_api_token_permissions,
+    authorization_verify_based_on_roles,
+    check_resource_access,
 )
+from src.services.analytics import events as analytics_events
+from src.services.analytics.analytics import track
 from src.services.courses.activities.uploads.sub_file import upload_submission_file
 from src.services.courses.activities.uploads.tasks_ref_files import (
     upload_reference_file,
 )
+from src.services.courses.certifications import (
+    check_course_completion_and_create_certificate,
+)
 from src.services.trail.trail import check_trail_presence
-from src.services.courses.certifications import check_course_completion_and_create_certificate
-from src.services.analytics.analytics import track
-from src.services.analytics import events as analytics_events
 from src.services.webhooks.dispatch import dispatch_webhooks
 
 logger = logging.getLogger(__name__)
+
+
+def _local_now_naive() -> datetime:
+    """Return the local wall clock without tzinfo for legacy string timestamps."""
+    return datetime.now(UTC).astimezone().replace(tzinfo=None)
 
 
 def _block_api_tokens(current_user: PublicUser | AnonymousUser | APITokenUser) -> None:
@@ -145,8 +152,8 @@ def _is_assignment_past_due(assignment: Assignment) -> bool:
     due_date is stored as a free-form string. We parse it defensively: if it
     is empty or unparseable, we treat the deadline as NOT set (return False)
     so a malformed value never locks students out. Comparison is done with a
-    naive ``datetime.now()`` to match the rest of this module (all timestamps
-    here are naive local-time strings produced by ``datetime.now()``).
+    naive local clock to match the rest of this module (timestamps are
+    persisted as timezone-naive strings for backward compatibility).
     """
     raw = getattr(assignment, "due_date", None)
     if not raw or not str(raw).strip():
@@ -164,7 +171,7 @@ def _is_assignment_past_due(assignment: Assignment) -> bool:
     # by shifting the cutoff to the following midnight.
     if "T" not in raw_str and ":" not in raw_str:
         parsed = parsed + timedelta(days=1)
-    return parsed < datetime.now()
+    return parsed < _local_now_naive()
 
 
 ## > Grade computation
@@ -315,26 +322,56 @@ def _grade_quiz_task(contents: dict, submission_data: dict, task_max: int) -> in
         if q_uuid and o_uuid:
             answer_by_key[(q_uuid, o_uuid)] = bool(sub.get("answer"))
 
-    total_options = 0
-    correct_options = 0
+    exact_question_grading = contents.get("grading_mode") == "exact_question"
+    total_units = 0
+    correct_units = 0
     for question in questions:
         if not isinstance(question, dict):
             continue
         q_uuid = question.get("questionUUID")
         options = question.get("options") or []
+        if not options:
+            continue
+        if exact_question_grading:
+            total_units += 1
+        question_correct = True
         for option in options:
             if not isinstance(option, dict):
                 continue
-            total_options += 1
             o_uuid = option.get("optionUUID")
             expected = bool(option.get("assigned_right_answer"))
             student_answer = answer_by_key.get((q_uuid, o_uuid), False)
-            if student_answer == expected:
-                correct_options += 1
+            if not exact_question_grading:
+                total_units += 1
+                if student_answer == expected:
+                    correct_units += 1
+            if student_answer != expected:
+                question_correct = False
+        if exact_question_grading and question_correct:
+            correct_units += 1
 
-    if total_options == 0 or task_max <= 0:
+    if total_units == 0 or task_max <= 0:
         return 0
-    return round(correct_options / total_options * task_max)
+    return round(correct_units / total_units * task_max)
+
+
+def _student_safe_task(task: AssignmentTask, reveal_answers: bool) -> AssignmentTaskRead:
+    """Build a detached response and omit quiz answer keys until authorized."""
+    payload = AssignmentTaskRead.model_validate(task).model_dump()
+    if not reveal_answers and task.assignment_type == AssignmentTaskTypeEnum.QUIZ:
+        contents = dict(payload.get("contents") or {})
+        contents["questions"] = [
+            {
+                **question,
+                "options": [
+                    {key: value for key, value in option.items() if key != "assigned_right_answer"}
+                    for option in question.get("options", [])
+                ],
+            }
+            for question in contents.get("questions", [])
+        ]
+        payload["contents"] = contents
+    return AssignmentTaskRead.model_validate(payload)
 
 
 def _grade_form_task(contents: dict, submission_data: dict, task_max: int) -> int:
@@ -630,6 +667,7 @@ def compute_assignment_grade(
     max_grade: int,
     grading_type: GradingTypeEnum | str | None,
     overall_feedback: str | None = None,
+    passing_score: float | None = None,
 ) -> dict:
     """
     Build a normalized grade object from a raw grade sum and the configured
@@ -642,9 +680,8 @@ def compute_assignment_grade(
     - Produce a human-readable `display_grade` (the canonical string the UI
       renders), plus `letter_grade`, `points_summary`, and `percentage_display`
       as secondary formats the UI can show side-by-side without doing math.
-    - Flag `passed` using a mode-aware threshold so it stays consistent with
-      the display: ALPHABET/GPA_SCALE pass at 60% (D / 0.7), everything else
-      passes at 50%.
+    - Flag `passed` using the assignment's configured threshold when supplied.
+      Legacy callers without a configured value retain the mode-aware defaults.
 
     The backend intentionally stores only the raw integer sum in
     AssignmentUserSubmission.grade; all formatting is derived on read.
@@ -667,8 +704,12 @@ def compute_assignment_grade(
         else (grading_type or "NUMERIC")
     )
 
-    # Mode-aware passing threshold — keeps `passed` aligned with the display
-    if gt_value in ("ALPHABET", "GPA_SCALE"):
+    # The persisted assignment setting is authoritative for every display mode.
+    # Mode-aware defaults exist only for legacy direct callers that do not have
+    # an Assignment row to supply.
+    if passing_score is not None:
+        passing_threshold = float(passing_score)
+    elif gt_value in ("ALPHABET", "GPA_SCALE"):
         passing_threshold = LETTER_PASSING_THRESHOLD_PERCENTAGE
     else:
         passing_threshold = DEFAULT_PASSING_THRESHOLD_PERCENTAGE
@@ -738,8 +779,8 @@ async def create_assignment(
     assignment = Assignment(**assignment_object.model_dump())
 
     assignment.assignment_uuid = str(f"assignment_{uuid4()}")
-    assignment.creation_date = str(datetime.now())
-    assignment.update_date = str(datetime.now())
+    assignment.creation_date = str(_local_now_naive())
+    assignment.update_date = str(_local_now_naive())
     assignment.org_id = course.org_id
 
     # Insert Assignment in DB
@@ -848,7 +889,7 @@ async def update_assignment(
     for var, value in vars(assignment_object).items():
         if value is not None:
             setattr(assignment, var, value)
-    assignment.update_date = str(datetime.now())
+    assignment.update_date = str(_local_now_naive())
 
     # Insert Assignment in DB
     db_session.add(assignment)
@@ -986,8 +1027,8 @@ async def create_assignment_task(
     assignment_task = AssignmentTask(**assignment_task_object.model_dump())
 
     assignment_task.assignment_task_uuid = str(f"assignmenttask_{uuid4()}")
-    assignment_task.creation_date = str(datetime.now())
-    assignment_task.update_date = str(datetime.now())
+    assignment_task.creation_date = str(_local_now_naive())
+    assignment_task.update_date = str(_local_now_naive())
     assignment_task.org_id = course.org_id
     assignment_task.chapter_id = assignment.chapter_id
     assignment_task.activity_id = assignment.activity_id
@@ -1039,11 +1080,17 @@ async def read_assignment_tasks(
     # RBAC check
     await authorize_assignment_access(request, db_session, current_user, course.course_uuid, AccessAction.READ)
 
-    # return assignment tasks read
-    return [
-        AssignmentTaskRead.model_validate(assignment_task)
-        for assignment_task in (await db_session.execute(statement)).scalars().all()
-    ]
+    tasks = list((await db_session.execute(statement)).scalars().all())
+    is_instructor = await _is_assignment_instructor(request, current_user, course.course_uuid, db_session)
+    reveal_answers = is_instructor
+    if not reveal_answers and assignment.show_correct_answers:
+        graded = (await db_session.execute(select(AssignmentUserSubmission).where(
+            AssignmentUserSubmission.assignment_id == assignment.id,
+            AssignmentUserSubmission.user_id == current_user.id,
+            AssignmentUserSubmission.submission_status == AssignmentUserSubmissionStatus.GRADED,
+        ))).scalars().first()
+        reveal_answers = graded is not None
+    return [_student_safe_task(task, reveal_answers) for task in tasks]
 
 
 async def read_assignment_task(
@@ -1087,8 +1134,16 @@ async def read_assignment_task(
     # RBAC check
     await authorize_assignment_access(request, db_session, current_user, course.course_uuid, AccessAction.READ)
 
-    # return assignment task read
-    return AssignmentTaskRead.model_validate(assignmenttask)
+    is_instructor = await _is_assignment_instructor(request, current_user, course.course_uuid, db_session)
+    reveal_answers = is_instructor
+    if not reveal_answers and assignment.show_correct_answers:
+        graded = (await db_session.execute(select(AssignmentUserSubmission).where(
+            AssignmentUserSubmission.assignment_id == assignment.id,
+            AssignmentUserSubmission.user_id == current_user.id,
+            AssignmentUserSubmission.submission_status == AssignmentUserSubmissionStatus.GRADED,
+        ))).scalars().first()
+        reveal_answers = graded is not None
+    return _student_safe_task(assignmenttask, reveal_answers)
 
 
 async def put_assignment_task_reference_file(
@@ -1154,7 +1209,7 @@ async def put_assignment_task_reference_file(
         # Update reference file
         assignment_task.reference_file = name_in_disk
 
-    assignment_task.update_date = str(datetime.now())
+    assignment_task.update_date = str(_local_now_naive())
 
     # Insert Assignment Task in DB
     db_session.add(assignment_task)
@@ -1283,7 +1338,7 @@ async def update_assignment_task(
     for var, value in vars(assignment_task_object).items():
         if value is not None:
             setattr(assignment_task, var, value)
-    assignment_task.update_date = str(datetime.now())
+    assignment_task.update_date = str(_local_now_naive())
 
     # Insert Assignment Task in DB
     db_session.add(assignment_task)
@@ -1534,7 +1589,7 @@ async def handle_assignment_task_submission(
         for var, value in vars(assignment_task_submission_object).items():
             if value is not None and var in _ASSIGNMENT_TASK_SUBMISSION_MUTABLE_FIELDS:
                 setattr(assignment_task_submission, var, value)
-        assignment_task_submission.update_date = str(datetime.now())
+        assignment_task_submission.update_date = str(_local_now_naive())
 
         # Insert Assignment Task Submission in DB
         db_session.add(assignment_task_submission)
@@ -1543,7 +1598,7 @@ async def handle_assignment_task_submission(
 
     else:
         # Create new Task submission
-        current_time = str(datetime.now())
+        current_time = str(_local_now_naive())
 
         # Assuming model_dump() returns a dictionary
         model_data = assignment_task_submission_object.model_dump()
@@ -1872,7 +1927,7 @@ async def update_assignment_task_submission(
     for var, value in vars(assignment_task_submission_object).items():
         if value is not None:
             setattr(assignment_task_submission, var, value)
-    assignment_task_submission.update_date = str(datetime.now())
+    assignment_task_submission.update_date = str(_local_now_naive())
 
     # Insert Assignment Task Submission in DB
     db_session.add(assignment_task_submission)
@@ -2038,8 +2093,8 @@ async def create_assignment_submission(
             AssignmentUserSubmissionStatus.SUBMITTED
         )
         assignment_user_submission.grade = 0
-        assignment_user_submission.creation_date = str(datetime.now())
-        assignment_user_submission.update_date = str(datetime.now())
+        assignment_user_submission.creation_date = str(_local_now_naive())
+        assignment_user_submission.update_date = str(_local_now_naive())
     else:
         assignment_user_submission = AssignmentUserSubmission(
             user_id=submitter.id,
@@ -2048,8 +2103,8 @@ async def create_assignment_submission(
             assignmentusersubmission_uuid=str(f"assignmentusersubmission_{uuid4()}"),
             submission_status=AssignmentUserSubmissionStatus.SUBMITTED,
             attempt_number=1,
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(_local_now_naive()),
+            update_date=str(_local_now_naive()),
         )
 
     # Insert Assignment User Submission in DB
@@ -2123,8 +2178,8 @@ async def create_assignment_submission(
             course_id=course.id if course.id is not None else 0,
             org_id=course.org_id,
             user_id=user.id,  # type: ignore
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(_local_now_naive()),
+            update_date=str(_local_now_naive()),
         )
         db_session.add(trailrun)
         await db_session.commit()
@@ -2148,8 +2203,8 @@ async def create_assignment_submission(
             teacher_verified=False,
             grade="",
             user_id=user.id, # type: ignore
-            creation_date=str(datetime.now()),
-            update_date=str(datetime.now()),
+            creation_date=str(_local_now_naive()),
+            update_date=str(_local_now_naive()),
         )
         db_session.add(trailstep)
         await db_session.commit()
@@ -2161,7 +2216,7 @@ async def create_assignment_submission(
         # back in SUBMITTED state. The first-submission branch above sets
         # complete=True; this keeps the reuse path consistent.
         trailstep.complete = True
-        trailstep.update_date = str(datetime.now())
+        trailstep.update_date = str(_local_now_naive())
         db_session.add(trailstep)
         await db_session.commit()
         await db_session.refresh(trailstep)
@@ -2199,7 +2254,7 @@ async def create_assignment_submission(
             # above already created it with complete=True, but if one already
             # existed from a previous state we make sure it's marked done).
             trailstep.complete = True
-            trailstep.update_date = str(datetime.now())
+            trailstep.update_date = str(_local_now_naive())
             db_session.add(trailstep)
             await db_session.commit()
 
@@ -2277,6 +2332,7 @@ async def read_assignment_submissions(
                 int(sub.grade or 0),
                 max_grade,
                 assignment.grading_type,
+                passing_score=assignment.passing_score,
             )
         else:
             row["grade_display"] = None
@@ -2414,7 +2470,7 @@ async def update_assignment_submission(
     for var, value in vars(assignment_user_submission_object).items():
         if value is not None:
             setattr(assignment_user_submission, var, value)
-    assignment_user_submission.update_date = str(datetime.now())
+    assignment_user_submission.update_date = str(_local_now_naive())
 
     # Insert Assignment User Submission in DB
     db_session.add(assignment_user_submission)
@@ -2484,7 +2540,7 @@ async def delete_assignment_submission(
         trailstep.complete = False
         trailstep.teacher_verified = False
         trailstep.grade = ""
-        trailstep.update_date = str(datetime.now())
+        trailstep.update_date = str(_local_now_naive())
         db_session.add(trailstep)
 
     # If a course certificate was already issued to this user (the activity
@@ -2630,7 +2686,7 @@ async def retry_assignment_submission(
         trailstep.complete = False
         trailstep.teacher_verified = False
         trailstep.grade = ""
-        trailstep.update_date = str(datetime.now())
+        trailstep.update_date = str(_local_now_naive())
         db_session.add(trailstep)
 
     # Revoke any course certificate previously issued. If this assignment
@@ -2657,7 +2713,7 @@ async def retry_assignment_submission(
     assignment_user_submission.grade = 0
     assignment_user_submission.overall_feedback = None
     assignment_user_submission.attempt_number = current_attempt + 1
-    assignment_user_submission.update_date = str(datetime.now())
+    assignment_user_submission.update_date = str(_local_now_naive())
     db_session.add(assignment_user_submission)
 
     await db_session.commit()
@@ -2759,6 +2815,7 @@ async def _apply_grade_and_finalize(
         max_grade,
         assignment.grading_type,
         overall_feedback=assignment_user_submission.overall_feedback,
+        passing_score=assignment.passing_score,
     )
 
     computed["tasks"] = _build_tasks_breakdown(
@@ -2937,6 +2994,7 @@ async def get_grade_assignment_submission(
         max_grade,
         assignment.grading_type,
         overall_feedback=assignment_user_submission.overall_feedback,
+        passing_score=assignment.passing_score,
     )
     grade_obj["tasks"] = _build_tasks_breakdown(
         assignment_tasks,
@@ -3012,7 +3070,7 @@ async def mark_activity_as_done_for_user(
 
     # Mark activity as done
     trailstep.complete = True
-    trailstep.update_date = str(datetime.now())
+    trailstep.update_date = str(_local_now_naive())
 
     # Insert TrailStep in DB
     db_session.add(trailstep)
