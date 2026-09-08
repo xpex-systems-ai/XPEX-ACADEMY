@@ -13,6 +13,7 @@ import {
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
+import { getUriWithOrg } from '@services/config/config'
 
 const projectTemplates = [
   {
@@ -53,7 +54,8 @@ export default async function XpexAiLabProjectsPage() {
   const learning = await getAuthorizedStudentLearning('/xpex/ai-lab/projects')
   if (!learning) return <XpexStudentDenied />
 
-  const orgBase = `/orgs/${learning.organization.slug}`
+  const boardsHref = getUriWithOrg(learning.organization.slug, '/boards')
+  const libraryHref = getUriWithOrg(learning.organization.slug, '/library')
   const courses = learning.data.courses
   const totalLessons = courses.reduce((sum, course) => sum + (course.total_lessons || 0), 0)
   const completedLessons = courses.reduce((sum, course) => sum + (course.completed_lessons || 0), 0)
@@ -80,8 +82,8 @@ export default async function XpexAiLabProjectsPage() {
               <h2 className="mt-4 text-4xl font-black md:text-5xl">Do curso para um projeto demonstrável.</h2>
               <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX, organize tarefas e decisões em Boards e mantenha fontes e materiais na Library. A XPeX não inventa conclusão de projeto: a evidência continua sendo produzida por você.</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`${orgBase}/boards`} className="xpex-primary"><FolderKanban size={17}/> Abrir Boards</Link>
-                <Link href={`${orgBase}/library`} className="xpex-secondary"><LibraryBig size={17}/> Abrir Library</Link>
+                <Link href={boardsHref} className="xpex-primary"><FolderKanban size={17}/> Abrir Boards</Link>
+                <Link href={libraryHref} className="xpex-secondary"><LibraryBig size={17}/> Abrir Library</Link>
                 <Link href="/xpex/ai-lab#gx-copilot" className="xpex-secondary"><Bot size={17}/> Abrir GX</Link>
               </div>
             </div>
@@ -126,8 +128,8 @@ export default async function XpexAiLabProjectsPage() {
 
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   <Link href="/xpex/ai-lab#gx-copilot" className="xpex-primary"><Bot size={16}/> Trabalhar com GX</Link>
-                  <Link href={`${orgBase}/boards`} className="xpex-secondary">Planejar no Board <ArrowRight size={15}/></Link>
-                  <Link href={`${orgBase}/library`} className="xpex-secondary">Guardar fontes <ArrowRight size={15}/></Link>
+                  <Link href={boardsHref} className="xpex-secondary">Planejar no Board <ArrowRight size={15}/></Link>
+                  <Link href={libraryHref} className="xpex-secondary">Guardar fontes <ArrowRight size={15}/></Link>
                 </div>
               </article>
             ))}
