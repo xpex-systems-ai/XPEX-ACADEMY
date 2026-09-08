@@ -27,6 +27,18 @@ if [ -n "$LEARNHOUSE_SQL_CONNECTION_STRING" ]; then
     fi
 fi
 
+# Database schema must match the running application before any XPeX bootstrap
+# touches current ORM models. Fail closed: do not start the app on a stale schema.
+echo "XPEX_DB_MIGRATION upgrade=head requested"
+if ! (
+    cd /app/api || exit 88
+    .venv/bin/alembic upgrade head
+); then
+    echo "XPEX_DB_MIGRATION BLOCKED upgrade=head failed"
+    exit 88
+fi
+echo "XPEX_DB_MIGRATION PASS upgrade=head"
+
 # Optional guarded first-course bootstrap. Disabled by default. It is idempotent,
 # refuses ambiguous organization/course/author scope, and keeps startup alive if
 # the operation is blocked. Run it before enrollment so the course exists first.
