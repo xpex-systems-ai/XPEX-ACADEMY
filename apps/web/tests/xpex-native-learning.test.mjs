@@ -4,7 +4,7 @@ import {
   concealCachedQuizAnswers,
   getAssessmentProgress,
   getAttemptNumber,
-} from '../app/xpex/courses/[courseId]/learn/[activityId]/assessment-flow.ts'
+} from '../lib/assignments/assessment-flow.ts'
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
@@ -41,6 +41,7 @@ describe('native XpeX student learning', () => {
     const studentActivity = read('components/Objects/Activities/Assignment/AssignmentStudentActivity.tsx')
     const shortAnswer = read('app/orgs/[orgslug]/dash/assignments/[assignmentuuid]/_components/TaskEditor/Subs/TaskTypes/TaskShortAnswerObject.tsx')
     const numberAnswer = read('app/orgs/[orgslug]/dash/assignments/[assignmentuuid]/_components/TaskEditor/Subs/TaskTypes/TaskNumberAnswerObject.tsx')
+    const legacyActivity = read('app/orgs/[orgslug]/(withmenu)/course/[courseuuid]/activity/[activityid]/activity.tsx')
     const activities = read('app/xpex/activities/page.tsx')
     expect(player).toContain("activity.activity_type === 'TYPE_ASSIGNMENT'")
     expect(player).toContain('orgUuid={orgUuid}')
@@ -54,6 +55,9 @@ describe('native XpeX student learning', () => {
     expect(studentActivity).not.toContain('useCourse()')
     expect(shortAnswer).toContain('queryKeys.assignments.taskSubmission')
     expect(numberAnswer).toContain('queryKeys.assignments.taskSubmission')
+    expect(legacyActivity).toContain('AssignmentStudentAttempt')
+    expect(legacyActivity).toContain('concealCachedQuizAnswers')
+    expect(legacyActivity).toContain('queryKeys.assignments.tasks')
     expect(activities).toContain('<h2>Avaliações</h2>')
   })
 

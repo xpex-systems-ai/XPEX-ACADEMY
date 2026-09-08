@@ -40,6 +40,10 @@ import ActivityIndicators from '@components/Pages/Courses/ActivityIndicators'
 import UserAvatar from '@components/Objects/UserAvatar'
 import { useTranslation } from 'react-i18next'
 import { useLHAnalytics, AnalyticsEvent } from '@services/analytics'
+import {
+  concealCachedQuizAnswers,
+  getAttemptNumber,
+} from '@/lib/assignments/assessment-flow'
 
 const ReactConfetti = dynamic(() => import('react-confetti'), { ssr: false })
 
@@ -56,6 +60,16 @@ const ScormActivity = lazy(() => import('../../../../../../../../ee/components/A
 const MarkdownActivity = lazy(() => import('@components/Objects/Activities/Markdown/MarkdownActivity'))
 const EmbedActivity = lazy(() => import('@components/Objects/Activities/Embed/EmbedActivity'))
 const ResourceActivity = lazy(() => import('@components/Objects/Activities/Resource/ResourceActivity'))
+
+function AssignmentStudentAttempt() {
+  const submission = useAssignmentSubmission()
+  const attemptNumber = getAttemptNumber(submission)
+  return (
+    <AssignmentsTaskProvider key={`assignment-attempt-${attemptNumber}`}>
+      <AssignmentStudentActivity />
+    </AssignmentsTaskProvider>
+  )
+}
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -346,9 +360,7 @@ function ActivityClient(props: ActivityClientProps) {
                 requests, adding an extra round-trip phase. */}
             <AssignmentSubmissionProvider assignment_uuid={assignment?.assignment_uuid}>
               <AssignmentProvider assignment_uuid={assignment?.assignment_uuid}>
-                <AssignmentsTaskProvider>
-                  <AssignmentStudentActivity />
-                </AssignmentsTaskProvider>
+                <AssignmentStudentAttempt />
               </AssignmentProvider>
             </AssignmentSubmissionProvider>
           </Suspense>
@@ -1457,8 +1469,11 @@ function AssignmentTools(props: {
       )
       if (res.success) {
         toast.success(t('assignments.assignment_submitted_success'))
-        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.submission(props.assignment?.assignment_uuid) })
-        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.taskSubmission(props.assignment?.assignment_uuid) })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.assignments.submission(props.assignment.assignment_uuid) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.assignments.taskSubmission(props.assignment.assignment_uuid) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.assignments.tasks(props.assignment.assignment_uuid) }),
+        ])
       }
       else {
         toast.error(t('assignments.failed_submit_assignment'))
@@ -1477,10 +1492,15 @@ function AssignmentTools(props: {
       );
       if (res.success) {
         toast.success(t('assignments.retry_assignment_success'));
-        // Pull the fresh per-task batch + the user submission so the task
-        // editors snap back to an empty state without a hard reload.
-        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.submission(props.assignment?.assignment_uuid) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.assignments.taskSubmission(props.assignment?.assignment_uuid) });
+        const tasksKey = queryKeys.assignments.tasks(props.assignment.assignment_uuid);
+        // Hide any revealed quiz key synchronously, then refetch every cache
+        // affected by the server-side attempt reset.
+        queryClient.setQueryData(tasksKey, concealCachedQuizAnswers);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.assignments.submission(props.assignment.assignment_uuid) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.assignments.taskSubmission(props.assignment.assignment_uuid) }),
+          queryClient.invalidateQueries({ queryKey: tasksKey }),
+        ]);
         setGradeData(null);
         setIsGradeModalOpen(false);
         // Re-arm the auto-open on this fresh attempt so the next graded

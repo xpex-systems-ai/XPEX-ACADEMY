@@ -23,7 +23,7 @@ import {
   concealCachedQuizAnswers,
   getAssessmentProgress,
   getAttemptNumber,
-} from './assessment-flow'
+} from '@/lib/assignments/assessment-flow'
 
 function AssessmentActions({ assignmentUuid, courseUuid }: { assignmentUuid: string; courseUuid: string }) {
   const session = useLHSession() as any
