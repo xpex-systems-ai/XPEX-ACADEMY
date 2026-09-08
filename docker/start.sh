@@ -85,6 +85,19 @@ if [ "${XPEX_OPS_ENROLL_ON_START:-0}" = "1" ]; then
     fi
 fi
 
+# First standard student-flow bootstrap/readiness certification. By default this
+# follows the existing OPS enrollment switch so environments already using the
+# controlled learner bootstrap gain the full guarded course/assessment/certificate
+# readiness check without any new secret or credential configuration. Set
+# XPEX_FIRST_STUDENT_FLOW_ON_START=0 explicitly to disable it independently.
+if [ "${XPEX_FIRST_STUDENT_FLOW_ON_START:-${XPEX_OPS_ENROLL_ON_START:-0}}" = "1" ]; then
+    echo "XPEX_FIRST_FLOW bootstrap requested"
+    (
+        cd /app/api || exit 91
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_first_student_flow.py --execute
+    ) || echo "XPEX_FIRST_FLOW bootstrap blocked; application startup will continue"
+fi
+
 # Start the services
 # Use server-wrapper.js for runtime environment variable injection
 PORT="$WEB_PORT" pm2 start server-wrapper.js --cwd /app/web --name learnhouse-web > /dev/null 2>&1
