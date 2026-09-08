@@ -14,19 +14,20 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from config.config import get_learnhouse_config
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
-
 from scripts.xpex_launch_course import (
     ASSESSMENT_TITLE,
     COURSE_NAME,
     COURSE_SLUG,
     MODULES,
     _to_async_url,
+)
+from scripts.xpex_launch_course import (
     run as launch_course,
 )
 from scripts.xpex_ops_enroll import run as ensure_enrollment
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.courses.activities import Activity, ActivityTypeEnum
 from src.db.courses.assignments import Assignment, AssignmentTask
 from src.db.courses.certifications import Certifications
