@@ -6,16 +6,16 @@ grounded in course content.
 """
 
 import logging
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.security.features_utils.usage import refund_ai_credit
-from src.services.ai.rag.embedding_service import embed_single_text
 from src.services.ai.base import ask_ai_stream
 from src.services.ai.llm import model_for_tier
 from src.services.ai.llm.provider import AINotConfiguredError
+from src.services.ai.rag.embedding_service import embed_single_text
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ async def query_course_rag(
     question: str,
     org_id: int,
     db_session: AsyncSession,
-    course_id: Optional[int] = None,
+    course_id: int | None = None,
     top_k: int = TOP_K,
 ) -> dict:
     """
@@ -118,7 +118,7 @@ async def query_course_rag(
     return {"context": context, "sources": sources}
 
 
-async def _provider_unavailable_stream() -> AsyncGenerator[str, None]:
+async def _provider_unavailable_stream() -> AsyncGenerator[str]:
     """Return a truthful student-facing status instead of leaking a provider exception."""
     yield (
         "O assistente GX está temporariamente indisponível porque o provedor de IA "
@@ -132,9 +132,9 @@ async def query_course_rag_stream(
     org_id: int,
     db_session: AsyncSession,
     message_history: list,
-    course_id: Optional[int] = None,
+    course_id: int | None = None,
     mode: str = "course_only",
-) -> tuple[AsyncGenerator[str, None], list[dict]]:
+) -> tuple[AsyncGenerator[str], list[dict]]:
     """Perform RAG retrieval and return a streaming LLM response."""
     try:
         rag_result = await query_course_rag(
@@ -150,8 +150,14 @@ async def query_course_rag_stream(
         try:
             refund_ai_credit(org_id, 2)
         except Exception:
-            logger.warning("Could not refund RAG credits after provider-unavailable state", exc_info=True)
-        logger.warning("RAG provider unavailable for org_id=%s; returning controlled status", org_id)
+            logger.warning(
+                "Could not refund RAG credits after provider-unavailable state",
+                exc_info=True,
+            )
+        logger.warning(
+            "RAG provider unavailable for org_id=%s; returning controlled status",
+            org_id,
+        )
         return _provider_unavailable_stream(), []
 
     context = rag_result["context"]
