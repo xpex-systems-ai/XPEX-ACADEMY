@@ -132,7 +132,7 @@ async def test_video_uses_hf_routed_fal_queue_and_downloads_result(monkeypatch):
     assert method == "POST"
     assert submit_url == (
         "https://router.huggingface.co/fal-ai/"
-        "fal-ai/wan/v2.2-5b/text-to-video?_subdomain=queue"
+        "wan/v2.2-5b/text-to-video?_subdomain=queue"
     )
     assert kwargs["json"] == {"prompt": "browser animation"}
     assert kwargs["headers"]["Authorization"] == "Bearer server-only-test-token"
