@@ -15,6 +15,7 @@ env:
   REGION: us-central1
   ARTIFACT_REPOSITORY: xpex-academy-staging
   IMAGE_NAME: xpex-academy-api
+  GCP_STAGING_BUILD_ENABLED: ${{ vars.GCP_STAGING_BUILD_ENABLED }}
 
 jobs:
   validate:
@@ -37,10 +38,33 @@ jobs:
       - name: Container runtime tests
         run: bash tests/test_container_runtime.sh
 
-  build:
+  staging-mode:
+    name: Report GCP staging mode
     needs: validate
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
+    steps:
+      - name: Report whether the optional GCP build is enabled
+        run: |
+          set -euo pipefail
+          case "${GCP_STAGING_BUILD_ENABLED:-}" in
+            true)
+              echo "GCP staging image build enabled by GCP_STAGING_BUILD_ENABLED=true."
+              ;;
+            ""|false)
+              echo "::notice::GCP staging image build is disabled. Set the repository variable GCP_STAGING_BUILD_ENABLED=true only after the staging Workload Identity configuration is ready."
+              ;;
+            *)
+              echo "::error::GCP_STAGING_BUILD_ENABLED must be either true or false."
+              exit 1
+              ;;
+          esac
+
+  build:
+    name: Build optional GCP staging image
+    needs: [validate, staging-mode]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && vars.GCP_STAGING_BUILD_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
