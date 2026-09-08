@@ -13,11 +13,18 @@ test('AI lab exposes the real project workspace', () => {
 
 test('LAB-002 preserves LearnHouse-native project boundaries', () => {
   assert.match(projects, /getAuthorizedStudentLearning\('\/xpex\/ai-lab\/projects'\)/)
-  assert.match(projects, /\/orgs\/\$\{learning\.organization\.slug\}/)
+  assert.match(projects, /getUriWithOrg\(learning\.organization\.slug, '\/boards'\)/)
+  assert.match(projects, /getUriWithOrg\(learning\.organization\.slug, '\/library'\)/)
+  assert.doesNotMatch(projects, /`\/orgs\/\$\{learning\.organization\.slug\}`/)
   assert.match(projects, /Abrir Boards/)
   assert.match(projects, /Abrir Library/)
   assert.match(projects, /Sem bypass de ACL/)
   assert.match(projects, /Execução isolada de código, modelos e datasets privados continua fora deste bloco/)
+})
+
+test('AI lab cards use canonical tenant-aware routes for Boards and Library', () => {
+  assert.match(lab, /getUriWithOrg\(learning\.organization\.slug, `\/\$\{href\}`\)/)
+  assert.doesNotMatch(lab, /`\/orgs\/\$\{learning\.organization\.slug\}`/)
 })
 
 test('project templates require evidence instead of fake completion', () => {
