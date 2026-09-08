@@ -34,8 +34,8 @@ const discoveryRows = [
     subtitle: 'Saia do consumo passivo e transforme aprendizado em artefatos, decisões e evidências.',
     items: [
       { title: 'Workspace de Projetos GX', eyebrow: 'LAB-002', description: 'Templates de Prompt Engineering, RAG, Automação e Projeto Final.', icon: FolderKanban, href: '/xpex/ai-lab/projects', action: 'Abrir workspace' },
-      { title: 'Boards', eyebrow: 'Core LearnHouse', description: 'Planeje tarefas, milestones e entregas no domínio colaborativo nativo.', icon: Workflow, href: 'boards', action: 'Planejar projeto', orgRoute: true },
-      { title: 'Library', eyebrow: 'Core LearnHouse', description: 'Organize fontes, materiais e referências autorizadas da organização.', icon: LibraryBig, href: 'library', action: 'Organizar fontes', orgRoute: true },
+      { title: 'Boards', eyebrow: 'Core LearnHouse', description: 'Planeje tarefas, milestones e entregas no domínio colaborativo nativo.', icon: Workflow, href: '/boards', action: 'Planejar projeto' },
+      { title: 'Library', eyebrow: 'Core LearnHouse', description: 'Organize fontes, materiais e referências autorizadas da organização.', icon: LibraryBig, href: '/library', action: 'Organizar fontes' },
     ],
   },
   {
@@ -58,7 +58,6 @@ export default async function XpexAiLabPage() {
   const completedLessons = courses.reduce((sum, course) => sum + (course.completed_lessons || 0), 0)
   const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
   const activeCourses = courses.filter(course => (course.progress_percent ?? 0) < 100).length
-  const orgBase = `/orgs/${learning.organization.slug}`
   const continueCourse = learning.data.continue_learning
   const gxStage = progress < 25 ? 'Fundamentos' : progress < 70 ? 'Construção prática' : 'Projeto e especialização'
   const gxRecommendation = progress < 25
@@ -130,18 +129,17 @@ export default async function XpexAiLabPage() {
               </div>
             </div>
             <div className="flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
-              {row.items.map(({ title, eyebrow, description, icon: Icon, href, action, ...item }) => {
-                const destination = href && 'orgRoute' in item && item.orgRoute ? `${orgBase}/${href}` : href
-                return <article key={title} className="group relative min-h-[245px] min-w-[280px] max-w-[340px] flex-1 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#0b1625] p-5 transition duration-300 hover:-translate-y-1 hover:border-orange-500/45 hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
+              {row.items.map(({ title, eyebrow, description, icon: Icon, href, action }) => (
+                <article key={title} className="group relative min-h-[245px] min-w-[280px] max-w-[340px] flex-1 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#0b1625] p-5 transition duration-300 hover:-translate-y-1 hover:border-orange-500/45 hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
                   <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_85%_10%,rgba(0,174,255,0.13),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(255,98,0,0.12),transparent_35%)]" />
                   <div className="relative z-10 flex h-full flex-col">
                     <div className="flex items-start justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">{eyebrow}</span><Icon className="text-cyan-400" size={24}/></div>
                     <h3 className="mt-5 text-xl font-black">{title}</h3>
                     <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
-                    {destination ? <Link href={destination} className="mt-auto pt-6 text-sm font-black text-white transition group-hover:text-orange-400">{action} <ArrowRight className="inline" size={15}/></Link> : <span className="mt-auto pt-6 text-sm font-black text-slate-500">{action}</span>}
+                    {href ? <Link href={href} className="mt-auto pt-6 text-sm font-black text-white transition group-hover:text-orange-400">{action} <ArrowRight className="inline" size={15}/></Link> : <span className="mt-auto pt-6 text-sm font-black text-slate-500">{action}</span>}
                   </div>
                 </article>
-              })}
+              ))}
             </div>
           </section>
         ))}

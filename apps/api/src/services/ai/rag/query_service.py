@@ -6,14 +6,15 @@ grounded in course content.
 """
 
 import logging
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.services.ai.rag.embedding_service import embed_single_text
+from src.security.features_utils.usage import refund_ai_credit
 from src.services.ai.base import ask_ai_stream
 from src.services.ai.llm import model_for_tier
+from src.services.ai.llm.provider import AINotConfiguredError
+from src.services.ai.rag.embedding_service import embed_single_text
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ async def query_course_rag(
     question: str,
     org_id: int,
     db_session: AsyncSession,
-    course_id: Optional[int] = None,
+    course_id: int | None = None,
     top_k: int = TOP_K,
 ) -> dict:
     """
@@ -40,10 +41,7 @@ async def query_course_rag(
     Returns:
         {context: str, sources: list[dict]}
     """
-    # Embed the question
     query_embedding = await embed_single_text(question)
-
-    # Build the similarity search query
     embedding_str = "[" + ",".join(str(v) for v in query_embedding) + "]"
 
     if course_id is not None:
@@ -87,10 +85,9 @@ async def query_course_rag(
     if not results:
         return {"context": "", "sources": []}
 
-    # Build numbered context and deduplicated source list
     context_parts = []
     sources = []
-    seen_sources = {}  # source_key -> source index (1-based)
+    seen_sources = {}
     source_index = 0
 
     for row in results:
@@ -100,7 +97,6 @@ async def query_course_rag(
         course_name = row.course_name
         source_type = row.source_type
 
-        # Deduplicate sources and assign a stable number
         source_key = (row.activity_uuid, row.source_type, row.block_uuid)
         if source_key not in seen_sources:
             source_index += 1
@@ -121,32 +117,51 @@ async def query_course_rag(
     return {"context": context, "sources": sources}
 
 
+async def _provider_unavailable_stream() -> AsyncGenerator[str]:
+    """Return a truthful student-facing status instead of leaking a provider exception."""
+    yield (
+        "O assistente GX está temporariamente indisponível porque o provedor de IA "
+        "ainda não está configurado neste ambiente. Seu curso, progresso e atividades "
+        "continuam disponíveis normalmente."
+    )
+
+
 async def query_course_rag_stream(
     question: str,
     org_id: int,
     db_session: AsyncSession,
     message_history: list,
-    course_id: Optional[int] = None,
+    course_id: int | None = None,
     mode: str = "course_only",
-) -> tuple[AsyncGenerator[str, None], list[dict]]:
-    """
-    Perform RAG retrieval and return a streaming LLM response.
-
-    Returns:
-        Tuple of (stream_generator, sources)
-    """
-    # Retrieve relevant context
-    rag_result = await query_course_rag(
-        question=question,
-        org_id=org_id,
-        db_session=db_session,
-        course_id=course_id,
-    )
+) -> tuple[AsyncGenerator[str], list[dict]]:
+    """Perform RAG retrieval and return a streaming LLM response."""
+    try:
+        rag_result = await query_course_rag(
+            question=question,
+            org_id=org_id,
+            db_session=db_session,
+            course_id=course_id,
+        )
+    except AINotConfiguredError:
+        # api_rag_chat reserves two credits immediately before calling this service.
+        # A missing provider is an operator configuration state, not student usage.
+        # Refund the reservation and return a controlled SSE response instead of a 500.
+        try:
+            refund_ai_credit(org_id, 2)
+        except Exception:
+            logger.warning(
+                "Could not refund RAG credits after provider-unavailable state",
+                exc_info=True,
+            )
+        logger.warning(
+            "RAG provider unavailable for org_id=%s; returning controlled status",
+            org_id,
+        )
+        return _provider_unavailable_stream(), []
 
     context = rag_result["context"]
     sources = rag_result["sources"]
 
-    # Build the grounding prompt based on mode
     citation_instructions = (
         "IMPORTANT: When referencing information from the provided sources, use numbered citations "
         "like [1], [2], etc. matching the source numbers. Do NOT write out full source names, "
@@ -166,7 +181,6 @@ async def query_course_rag_stream(
             f"Course Content:\n{context}"
         )
     elif context:
-        # course_only mode (default)
         system_prompt = (
             "You are a helpful educational assistant. Answer the student's question "
             "based on the course content provided below.\n\n"
@@ -192,7 +206,6 @@ async def query_course_rag_stream(
             "with what you know."
         )
 
-    # Create the streaming generator
     stream = ask_ai_stream(
         question=question,
         message_history=message_history,
