@@ -22,13 +22,13 @@ export default async function XpexNotificationsPage() {
         <header>
           <p className="xpex-label">Central de atualizações</p>
           <h1>Notificações</h1>
-          <p>Acompanhe mudanças relevantes na sua jornada sem alertas ou números fictícios.</p>
+          <p>Acompanhe mudanças relevantes da sua jornada na XPeX Academy AI, sempre a partir de dados reais.</p>
         </header>
         {activeCourses.length > 0 ? (
           <div className="xpex-course-grid">
             {activeCourses.map((course) => (
-              <article className="xpex-card" key={course.course_id}>
-                <Bell aria-hidden="true" size={24} />
+              <article className="xpex-card xpex-feature xpex-feature-cyan" key={course.course_id}>
+                <Bell aria-hidden="true" size={28} />
                 <span className="xpex-badge">Curso ativo</span>
                 <h2>{course.title}</h2>
                 <p>Curso disponível. Progresso atual: {course.progress_percent ?? 0}%.</p>
@@ -38,8 +38,8 @@ export default async function XpexNotificationsPage() {
         ) : (
           <div className="xpex-card xpex-empty">
             <CheckCircle2 aria-hidden="true" size={30} />
-            <h2>Nenhuma pendência agora</h2>
-            <p>Novos cursos, atividades e atualizações aparecerão aqui a partir dos dados reais.</p>
+            <h2>Você está em dia</h2>
+            <p>Novos cursos, atividades e atualizações aparecerão aqui automaticamente quando forem publicados para sua conta.</p>
           </div>
         )}
       </section>

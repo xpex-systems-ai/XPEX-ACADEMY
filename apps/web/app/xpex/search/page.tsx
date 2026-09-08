@@ -33,7 +33,7 @@ export default async function XpexSearchPage({
       <section className="xpex-native-page">
         <header>
           <p className="xpex-label">Busca inteligente</p>
-          <h1>Pesquisar na Academy</h1>
+          <h1>Pesquisar na XPeX Academy AI</h1>
           <p>
             {rawQuery
               ? `Resultados para “${rawQuery}”`
@@ -43,7 +43,8 @@ export default async function XpexSearchPage({
         {courses.length > 0 ? (
           <div className="xpex-course-grid">
             {courses.map((course) => (
-              <article className="xpex-card" key={course.course_id}>
+              <article className="xpex-card xpex-feature xpex-feature-cyan" key={course.course_id}>
+                <Search aria-hidden="true" size={26} />
                 <span className="xpex-badge">{course.progress_percent ?? 0}% concluído</span>
                 <h2>{course.title}</h2>
                 <p>{course.description || 'Conteúdo disponível na sua jornada.'}</p>

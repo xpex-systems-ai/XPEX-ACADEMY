@@ -28,9 +28,15 @@ const imageUrl = (course: XpexLearningCourse) =>
     ? getCourseThumbnailMediaDirectory(course.org_uuid, course.course_id, course.image_url)
     : null
 
+const isCourseComplete = (course: XpexLearningCourse) => {
+  if (course.enrollment_state === 'STATUS_COMPLETED') return true
+  if (course.progress_percent !== null && course.progress_percent >= 100) return true
+  return course.total_lessons > 0 && course.completed_lessons >= course.total_lessons
+}
+
 const statusLabel = (course: XpexLearningCourse) => {
   if (course.enrollment_state === 'STATUS_PAUSED') return 'Pausado'
-  if (course.enrollment_state === 'STATUS_COMPLETED') return 'Concluído'
+  if (isCourseComplete(course)) return 'Concluído'
   if (course.completed_lessons > 0) return 'Em andamento'
   return 'Não iniciado'
 }
@@ -82,19 +88,24 @@ export function FuturisticStudentDashboard({
   }
 
   const courses = data?.courses ?? []
-  const current = data?.continue_learning ?? courses[0]
+  const backendContinue = data?.continue_learning
+  const current = backendContinue && !isCourseComplete(backendContinue)
+    ? backendContinue
+    : courses.find(course => !isCourseComplete(course) && course.enrollment_state !== 'STATUS_PAUSED')
   const summary = data?.summary
   const firstName = displayName.split(/\s+/)[0] || displayName
   const overall = summary?.overall_progress_percent
+  const activeCourses = courses.filter(course => !isCourseComplete(course) && course.enrollment_state !== 'STATUS_PAUSED').length
+  const completedCourses = courses.filter(isCourseComplete).length
 
   return (
     <div className="xpex-f-dashboard" id="visao-geral" data-organization={organizationSlug}>
       <section className="xpex-f-hero">
         <div className="xpex-f-hero-copy">
-          <span className="xpex-f-kicker">{organizationName ?? data?.organization ?? 'XpeX Academy'}</span>
+          <span className="xpex-f-kicker">{organizationName ?? data?.organization ?? 'XPeX Academy AI'}</span>
           <p>Bem-vindo(a) de volta,</p>
           <h1>{firstName}!</h1>
-          <h2>Continue sua jornada e construa o futuro que você imagina.</h2>
+          <h2>{current ? 'Continue sua jornada e construa o futuro que você imagina.' : completedCourses > 0 ? 'Parabéns pela evolução. Sua próxima descoberta começa agora.' : 'Comece sua jornada e construa o futuro que você imagina.'}</h2>
           {current ? (
             <Link href={current.target_href} className="xpex-f-primary">Continuar aprendendo <CirclePlay size={17} /></Link>
           ) : (
@@ -113,7 +124,7 @@ export function FuturisticStudentDashboard({
 
       <section className="xpex-f-kpis" aria-label="Indicadores reais da aprendizagem">
         <div><BookOpen/><span><strong>{courses.length}</strong>Cursos matriculados</span></div>
-        <div><GraduationCap/><span><strong>{summary?.active_courses ?? 0}</strong>Cursos em andamento</span></div>
+        <div><GraduationCap/><span><strong>{activeCourses}</strong>Cursos em andamento</span></div>
         <div><CheckCircle2/><span><strong>{summary?.completed_lessons ?? 0}</strong>Aulas concluídas</span></div>
         <div><Route/><span><strong>{summary?.total_lessons ?? 0}</strong>Aulas disponíveis</span></div>
       </section>
@@ -152,12 +163,12 @@ export function FuturisticStudentDashboard({
           </section>
 
           <section className="xpex-f-side-card">
-            <div className="xpex-f-heading compact"><div><span>Próximo passo</span><h2>{current ? 'Retome seus estudos' : 'Descubra um curso'}</h2></div></div>
-            {current ? <CourseCard course={current} featured/> : <p>Nenhuma aula ao vivo ou atividade futura foi publicada para sua conta.</p>}
+            <div className="xpex-f-heading compact"><div><span>Próximo passo</span><h2>{current ? 'Retome seus estudos' : completedCourses > 0 ? 'Continue evoluindo' : 'Descubra um curso'}</h2></div></div>
+            {current ? <CourseCard course={current} featured/> : <p>{completedCourses > 0 ? 'Você concluiu os cursos liberados para esta conta. Explore o catálogo para continuar sua jornada.' : 'Nenhuma aula ao vivo ou atividade futura foi publicada para sua conta.'}</p>}
           </section>
 
           <section className="xpex-f-side-card">
-            <div className="xpex-f-heading compact"><div><span>Academy</span><h2>Tecnologia que liberta</h2></div></div>
+            <div className="xpex-f-heading compact"><div><span>Academy AI</span><h2>Tecnologia que liberta</h2></div></div>
             <div className="xpex-f-values"><span><Zap/>Aprenda no seu ritmo</span><span><Code2/>Construa projetos reais</span><span><Search/>Explore novas habilidades</span></div>
           </section>
         </aside>

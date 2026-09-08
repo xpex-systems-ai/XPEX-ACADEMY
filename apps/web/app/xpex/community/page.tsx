@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MessageCircle, Users } from 'lucide-react'
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
 import { XpexStudentDenied } from '@components/Xpex/XpexStudentStates'
 import { getAuthorizedStudentLearning } from '@/lib/xpex/student'
@@ -42,25 +43,27 @@ export default async function XpexCommunityPage() {
         <header>
           <p className="xpex-label">Conecte e colabore</p>
           <h1>Comunidade XPeX</h1>
-          <p>Espaço para dúvidas, projetos, desafios e evolução coletiva.</p>
+          <p>Espaço para dúvidas, projetos, desafios e evolução coletiva na XPeX Academy AI.</p>
         </header>
         {communities.length > 0 ? (
           <div className="xpex-course-grid">
             {communities.map((community) => (
-              <article className="xpex-card" key={community.community_uuid}>
+              <article className="xpex-card xpex-feature xpex-feature-orange" key={community.community_uuid}>
+                <Users aria-hidden="true" size={30} />
                 <span className="xpex-badge">Comunidade</span>
                 <h2>{community.name}</h2>
                 <p>{community.description || 'Participe das discussões e compartilhe sua evolução.'}</p>
                 <Link className="xpex-primary" href={`/community/${community.community_uuid}`}>
-                  Entrar na comunidade
+                  <MessageCircle aria-hidden="true" size={16} /> Entrar na comunidade
                 </Link>
               </article>
             ))}
           </div>
         ) : (
           <div className="xpex-card xpex-empty">
-            <h2>Comunidade pronta para o primeiro curso</h2>
-            <p>Quando uma comunidade for publicada, ela aparecerá aqui automaticamente.</p>
+            <Users aria-hidden="true" size={30} />
+            <h2>Comunidade pronta para receber sua turma</h2>
+            <p>Quando uma comunidade for publicada para sua organização, ela aparecerá aqui automaticamente.</p>
           </div>
         )}
       </section>
