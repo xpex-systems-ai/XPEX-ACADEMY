@@ -156,12 +156,14 @@ frontend/API row is launch-blocking; therefore **NO-GO** is mandatory.
 - **Manual validation pending:** canonical-domain/provider configuration,
   readiness, authenticated Wave 0, tenant isolation, persisted progress, Brevo
   delivery/reset, and redacted-log review.
-- `Staging build` authenticates to GCP only on pushes and requires configured
-  workload identity/service-account/project secrets. It is not evidence for the
-  documented Railway production path and must not receive fabricated values.
-- `Build Community Images` targets upstream `ghcr.io/learnhouse/app`; this fork
-  does not own that namespace. The workflow is not part of the Vercel/Railway
-  golden path and needs a separate ownership decision rather than a bypass.
+- `Staging build` authenticates to GCP only on pushes when the repository
+  variable `GCP_STAGING_BUILD_ENABLED` is explicitly set to `true`. Without that
+  opt-in, deterministic validation still runs and the workflow records that the
+  optional GCP image build is disabled. It is not evidence for the documented
+  Railway production path and must not receive fabricated values.
+- `Build Community Images` publishes fork-owned images to
+  `ghcr.io/xpex-systems-ai/xpex-academy`; it no longer targets the upstream
+  `ghcr.io/learnhouse/app` namespace.
 - General E2E assignment, SCORM, and rate-limit failures remain separate known
   work. They must stay visible and must not be described as green.
 - Repository inspection could not audit open PRs, branch protection, rulesets,
