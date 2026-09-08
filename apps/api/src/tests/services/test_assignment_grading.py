@@ -25,18 +25,21 @@ Covered:
 from types import SimpleNamespace
 
 import pytest
-
-from src.db.courses.assignments import AssignmentTask, AssignmentTaskTypeEnum, GradingTypeEnum
+from src.db.courses.assignments import (
+    AssignmentTask,
+    AssignmentTaskTypeEnum,
+    GradingTypeEnum,
+)
 from src.services.courses.activities.assignments import (
     AUTO_GRADABLE_TASK_TYPES,
     _check_number_answer,
     _check_short_answer,
     _grade_form_task,
     _grade_quiz_task,
-    _student_safe_task,
     _percentage_to_gpa,
     _percentage_to_letter_grade,
     _server_verified_task_grade,
+    _student_safe_task,
     compute_assignment_grade,
 )
 
