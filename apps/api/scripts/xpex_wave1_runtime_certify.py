@@ -30,6 +30,16 @@ from src.services.xpex.wave1_courses import (
     verify_wave1_preflight,
 )
 
+_ALLOWED_CANARY_CERTIFICATION_STATES = {
+    "SCRIPT_READY",
+    "TTS_READY",
+    "AVATAR_OR_VISUAL_RENDER",
+    "COMPOSITION",
+    "CAPTIONS",
+    "MEDIA_QA",
+    "AWAITING_HUMAN_APPROVAL",
+}
+
 
 def _to_async_url(url: str) -> str:
     if "+asyncpg" in url:
@@ -151,10 +161,15 @@ async def run(execute: bool) -> int:
                 f"provider={job.provider} provider_job_id={job.provider_job_id or 'none'} "
                 f"status={job.status} rendered=false auto_approved=false auto_published=false"
             )
-            if job.status != "SCRIPT_READY":
+            if job.status not in _ALLOWED_CANARY_CERTIFICATION_STATES:
                 raise RuntimeError(
-                    f"STOP: canary must remain SCRIPT_READY, got {job.status}"
+                    "STOP: canary is outside the safe pre-publication lifecycle, "
+                    f"got {job.status}"
                 )
+            print(
+                "XPEX_WAVE1_CANARY_LIFECYCLE PASS "
+                f"status={job.status} pre_publication=true"
+            )
             return 0
     finally:
         await engine.dispose()
