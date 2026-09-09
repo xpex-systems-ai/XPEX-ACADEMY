@@ -62,6 +62,20 @@ function MissingVideo({ reason }: { reason: string }) {
   )
 }
 
+function resolveExternalHostedSource(uri?: string): { src: string; isHls: boolean } | null {
+  if (!uri) return null
+  try {
+    const parsed = new URL(uri)
+    if (parsed.protocol !== 'https:') return null
+    return {
+      src: uri,
+      isHls: parsed.pathname.toLowerCase().endsWith('.m3u8'),
+    }
+  } catch {
+    return null
+  }
+}
+
 function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
   const org = useOrg() as any
   const resolvedOrgUuid = orgUuid || org?.org_uuid
@@ -78,7 +92,7 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
 
   const hlsReady = isActivityHlsReady(activity)
 
-  const getVideoSource = () =>
+  const getInternalVideoSource = () =>
     resolveActivityVideoSource({
       hlsReady,
       orgUuid: resolvedOrgUuid,
@@ -88,16 +102,18 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
     })
 
   if (activity.activity_sub_type === 'SUBTYPE_VIDEO_HOSTED') {
-    const { src, isHls } = getVideoSource()
-    if (!src) return <MissingVideo reason="A atividade está marcada como vídeo hospedado, mas ainda não possui arquivo de mídia publicado." />
-    const thumbnails = isHls
+    const externalSource = resolveExternalHostedSource(activity.content?.uri)
+    const { src, isHls } = externalSource || getInternalVideoSource()
+    if (!src) return <MissingVideo reason="A atividade está marcada como vídeo hospedado, mas ainda não possui arquivo de mídia ou URL HTTPS publicada." />
+
+    const thumbnails = !externalSource && isHls
       ? resolveHlsThumbnails(activity, {
           orgUuid: resolvedOrgUuid,
           courseUuid: course?.course_uuid,
           activityUuid: activity.activity_uuid,
         })
       : null
-    const fallbackSrc = isHls
+    const fallbackSrc = !externalSource && isHls
       ? resolveActivityVideoSource({
           hlsReady: false,
           orgUuid: resolvedOrgUuid,
@@ -106,11 +122,13 @@ function VideoActivity({ activity, course, orgUuid }: VideoActivityProps) {
           filename: activity.content?.filename,
         }).src
       : undefined
-    const captions = resolveActivityCaptions(activity, {
-      orgUuid: resolvedOrgUuid,
-      courseUuid: course?.course_uuid,
-      activityUuid: activity.activity_uuid,
-    })
+    const captions = !externalSource
+      ? resolveActivityCaptions(activity, {
+          orgUuid: resolvedOrgUuid,
+          courseUuid: course?.course_uuid,
+          activityUuid: activity.activity_uuid,
+        })
+      : []
     return (
       <div className="w-full max-w-full px-0 sm:px-4">
         <div className="my-0 w-full sm:my-3 md:my-5">
