@@ -1,10 +1,14 @@
-"""Resumable end-to-end flagship course factory for XPeX Academy.
+"""Resumable professional course factory for XPeX Academy AI.
 
-The factory deliberately composes the already-audited editorial and video state machines
-instead of bypassing them. One explicit superadmin/admin invocation advances the course
-from structured curriculum generation through review, native LearnHouse publication,
-real video rendering, attachment and publication. Re-invocation resumes from durable
-state rather than duplicating the course or video jobs.
+The factory composes the audited editorial and video state machines instead of
+bypassing them. One explicit superadmin/admin invocation generates and reviews the
+11-module professional curriculum, publishes the native editorial structure required
+by Video Studio, renders real lesson videos through the configured providers, and then
+stops at the human video-approval boundary. Re-invocation resumes durable state rather
+than duplicating the course or video jobs.
+
+Video approval, attachment and publication remain explicit Course Studio actions. This
+prevents a provider-generated video from becoming student-visible without human review.
 """
 
 from __future__ import annotations
@@ -28,20 +32,20 @@ from src.services.xpex.editorial_studio import (
 )
 from src.services.xpex.video_studio import (
     VideoJobResponse,
-    approve_video_job,
-    attach_video_job,
     create_video_batch,
     list_video_jobs,
     process_video_job,
-    publish_video_job,
 )
 
-FACTORY_KEY = "XPEX-AI-COURSE-FACTORY-001"
-FLAGSHIP_TOPIC = "Inteligência Artificial — do Básico ao Avançado | XPeX Flagship 2026"
+FACTORY_KEY = "XPEX-AI-COURSE-FACTORY-020"
+FLAGSHIP_TOPIC = (
+    "Inteligência Artificial Profissional — do Básico ao Avançado | XPeX Academy AI 2026"
+)
 FLAGSHIP_AUDIENCE = (
     "Jovens e adultos iniciantes ou intermediários que desejam compreender e aplicar "
     "inteligência artificial com segurança em estudo, trabalho, criação, automação e projetos reais."
 )
+FLAGSHIP_MODULE_COUNT = 11
 
 
 class FactoryRunResponse(BaseModel):
@@ -106,7 +110,7 @@ async def _editorial_to_published(
                 organization_slug=organization_slug,
                 topic=FLAGSHIP_TOPIC,
                 audience=FLAGSHIP_AUDIENCE,
-                module_count=6,
+                module_count=FLAGSHIP_MODULE_COUNT,
             ),
             current_user,
             db_session,
@@ -126,6 +130,8 @@ async def _editorial_to_published(
             db_session,
         )
     if draft.status == "REVIEWED":
+        # The authenticated operator explicitly invoked this factory mission.
+        # Editorial approval is still persisted with actor/revision/hash evidence.
         draft = await approve_editorial_draft(
             draft.draft_id,
             EditorialMutationRequest(expected_revision=draft.revision),
@@ -148,23 +154,13 @@ async def _editorial_to_published(
 
 
 async def _advance_video_job(
-    request: Request,
     job: VideoJobResponse,
     current_user: PublicUser,
     db_session: AsyncSession,
 ) -> VideoJobResponse:
-    """Advance one durable job until published or until an upstream stage fails."""
+    """Render/review one durable job and stop at the explicit human approval gate."""
     if job.state in {"QUEUED", "FAILED"}:
         job = await process_video_job(job.job_id, current_user, db_session)
-    if job.state == "AWAITING_HUMAN_APPROVAL":
-        # The invoking authenticated admin is the approving human. This does not
-        # silently approve background work: the transition only occurs as part of
-        # this explicit factory command and remains attributed to current_user.id.
-        job = await approve_video_job(job.job_id, current_user, db_session)
-    if job.state == "APPROVED":
-        job = await attach_video_job(request, job.job_id, current_user, db_session)
-    if job.state == "ATTACHED":
-        job = await publish_video_job(request, job.job_id, current_user, db_session)
     return job
 
 
@@ -181,20 +177,39 @@ async def run_flagship_course_factory(
         db_session,
     )
 
-    # ensure_batch_jobs is idempotent for this editorial draft/revision; repeated
+    # create_video_batch is idempotent for this editorial draft/revision; repeated
     # factory calls therefore resume the same durable jobs.
     await create_video_batch(draft.draft_id, current_user, db_session)
     jobs = await list_video_jobs(draft.draft_id, current_user, db_session)
     advanced: list[VideoJobResponse] = []
 
     for job in jobs:
-        advanced.append(await _advance_video_job(request, job, current_user, db_session))
+        advanced.append(await _advance_video_job(job, current_user, db_session))
 
     published_count = sum(1 for job in advanced if job.state == "PUBLISHED")
     all_published = bool(advanced) and published_count == len(advanced)
+    awaiting_human = any(job.state == "AWAITING_HUMAN_APPROVAL" for job in advanced)
+    failed = any(job.state == "FAILED" for job in advanced)
+
+    if all_published:
+        factory_status = "READY"
+        message = "Professional AI course and every approved lesson video are published."
+    elif failed:
+        factory_status = "IN_PROGRESS"
+        message = "Factory state persisted; at least one provider job failed and can be resumed safely."
+    elif awaiting_human:
+        factory_status = "AWAITING_HUMAN_APPROVAL"
+        message = (
+            "Professional videos were rendered and reviewed. Open Course Studio to inspect, approve, "
+            "attach and publish each accepted lesson video."
+        )
+    else:
+        factory_status = "IN_PROGRESS"
+        message = "Factory state persisted; re-run safely to resume incomplete video jobs."
+
     return FactoryRunResponse(
         factory_key=FACTORY_KEY,
-        status="READY" if all_published else "IN_PROGRESS",
+        status=factory_status,
         draft_id=draft.draft_id,
         editorial_status=draft.status,
         course_uuid=course_uuid,
@@ -202,9 +217,5 @@ async def run_flagship_course_factory(
         video_jobs_total=len(advanced),
         video_jobs_published=published_count,
         video_jobs=advanced,
-        message=(
-            "Flagship AI course and every generated lesson video are published."
-            if all_published
-            else "Factory state persisted; re-run safely to resume incomplete video jobs."
-        ),
+        message=message,
     )
