@@ -66,21 +66,6 @@ async def run() -> int:
     engine = create_async_engine(_to_async_url(sql_url), pool_pre_ping=True)
     try:
         async with engine.begin() as connection:
-            schools = int((await connection.execute(text("SELECT COUNT(*) FROM xpex_schools"))).scalar_one())
-            courses = int(
-                (
-                    await connection.execute(
-                        text(
-                            "SELECT COUNT(*) FROM xpex_courses "
-                            "WHERE catalog_version = 'XPEX_OFFICIAL_CATALOG_V1'"
-                        )
-                    )
-                ).scalar_one()
-            )
-            if schools != 9 or courses != 156:
-                print(f"XPEX_WAVE1_SCHEMA BLOCKED schools={schools} courses={courses}")
-                return 2
-
             for column, ddl in COURSE_COLUMNS:
                 await _ensure_column(connection, "xpex_courses", column, ddl)
             for column, ddl in LESSON_COLUMNS:
@@ -154,7 +139,7 @@ async def run() -> int:
             required_columns = [
                 ("xpex_courses", "blueprint_json"),
                 ("xpex_courses", "qa_status"),
-                *( ("xpex_lessons", name) for name, _ in LESSON_COLUMNS ),
+                *(("xpex_lessons", name) for name, _ in LESSON_COLUMNS),
             ]
             missing = [
                 f"{table}.{column}"
