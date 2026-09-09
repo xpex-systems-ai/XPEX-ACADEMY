@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, ForeignKey, Index, Integer, UniqueConstraint
+from sqlalchemy import JSON, Column, ForeignKey, Index, Integer, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -89,6 +89,8 @@ class XPeXCourse(SQLModel, table=True):
     publication_status: str = Field(default="PRIVATE", max_length=30)
     display_order: int = Field(ge=1)
     catalog_version: str = Field(max_length=80)
+    blueprint_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    qa_status: str = Field(default="NOT_STARTED", max_length=40)
 
 
 class XPeXModule(SQLModel, table=True):
@@ -124,3 +126,62 @@ class XPeXLesson(SQLModel, table=True):
     display_order: int = Field(ge=1)
     lesson_type: str = Field(default="VIDEO", max_length=30)
     status: str = Field(default="DRAFT", max_length=30)
+    learning_objective: str = Field(default="", max_length=1000)
+    prerequisites_json: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    lesson_script: str = Field(default="")
+    summary: str = Field(default="")
+    exercise_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    practical_activity_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    completion_criteria_json: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    media_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    optional_resources_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+
+
+class XPeXAssessment(SQLModel, table=True):
+    __tablename__ = "xpex_assessments"
+    __table_args__ = (
+        UniqueConstraint("assessment_key", name="uq_xpex_assessment_key"),
+        Index("ix_xpex_assessment_course", "course_id", "display_order"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    assessment_key: str = Field(index=True, max_length=80)
+    course_id: int = Field(sa_column=Column(Integer, ForeignKey("xpex_courses.id", ondelete="RESTRICT"), nullable=False))
+    module_id: int | None = Field(default=None, sa_column=Column(Integer, ForeignKey("xpex_modules.id", ondelete="RESTRICT"), nullable=True))
+    assessment_type: str = Field(max_length=30)
+    display_order: int = Field(ge=1)
+    objective_keys_json: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    questions_json: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    passing_score: int = Field(default=70, ge=0, le=100)
+    max_attempts: int = Field(default=3, ge=1)
+    status: str = Field(default="DRAFT", max_length=30)
+
+
+class XPeXAssessmentAttempt(SQLModel, table=True):
+    __tablename__ = "xpex_assessment_attempts"
+    __table_args__ = (UniqueConstraint("assessment_id", "learner_key", "attempt_number", name="uq_xpex_assessment_attempt"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    assessment_id: int = Field(sa_column=Column(Integer, ForeignKey("xpex_assessments.id", ondelete="RESTRICT"), nullable=False))
+    learner_key: str = Field(max_length=160)
+    attempt_number: int = Field(ge=1)
+    answers_json: list = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    score: int = Field(ge=0, le=100)
+    passed: bool = Field(default=False)
+    submitted_at: str = Field(max_length=64)
+
+
+class XPeXWaveMediaJob(SQLModel, table=True):
+    __tablename__ = "xpex_wave_media_jobs"
+    __table_args__ = (UniqueConstraint("lesson_id", name="uq_xpex_wave_media_lesson"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    job_id: str = Field(index=True, max_length=80)
+    lesson_id: int = Field(sa_column=Column(Integer, ForeignKey("xpex_lessons.id", ondelete="RESTRICT"), nullable=False))
+    provider: str = Field(max_length=80)
+    provider_job_id: str | None = Field(default=None, max_length=160)
+    video_type: str = Field(default="XPEX_EXPLAINER", max_length=40)
+    status: str = Field(default="SCRIPT_READY", max_length=40)
+    artifact_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    qa_json: dict = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    original_error: str | None = Field(default=None)
