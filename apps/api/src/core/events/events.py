@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 _cleanup_task = None
 _xpex_launch002_task = None
+_xpex_wave1_media_task = None
 
 
 async def _periodic_migration_cleanup():
@@ -95,6 +96,23 @@ async def _reconcile_xpex_wave1() -> None:
         logger.exception("XPeX Wave 1 runtime certification failed")
 
 
+async def _run_xpex_wave1_media_canary() -> None:
+    """Advance only the certified Wave 1 canary to the human media gate."""
+    try:
+        from scripts.xpex_wave1_media_canary_037 import run
+
+        result = await run(execute=True)
+        if result != 0:
+            logger.warning("XPeX Wave 1 media canary stopped safely: exit_code=%s", result)
+            return
+        logger.info("XPeX Wave 1 media canary reached human gate")
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        # Media production is never allowed to take down auth/student runtime.
+        logger.exception("XPeX Wave 1 media canary failed")
+
+
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
@@ -108,6 +126,8 @@ def startup_app(app: FastAPI) -> Callable:
         await _reconcile_xpex_official_catalog()
         if wave1_schema_ready:
             await _reconcile_xpex_wave1()
+            global _xpex_wave1_media_task
+            _xpex_wave1_media_task = asyncio.create_task(_run_xpex_wave1_media_canary())
 
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
@@ -147,6 +167,14 @@ def shutdown_app(app: FastAPI) -> Callable:
                 pass
             except Exception:
                 logger.exception("XPEX-LAUNCH-002 task failed before shutdown; continuing cleanup")
+        if _xpex_wave1_media_task:
+            _xpex_wave1_media_task.cancel()
+            try:
+                await _xpex_wave1_media_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                logger.exception("XPeX Wave 1 media task failed before shutdown; continuing cleanup")
         if _cleanup_task:
             _cleanup_task.cancel()
             try:
