@@ -43,6 +43,22 @@ async def _reconcile_packs():
         logger.warning("Pack reconciliation skipped (non-fatal): %s", e)
 
 
+async def _ensure_xpex_wave1_schema() -> bool:
+    """Repair only the Wave 1 schema equivalent when Alembic tracking is absent."""
+    try:
+        from scripts.xpex_wave1_schema_ready import run
+
+        result = await run()
+        if result != 0:
+            logger.error("XPeX Wave 1 schema readiness blocked: exit_code=%s", result)
+            return False
+        logger.info("XPeX Wave 1 schema readiness: ready=true")
+        return True
+    except Exception:
+        logger.exception("XPeX Wave 1 schema readiness failed")
+        return False
+
+
 async def _reconcile_xpex_official_catalog() -> None:
     """Idempotently register the private canonical catalog after migrations run."""
     try:
@@ -58,6 +74,27 @@ async def _reconcile_xpex_official_catalog() -> None:
         logger.exception("XPeX official catalog reconciliation failed")
 
 
+async def _reconcile_xpex_wave1() -> None:
+    """Seed/certify the private Wave 1 and create at most one SCRIPT_READY canary."""
+    try:
+        from scripts.xpex_wave1_runtime_certify import run
+
+        result = await run(execute=True)
+        if result == 2:
+            logger.warning(
+                "XPeX Wave 1 runtime certified but media canary blocked: provider_unconfigured=true"
+            )
+            return
+        if result != 0:
+            logger.error("XPeX Wave 1 runtime certification blocked: exit_code=%s", result)
+            return
+        logger.info("XPeX Wave 1 runtime certification: ready=true")
+    except Exception:
+        # Keep auth/payments/student access available while making the exact
+        # Wave 1 failure visible in runtime logs for controlled recovery.
+        logger.exception("XPeX Wave 1 runtime certification failed")
+
+
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
@@ -66,8 +103,11 @@ def startup_app(app: FastAPI) -> Callable:
         await create_logs_dir()
         await check_content_directory()
         await auto_install()
+        wave1_schema_ready = await _ensure_xpex_wave1_schema()
         await _reconcile_packs()
         await _reconcile_xpex_official_catalog()
+        if wave1_schema_ready:
+            await _reconcile_xpex_wave1()
 
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
@@ -118,7 +158,7 @@ def shutdown_app(app: FastAPI) -> Callable:
 
         await stop_consumer()
         from src.services.utils.caption_jobs import (
-            stop_consumer as stop_captions_consumer,
+            start_consumer as start_captions_consumer,
         )
 
         await stop_captions_consumer()
