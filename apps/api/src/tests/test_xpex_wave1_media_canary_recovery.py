@@ -1,7 +1,7 @@
 import hashlib
 from pathlib import Path
+
 import pytest
-from scripts import xpex_wave1_media_canary_recovery_038 as recovery
 from src.services.xpex.video_factory import (
     CaptionAsset,
     LessonVideoManifest,
@@ -9,6 +9,8 @@ from src.services.xpex.video_factory import (
     NarrationAsset,
     VideoAsset,
 )
+
+from scripts import xpex_wave1_media_canary_recovery_038 as recovery
 
 
 def _checksum(data: bytes) -> str:
