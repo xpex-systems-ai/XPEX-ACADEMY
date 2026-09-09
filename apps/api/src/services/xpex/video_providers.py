@@ -115,6 +115,7 @@ class ProviderBinary:
     data: bytes
     mime_type: str
     model: str
+    request_id: str | None = None
 
 
 class TranscriptResult(BaseModel):
@@ -351,7 +352,7 @@ async def _generate_video_with_fal(
             endpoint_category="queue",
         ) from None
 
-    return ProviderBinary(data=video, mime_type="video/mp4", model=model)
+    return ProviderBinary(data=video, mime_type="video/mp4", model=model, request_id=request_id)
 
 
 async def generate_video_clip(

@@ -35,6 +35,37 @@ class StoredArtifact:
     local_path: str | None
     checksum_sha256: str
     mime_type: str
+    byte_size: int
+
+
+def media_storage_backend(*, production: bool | None = None) -> str:
+    """Classify draft storage without ever calling container-local disk durable.
+
+    Railway deployments must use the application's existing S3-compatible backend.
+    A local backend is useful in development, but is deliberately classified as
+    ephemeral unless an operator has mounted and explicitly configured an absolute
+    durable volume root.
+    """
+    delivery = get_content_delivery_type()
+    if delivery == "s3api":
+        return "DURABLE_OBJECT_STORAGE"
+    durable_root = os.getenv("XPEX_DURABLE_MEDIA_ROOT", "").strip()
+    if durable_root and Path(durable_root).is_absolute():
+        return "DURABLE_VOLUME"
+    is_production = production if production is not None else bool(os.getenv("RAILWAY_ENVIRONMENT"))
+    return "EPHEMERAL_LOCAL" if is_production else "LOCAL_DEVELOPMENT"
+
+
+def require_durable_media_storage() -> str:
+    backend = media_storage_backend()
+    if backend not in {"DURABLE_OBJECT_STORAGE", "DURABLE_VOLUME"}:
+        raise VideoMediaError("durable media storage is not configured")
+    return backend
+
+
+def _local_storage_path(storage_key: str) -> Path:
+    root = os.getenv("XPEX_DURABLE_MEDIA_ROOT", "").strip()
+    return Path(root) / storage_key if root else Path(storage_key)
 
 
 def _safe_component(value: str, label: str) -> str:
@@ -116,16 +147,16 @@ def persist_local_or_s3(local_path: str, storage_key: str) -> StoredArtifact:
     if get_content_delivery_type() == "s3api":
         if not upload_file_to_s3(storage_key, str(source)):
             raise VideoMediaError("media artifact upload failed")
-        return StoredArtifact(storage_key, None, checksum, mime)
+        return StoredArtifact(storage_key, None, checksum, mime, source.stat().st_size)
 
-    target = Path(storage_key)
+    target = _local_storage_path(storage_key)
     target.parent.mkdir(parents=True, exist_ok=True)
     if source.resolve() != target.resolve():
         temp_target = target.with_suffix(target.suffix + ".tmp")
         with open(source, "rb") as src, open(temp_target, "wb") as dst:
             dst.writelines(iter(lambda: src.read(1024 * 1024), b""))
         os.replace(temp_target, target)
-    return StoredArtifact(storage_key, str(target), checksum, mime)
+    return StoredArtifact(storage_key, str(target), checksum, mime, target.stat().st_size)
 
 
 def materialize_storage_key(storage_key: str, local_path: str) -> str:
@@ -141,7 +172,7 @@ def materialize_storage_key(storage_key: str, local_path: str) -> str:
         except Exception as exc:
             raise VideoMediaError("media artifact download failed") from exc
     else:
-        source = Path(storage_key)
+        source = _local_storage_path(storage_key)
         if not source.is_file():
             raise VideoMediaError("media artifact is missing")
         if source.resolve() != destination.resolve():

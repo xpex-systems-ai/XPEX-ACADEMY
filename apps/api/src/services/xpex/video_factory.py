@@ -61,6 +61,7 @@ class MediaRef(BaseModel):
     uri: str = Field(min_length=1)
     checksum_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     mime_type: str = Field(min_length=1)
+    byte_size: int | None = Field(default=None, gt=0)
 
 
 class NarrationAsset(MediaRef):
