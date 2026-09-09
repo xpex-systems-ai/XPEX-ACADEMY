@@ -122,5 +122,20 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
+# Temporary mission-scoped runtime hook for XPEX-WAVE1-MEDIA-CANARY-RECOVERY-039.
+# It runs only the fail-closed recovery script already merged in PR #159. The script
+# itself enforces the single authorized job/lesson, durable checkpoint ownership,
+# one provider retry maximum, checksum/media QA, and the human approval stop. Run in
+# the background only after the web/API/collab stack is healthy so a slow video
+# provider cannot block Railway health checks or replace the serving process.
+(
+    sleep 8
+    cd /app/api || exit 92
+    echo "XPEX_WAVE1_MEDIA_RECOVERY_039 runtime hook requested"
+    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_recovery_038.py --execute
+    recovery_rc=$?
+    echo "XPEX_WAVE1_MEDIA_RECOVERY_039 runtime hook exit=$recovery_rc"
+) &
+
 # Tail PM2 logs with proper formatting
 pm2 logs --raw
