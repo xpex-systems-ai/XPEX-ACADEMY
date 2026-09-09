@@ -228,3 +228,52 @@ async def test_provider_http_error_does_not_leak_body():
     with pytest.raises(VideoProviderError, match="HTTP 503") as exc:
         await generate_video_clip("x", REGISTRY)
     assert "secret upstream body" not in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_provider_http_error_exposes_sanitized_diagnostics():
+    FakeClient.response = FakeResponse(
+        status_code=429,
+        content=b'{"error":"quota exceeded","Authorization":"Bearer forbidden"}',
+        headers={"content-type": "application/json", "x-request-id": "req-limit"},
+    )
+
+    with pytest.raises(VideoProviderError, match="HTTP 429") as caught:
+        await generate_video_clip("x", REGISTRY)
+
+    error = caught.value
+    assert error.http_status == 429
+    assert error.request_id == "req-limit"
+    assert error.endpoint_category == "submit"
+    assert "quota exceeded" in (error.sanitized_response or "")
+    assert "Bearer forbidden" not in (error.sanitized_response or "")
+    assert "server-only-test-token" not in (error.sanitized_response or "")
+
+
+@pytest.mark.asyncio
+async def test_provider_queue_failure_preserves_safe_upstream_cause(monkeypatch):
+    monkeypatch.setattr("src.services.xpex.video_providers.asyncio.sleep", lambda _seconds: _noop())
+    FakeClient.response = FakeResponse(
+        content=b"{}",
+        headers={"content-type": "application/json"},
+        json_body={
+            "request_id": "req-failed",
+            "response_url": "https://queue.fal.run/fal-ai/model/requests/req-failed",
+        },
+    )
+    FakeClient.get_responses = [
+        FakeResponse(
+            content=b'{"status":"COMPLETED","error":"model mapping unavailable"}',
+            headers={"content-type": "application/json"},
+            json_body={"status": "COMPLETED", "error": "model mapping unavailable"},
+        )
+    ]
+
+    with pytest.raises(VideoProviderError, match="generation failed") as caught:
+        await generate_video_clip("x", REGISTRY)
+
+    error = caught.value
+    assert error.request_id == "req-failed"
+    assert error.queue_state == "COMPLETED"
+    assert error.endpoint_category == "status"
+    assert "model mapping unavailable" in (error.sanitized_response or "")
