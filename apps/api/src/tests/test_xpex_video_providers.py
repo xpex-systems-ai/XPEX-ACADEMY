@@ -8,6 +8,7 @@ from src.services.xpex.video_providers import (
     ProviderBinary,
     VideoProviderError,
     VideoProviderNotConfigured,
+    _safe_response,
     generate_image,
     generate_video_clip,
     review_multimodal_draft,
@@ -228,3 +229,99 @@ async def test_provider_http_error_does_not_leak_body():
     with pytest.raises(VideoProviderError, match="HTTP 503") as exc:
         await generate_video_clip("x", REGISTRY)
     assert "secret upstream body" not in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_provider_http_error_exposes_sanitized_diagnostics():
+    FakeClient.response = FakeResponse(
+        status_code=429,
+        content=b'{"error":"quota exceeded","Authorization":"Bearer forbidden"}',
+        headers={"content-type": "application/json", "x-request-id": "req-limit"},
+    )
+
+    with pytest.raises(VideoProviderError, match="HTTP 429") as caught:
+        await generate_video_clip("x", REGISTRY)
+
+    error = caught.value
+    assert error.http_status == 429
+    assert error.request_id == "req-limit"
+    assert error.endpoint_category == "submit"
+    assert "quota exceeded" in (error.sanitized_response or "")
+    assert "Bearer forbidden" not in (error.sanitized_response or "")
+    assert "server-only-test-token" not in (error.sanitized_response or "")
+
+
+@pytest.mark.asyncio
+async def test_provider_queue_failure_preserves_safe_upstream_cause(monkeypatch):
+    monkeypatch.setattr("src.services.xpex.video_providers.asyncio.sleep", lambda _seconds: _noop())
+    FakeClient.response = FakeResponse(
+        content=b"{}",
+        headers={"content-type": "application/json"},
+        json_body={
+            "request_id": "req-failed",
+            "response_url": "https://queue.fal.run/fal-ai/model/requests/req-failed",
+        },
+    )
+    FakeClient.get_responses = [
+        FakeResponse(
+            content=b'{"status":"COMPLETED","error":"model mapping unavailable"}',
+            headers={"content-type": "application/json"},
+            json_body={"status": "COMPLETED", "error": "model mapping unavailable"},
+        )
+    ]
+
+    with pytest.raises(VideoProviderError, match="generation failed") as caught:
+        await generate_video_clip("x", REGISTRY)
+
+    error = caught.value
+    assert error.request_id == "req-failed"
+    assert error.queue_state == "COMPLETED"
+    assert error.endpoint_category == "status"
+    assert "model mapping unavailable" in (error.sanitized_response or "")
+
+
+@pytest.mark.parametrize(
+    ("body", "forbidden"),
+    [
+        (b"Authorization: Bearer hf_secret\nerror: denied", "hf_secret"),
+        (b"Authorization: Basic abc123\nerror: denied", "abc123"),
+        (b"HF_TOKEN=hf_private\nerror: denied", "hf_private"),
+        (b"error: accidentally echoed hf_unscoped_secret", "hf_unscoped_secret"),
+        (b"Cookie: session=credential-value\nerror: denied", "credential-value"),
+    ],
+)
+def test_plaintext_upstream_credentials_are_fully_redacted(body, forbidden):
+    sanitized = _safe_response(FakeResponse(content=body))
+    assert forbidden not in (sanitized or "")
+    assert "[REDACTED]" in (sanitized or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["status", "result"])
+async def test_queue_request_id_survives_later_http_errors(failure_point):
+    FakeClient.response = FakeResponse(
+        content=b"{}",
+        headers={"content-type": "application/json"},
+        json_body={
+            "request_id": "req-123",
+            "response_url": "https://queue.fal.run/fal-ai/model/requests/req-123",
+        },
+    )
+    completed = FakeResponse(
+        content=b"{}",
+        headers={"content-type": "application/json"},
+        json_body={"status": "COMPLETED"},
+    )
+    failure = FakeResponse(
+        status_code=429,
+        content=b"Authorization: Bearer hf_secret\nquota exceeded",
+        headers={"content-type": "text/plain"},
+    )
+    FakeClient.get_responses = [failure] if failure_point == "status" else [completed, failure]
+
+    with pytest.raises(VideoProviderError, match="HTTP 429") as caught:
+        await generate_video_clip("x", REGISTRY)
+
+    assert caught.value.request_id == "req-123"
+    assert caught.value.endpoint_category == failure_point
+    assert "hf_secret" not in (caught.value.sanitized_response or "")

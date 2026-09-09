@@ -11,6 +11,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
@@ -34,7 +35,79 @@ class VideoProviderNotConfigured(RuntimeError):
 
 
 class VideoProviderError(RuntimeError):
-    """Raised when an upstream provider fails or returns an invalid response."""
+    """Safe, structured upstream failure suitable for durable diagnostics."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        http_status: int | None = None,
+        request_id: str | None = None,
+        queue_state: str | None = None,
+        sanitized_response: str | None = None,
+        endpoint_category: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.http_status = http_status
+        self.request_id = request_id
+        self.queue_state = queue_state
+        self.sanitized_response = sanitized_response
+        self.endpoint_category = endpoint_category
+
+
+_SECRET_FIELD = re.compile(
+    r"(?im)(authorization|hf_token|token|cookie|password|secret|credential)"
+    r"(\s*[:=]\s*)[^\r\n]+"
+)
+_SECRET_KEY = re.compile(r"(?i)(authorization|hf_token|token|cookie|password|secret|credential)")
+_HF_TOKEN_VALUE = re.compile(r"(?i)\bhf_[a-z0-9_-]+\b")
+
+
+def _redact_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]" if _SECRET_KEY.search(str(key)) else _redact_json(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_json(item) for item in value]
+    return value
+
+
+def _safe_response(response: httpx.Response, *, limit: int = 2000) -> str | None:
+    """Return bounded upstream evidence with common credential fields redacted."""
+    raw = response.content.decode("utf-8", errors="replace").strip()
+    if not raw:
+        return None
+    try:
+        decoded = json.loads(raw)
+    except (TypeError, ValueError):
+        pass
+    else:
+        encoded = json.dumps(_redact_json(decoded), ensure_ascii=False)[:limit]
+        return _HF_TOKEN_VALUE.sub("[REDACTED]", encoded)
+    redacted = _SECRET_FIELD.sub(r"\1\2[REDACTED]", raw[:limit])
+    return _HF_TOKEN_VALUE.sub("[REDACTED]", redacted)
+
+
+def _request_id(response: httpx.Response) -> str | None:
+    return response.headers.get("x-request-id") or response.headers.get("request-id")
+
+
+def _http_error(
+    message: str,
+    response: httpx.Response,
+    category: str,
+    *,
+    request_id: str | None = None,
+) -> VideoProviderError:
+    return VideoProviderError(
+        f"{message} with HTTP {response.status_code}",
+        http_status=response.status_code,
+        request_id=_request_id(response) or request_id,
+        sanitized_response=_safe_response(response),
+        endpoint_category=category,
+    )
 
 
 @dataclass(frozen=True)
@@ -151,15 +224,32 @@ def _fal_poll_urls(submit_url: str, response_url: str) -> tuple[str, str]:
     return f"{base}{request_path}/status{query}", f"{base}{request_path}{query}"
 
 
-async def _download_public_media(client: httpx.AsyncClient, url: str) -> bytes:
+async def _download_public_media(
+    client: httpx.AsyncClient, url: str, *, request_id: str | None = None
+) -> bytes:
     if not url.startswith("https://"):
         raise VideoProviderError("Hugging Face video result URL is not HTTPS")
     try:
         response = await client.get(url)
     except httpx.RequestError:
-        raise VideoProviderError("Hugging Face video download transport failed") from None
-    if response.status_code >= 400 or not response.content:
-        raise VideoProviderError("Hugging Face video download failed")
+        raise VideoProviderError(
+            "Hugging Face video download transport failed",
+            request_id=request_id,
+            endpoint_category="download",
+        ) from None
+    if response.status_code >= 400:
+        raise _http_error(
+            "Hugging Face video download failed",
+            response,
+            "download",
+            request_id=request_id,
+        )
+    if not response.content:
+        raise VideoProviderError(
+            "Hugging Face video download returned an empty artifact",
+            request_id=request_id,
+            endpoint_category="download",
+        )
     return response.content
 
 
@@ -174,13 +264,12 @@ async def _generate_video_with_fal(
     submit_url = _fal_routed_url(provider_model)
     headers = {**_headers(), "Content-Type": "application/json"}
     deadline = asyncio.get_running_loop().time() + timeout_seconds
+    request_id: str | None = None
     try:
         async with httpx.AsyncClient(timeout=min(timeout_seconds, 120.0)) as client:
             submit = await client.post(submit_url, headers=headers, json={"prompt": prompt})
             if submit.status_code >= 400:
-                raise VideoProviderError(
-                    f"Hugging Face Fal video submit failed with HTTP {submit.status_code}"
-                )
+                raise _http_error("Hugging Face Fal video submit failed", submit, "submit")
             try:
                 submitted = submit.json()
                 response_url = submitted["response_url"]
@@ -193,38 +282,74 @@ async def _generate_video_with_fal(
 
             while True:
                 if asyncio.get_running_loop().time() >= deadline:
-                    raise VideoProviderError("Hugging Face Fal video generation timed out")
+                    raise VideoProviderError(
+                        "Hugging Face Fal video generation timed out",
+                        request_id=request_id,
+                        endpoint_category="status",
+                    )
                 status_response = await client.get(status_url, headers=_headers())
                 if status_response.status_code >= 400:
-                    raise VideoProviderError(
-                        f"Hugging Face Fal video status failed with HTTP {status_response.status_code}"
+                    raise _http_error(
+                        "Hugging Face Fal video status failed",
+                        status_response,
+                        "status",
+                        request_id=request_id,
                     )
                 try:
                     status_body = status_response.json()
                     queue_status = status_body.get("status")
                 except (ValueError, AttributeError):
-                    raise VideoProviderError("Hugging Face Fal video status returned invalid JSON") from None
+                    raise VideoProviderError(
+                        "Hugging Face Fal video status returned invalid JSON",
+                        request_id=request_id,
+                        sanitized_response=_safe_response(status_response),
+                        endpoint_category="status",
+                    ) from None
                 if queue_status == "COMPLETED":
                     if status_body.get("error"):
-                        raise VideoProviderError("Hugging Face Fal video generation failed")
+                        raise VideoProviderError(
+                            "Hugging Face Fal video generation failed",
+                            request_id=request_id,
+                            queue_state=queue_status,
+                            sanitized_response=_safe_response(status_response),
+                            endpoint_category="status",
+                        )
                     break
                 if queue_status not in {"IN_QUEUE", "IN_PROGRESS"}:
-                    raise VideoProviderError("Hugging Face Fal video returned an unknown queue state")
+                    raise VideoProviderError(
+                        "Hugging Face Fal video returned an unknown queue state",
+                        request_id=request_id,
+                        queue_state=str(queue_status),
+                        sanitized_response=_safe_response(status_response),
+                        endpoint_category="status",
+                    )
                 await asyncio.sleep(1.0)
 
             result_response = await client.get(result_url, headers=_headers())
             if result_response.status_code >= 400:
-                raise VideoProviderError(
-                    f"Hugging Face Fal video result failed with HTTP {result_response.status_code}"
+                raise _http_error(
+                    "Hugging Face Fal video result failed",
+                    result_response,
+                    "result",
+                    request_id=request_id,
                 )
             try:
                 result_body = result_response.json()
                 video_url = result_body["video"]["url"]
             except (ValueError, KeyError, TypeError):
-                raise VideoProviderError("Hugging Face Fal video result returned invalid JSON") from None
-            video = await _download_public_media(client, video_url)
+                raise VideoProviderError(
+                    "Hugging Face Fal video result returned invalid JSON",
+                    request_id=request_id,
+                    sanitized_response=_safe_response(result_response),
+                    endpoint_category="result",
+                ) from None
+            video = await _download_public_media(client, video_url, request_id=request_id)
     except httpx.RequestError:
-        raise VideoProviderError("Hugging Face Fal video transport failed") from None
+        raise VideoProviderError(
+            "Hugging Face Fal video transport failed",
+            request_id=request_id,
+            endpoint_category="queue",
+        ) from None
 
     return ProviderBinary(data=video, mime_type="video/mp4", model=model)
 
