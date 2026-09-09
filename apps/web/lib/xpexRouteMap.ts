@@ -14,6 +14,9 @@ export const xpexLearnerCoursesRoute = () => '/xpex/courses' as const
  */
 export const xpexCourseStudioRoute = (orgSlug: string) => getUriWithOrg(orgSlug, '/course-studio')
 
+/** Direct operator entry point into the human-gated Video Studio section. */
+export const xpexVideoStudioRoute = (orgSlug: string) => `${xpexCourseStudioRoute(orgSlug)}#video-studio`
+
 /** The native course manager remains organization-scoped and RBAC protected. */
 export function xpexPoloCoursesRoute(orgSlug: string): string {
   return getUriWithOrg(orgSlug, '/dash/courses')
