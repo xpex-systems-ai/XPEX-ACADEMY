@@ -22,7 +22,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.xpex_catalog import XPeXLesson, XPeXWaveMediaJob
 from src.services.xpex.content_studio import LessonDraft
 from src.services.xpex.video_factory import LessonVideoManifest, VideoModelRegistry
-from src.services.xpex.video_media import materialize_storage_key, probe_duration_seconds
+from src.services.xpex.video_media import (
+    materialize_storage_key,
+    probe_duration_seconds,
+)
 from src.services.xpex.video_pipeline import (
     VideoLessonSource,
     build_video_stage_handlers,
@@ -91,8 +94,7 @@ def _run_probe(command: list[str], *, timeout_seconds: int = 120) -> bool:
     try:
         result = subprocess.run(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
             timeout=timeout_seconds,
