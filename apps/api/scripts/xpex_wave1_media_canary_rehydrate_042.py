@@ -18,11 +18,21 @@ from pathlib import Path
 from typing import Any
 
 from config.config import get_learnhouse_config
+from scripts.xpex_wave1_media_canary_recovery_038 import (
+    _lesson_draft,
+    _media_qa,
+    _qa_passed,
+    _to_async_url,
+)
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.xpex_catalog import XPeXLesson, XPeXWaveMediaJob
-from src.services.xpex.video_factory import LessonVideoManifest, MediaRef, VideoModelRegistry
+from src.services.xpex.video_factory import (
+    LessonVideoManifest,
+    MediaRef,
+    VideoModelRegistry,
+)
 from src.services.xpex.video_media import (
     draft_artifact_key,
     materialize_storage_key,
@@ -37,13 +47,6 @@ from src.services.xpex.video_pipeline import (
 )
 from src.services.xpex.video_providers import generate_video_clip
 from src.services.xpex.wave1_courses import CANARY_LESSON_KEY, WAVE_KEY
-
-from scripts.xpex_wave1_media_canary_recovery_038 import (
-    _lesson_draft,
-    _media_qa,
-    _qa_passed,
-    _to_async_url,
-)
 
 MISSION_ID = "XPEX-WAVE1-MEDIA-CANARY-REHYDRATE-042"
 AUTHORIZED_JOB_ID = "xpw1_a9b0b936e85b51dc846a3613372b3b46"
