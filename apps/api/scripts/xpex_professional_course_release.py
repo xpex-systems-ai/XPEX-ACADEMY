@@ -14,6 +14,13 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from config.config import get_learnhouse_config
+from scripts.xpex_launch_course import (
+    MODULES,
+    _ensure_foundations_assessment,
+    _ensure_module,
+    _resolve_author,
+    _to_async_url,
+)
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -23,9 +30,9 @@ from src.db.courses.activities import (
     ActivitySubTypeEnum,
     ActivityTypeEnum,
 )
+from src.db.courses.certifications import Certifications
 from src.db.courses.chapter_activities import ChapterActivity
 from src.db.courses.chapters import Chapter
-from src.db.courses.certifications import Certifications
 from src.db.courses.courses import Course, ThumbnailType
 from src.db.organizations import Organization
 from src.db.resource_authors import (
@@ -34,14 +41,6 @@ from src.db.resource_authors import (
     ResourceAuthorshipStatusEnum,
 )
 from src.db.users import User
-
-from scripts.xpex_launch_course import (
-    MODULES,
-    _ensure_foundations_assessment,
-    _ensure_module,
-    _resolve_author,
-    _to_async_url,
-)
 
 COURSE_NAME = "Inteligência Artificial Profissional — do Básico ao Avançado"
 COURSE_SLUG = "inteligencia-artificial-profissional"
@@ -71,7 +70,7 @@ def _load_video_map(raw: str | None) -> dict[int, str]:
         return {}
     payload = json.loads(raw)
     if not isinstance(payload, dict):
-        raise ValueError("video map must be a JSON object")
+        raise TypeError("video map must be a JSON object")
     result: dict[int, str] = {}
     for key, value in payload.items():
         module = int(key)
