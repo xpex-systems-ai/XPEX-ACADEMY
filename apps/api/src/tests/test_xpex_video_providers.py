@@ -129,6 +129,7 @@ async def test_video_uses_hf_routed_fal_queue_and_downloads_result(monkeypatch):
     assert clip.data == b"video-bytes"
     assert clip.mime_type == "video/mp4"
     assert clip.model == "Wan-AI/Wan2.2-TI2V-5B"
+    assert clip.request_id == "req-1"
     method, submit_url, kwargs = FakeClient.calls[0]
     assert method == "POST"
     assert submit_url == (

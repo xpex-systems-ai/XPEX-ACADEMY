@@ -122,16 +122,13 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Temporary read-only diagnostic hook for the consumed Wave 1 media canary retry.
-# It performs no provider call and no database mutation; it only emits a bounded,
-# redacted snapshot of the persisted failure evidence for the single authorized job.
+# Mission 043 is intentionally idempotent and fail-closed. It can claim only the
+# certified job/lesson and records the single external submission at its boundary.
+# A missing durable backend stops before any provider call.
 (
     sleep 8
     cd /app/api || exit 92
-    echo "XPEX_WAVE1_MEDIA_DIAGNOSTIC_041 runtime hook requested"
-    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py
-    diagnostic_rc=$?
-    echo "XPEX_WAVE1_MEDIA_DIAGNOSTIC_041 runtime hook exit=$diagnostic_rc"
+    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_final_043.py --execute
 ) &
 
 # Tail PM2 logs with proper formatting

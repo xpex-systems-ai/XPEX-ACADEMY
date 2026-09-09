@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import tempfile
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +30,7 @@ from src.services.xpex.video_media import (
     materialize_storage_key,
     persist_local_or_s3,
     probe_duration_seconds,
+    require_durable_media_storage,
     write_caption_artifact,
 )
 from src.services.xpex.video_motion import compose_motion_lesson_video
@@ -49,6 +51,8 @@ class VideoLessonSource:
     batch_id: str
     lesson: LessonDraft
     registry: VideoModelRegistry
+    before_video_submit: Callable[[], Awaitable[None]] | None = None
+    after_video_submit: Callable[[str], Awaitable[None]] | None = None
 
 
 def _extension(mime_type: str, fallback: str) -> str:
@@ -74,6 +78,7 @@ def _stored_ref(local_path: str, key: str) -> MediaRef:
         uri=stored.key,
         checksum_sha256=stored.checksum_sha256,
         mime_type=stored.mime_type,
+        byte_size=stored.byte_size,
     )
 
 
@@ -151,6 +156,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         return manifest
 
     async def narrating(manifest: LessonVideoManifest) -> LessonVideoManifest:
+        require_durable_media_storage()
         if manifest.video_script is None:
             raise ValueError("video script is required before narration")
         audio = await _produce_narration(manifest.video_script.narration_text, source.registry)
@@ -170,10 +176,12 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
             mime_type=stored.mime_type,
             language="pt-BR",
             duration_seconds=duration,
+            byte_size=stored.byte_size,
         )
         return manifest
 
     async def asset_generation(manifest: LessonVideoManifest) -> LessonVideoManifest:
+        require_durable_media_storage()
         if not manifest.storyboard:
             raise ValueError("storyboard is required before asset generation")
         prompt = (
@@ -197,6 +205,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         return manifest
 
     async def rendering(manifest: LessonVideoManifest) -> LessonVideoManifest:
+        require_durable_media_storage()
         if manifest.narration is None or not manifest.assets or not manifest.storyboard:
             raise ValueError("narration, storyboard and visual asset are required before rendering")
         if not (
@@ -217,11 +226,15 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             output_path = str(Path(directory) / "lesson-draft.mp4")
+            if source.before_video_submit is not None:
+                await source.before_video_submit()
             motion = await generate_video_clip(
                 _motion_prompt(source, manifest),
                 source.registry,
                 duration_seconds=5,
             )
+            if source.after_video_submit is not None and motion.request_id:
+                await source.after_video_submit(motion.request_id)
             motion_path = _write_provider_binary(motion, directory, "motion-source", ".mp4")
             motion_key = draft_artifact_key(
                 batch_id=source.batch_id,
@@ -231,9 +244,17 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
             )
             motion_ref = await asyncio.to_thread(_stored_ref, motion_path, motion_key)
             manifest.assets.append(motion_ref)
+            # Compose only from bytes re-read through the durable abstraction. This
+            # proves the provider result is recoverable instead of accidentally
+            # depending on the download scratch file that dies with this process.
+            durable_motion_path = await asyncio.to_thread(
+                materialize_storage_key,
+                motion_ref.uri,
+                str(Path(directory) / "materialized-motion-source.mp4"),
+            )
             rendered = await asyncio.to_thread(
                 compose_motion_lesson_video,
-                clip_path=motion_path,
+                clip_path=durable_motion_path,
                 narration_path=narration_path,
                 output_path=output_path,
             )
@@ -247,10 +268,12 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
             stored = await asyncio.to_thread(persist_local_or_s3, rendered.uri, key)
         rendered.uri = stored.key
         rendered.checksum_sha256 = stored.checksum_sha256
+        rendered.byte_size = stored.byte_size
         manifest.video_draft = rendered
         return manifest
 
     async def reviewing(manifest: LessonVideoManifest) -> LessonVideoManifest:
+        require_durable_media_storage()
         if manifest.video_script is None or manifest.narration is None or manifest.video_draft is None:
             raise ValueError("script, narration and video draft are required before review")
         with tempfile.TemporaryDirectory(prefix="xpex-review-") as directory:
@@ -297,6 +320,7 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
             stored_caption = await asyncio.to_thread(persist_local_or_s3, caption.uri, caption_key)
         caption.uri = stored_caption.key
         caption.checksum_sha256 = stored_caption.checksum_sha256
+        caption.byte_size = stored_caption.byte_size
         manifest.captions = [caption]
         manifest.review = review
         return manifest

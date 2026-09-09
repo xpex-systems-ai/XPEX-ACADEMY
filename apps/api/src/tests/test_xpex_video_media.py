@@ -8,7 +8,10 @@ from src.services.xpex.video_media import (
     activity_artifact_key,
     build_caption_text,
     draft_artifact_key,
+    materialize_storage_key,
+    media_storage_backend,
     persist_local_or_s3,
+    require_durable_media_storage,
     write_caption_artifact,
 )
 
@@ -77,6 +80,31 @@ def test_persist_local_filesystem_is_atomic(monkeypatch, tmp_path: Path):
     assert Path(stored.local_path).read_bytes() == b"video-bytes"
     assert len(stored.checksum_sha256) == 64
     assert stored.mime_type == "video/mp4"
+    assert stored.byte_size == len(b"video-bytes")
+
+
+def test_railway_local_storage_is_never_classified_as_durable(monkeypatch):
+    monkeypatch.setattr("src.services.xpex.video_media.get_content_delivery_type", lambda: "filesystem")
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+    monkeypatch.delenv("XPEX_DURABLE_MEDIA_ROOT", raising=False)
+    assert media_storage_backend() == "EPHEMERAL_LOCAL"
+    with pytest.raises(VideoMediaError, match="durable media storage"):
+        require_durable_media_storage()
+
+
+def test_durable_volume_round_trip_survives_scratch_discard(monkeypatch, tmp_path: Path):
+    volume = tmp_path / "mounted-volume"
+    monkeypatch.setattr("src.services.xpex.video_media.get_content_delivery_type", lambda: "filesystem")
+    monkeypatch.setenv("XPEX_DURABLE_MEDIA_ROOT", str(volume))
+    source = tmp_path / "narration.wav"
+    source.write_bytes(b"durable narration")
+    stored = persist_local_or_s3(source.as_posix(), "content/xpex-video-drafts/job/narration.wav")
+    source.unlink()
+    fresh = tmp_path / "fresh-process" / "narration.wav"
+    materialize_storage_key(stored.key, fresh.as_posix())
+    assert fresh.read_bytes() == b"durable narration"
+    assert stored.checksum_sha256 == __import__("hashlib").sha256(fresh.read_bytes()).hexdigest()
+    assert media_storage_backend(production=True) == "DURABLE_VOLUME"
 
 
 def test_persist_s3_failure_fails_closed(monkeypatch, tmp_path: Path):
