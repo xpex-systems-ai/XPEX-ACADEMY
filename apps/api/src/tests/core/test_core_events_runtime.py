@@ -218,6 +218,7 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
     run_ee_startup = Mock()
     auto_install = AsyncMock()
     reconcile_packs = AsyncMock()
+    reconcile_catalog = AsyncMock()
     cleanup_temp_migrations = Mock()
 
     class _AwaitableFakeTask:
@@ -240,6 +241,7 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
     monkeypatch.setattr(events, "check_content_directory", check_content_directory)
     monkeypatch.setattr(events, "auto_install", auto_install)
     monkeypatch.setattr(events, "_reconcile_packs", reconcile_packs)
+    monkeypatch.setattr(events, "_reconcile_xpex_official_catalog", reconcile_catalog)
     monkeypatch.setattr(events, "run_ee_startup", run_ee_startup)
     monkeypatch.setattr(events.asyncio, "create_task", fake_create_task)
     monkeypatch.setattr(
@@ -262,6 +264,7 @@ async def test_events_startup_shutdown_and_reconcile(monkeypatch):
     check_content_directory.assert_awaited_once()
     auto_install.assert_called_once()
     reconcile_packs.assert_called_once()
+    reconcile_catalog.assert_awaited_once()
     cleanup_temp_migrations.assert_called_once()
     run_ee_startup.assert_called_once_with(app)
     assert events._cleanup_task is fake_task
