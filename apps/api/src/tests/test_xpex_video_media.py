@@ -8,9 +8,9 @@ from src.services.xpex.video_media import (
     activity_artifact_key,
     build_caption_text,
     draft_artifact_key,
-    persist_local_or_s3,
     materialize_storage_key,
     media_storage_backend,
+    persist_local_or_s3,
     require_durable_media_storage,
     write_caption_artifact,
 )
