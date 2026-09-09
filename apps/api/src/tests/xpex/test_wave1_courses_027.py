@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel, select
-
 from src.db.xpex_catalog import (
     XPeXAssessment,
     XPeXCourse,
