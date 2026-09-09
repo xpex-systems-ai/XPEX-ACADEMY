@@ -295,6 +295,9 @@ async def test_startup_and_shutdown_app(monkeypatch):
     async def fake_reconcile_packs():
         calls.append("reconcile")
 
+    async def fake_reconcile_xpex_official_catalog():
+        calls.append("catalog")
+
     async def fake_auto_install():
         calls.append("install")
 
@@ -303,6 +306,11 @@ async def test_startup_and_shutdown_app(monkeypatch):
     monkeypatch.setattr(events, "check_content_directory", check_content_directory)
     monkeypatch.setattr(events, "auto_install", fake_auto_install)
     monkeypatch.setattr(events, "_reconcile_packs", fake_reconcile_packs)
+    monkeypatch.setattr(
+        events,
+        "_reconcile_xpex_official_catalog",
+        fake_reconcile_xpex_official_catalog,
+    )
     monkeypatch.setattr(events, "run_ee_startup", lambda app_: calls.append(("ee", app_)))
     monkeypatch.setattr(
         "src.services.courses.migration.migration_service.cleanup_old_temp_migrations",
@@ -333,7 +341,14 @@ async def test_startup_and_shutdown_app(monkeypatch):
     await start_app()
 
     assert app.learnhouse_config.name == "cfg"
-    assert calls[:5] == [("connect", app), "logs", "content", "install", "reconcile"]
+    assert calls[:6] == [
+        ("connect", app),
+        "logs",
+        "content",
+        "install",
+        "reconcile",
+        "catalog",
+    ]
     assert "cleanup" in calls
     assert calls[-1] == ("ee", app)
     assert created_tasks

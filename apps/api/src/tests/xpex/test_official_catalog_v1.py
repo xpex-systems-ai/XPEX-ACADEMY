@@ -46,8 +46,24 @@ def test_seed_contract_is_private_and_does_not_generate_learning_content() -> No
 @pytest.mark.asyncio
 async def test_seed_is_idempotent_and_keeps_every_course_private() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    catalog_tables = [
+        SQLModel.metadata.tables[name]
+        for name in (
+            "xpex_catalog_versions",
+            "xpex_schools",
+            "xpex_tracks",
+            "xpex_courses",
+            "xpex_modules",
+            "xpex_lessons",
+        )
+    ]
     async with engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
+        await connection.run_sync(
+            lambda sync_connection: SQLModel.metadata.create_all(
+                sync_connection,
+                tables=catalog_tables,
+            )
+        )
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
         assert await seed_official_catalog(session) == {
