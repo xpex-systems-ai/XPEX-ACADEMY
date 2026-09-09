@@ -1,6 +1,6 @@
 """Recover exactly the authorized real Wave 1 media canary to the human gate.
 
-Mission XPEX-WAVE1-MEDIA-CANARY-RECOVERY-038 resumes the already-certified Wave 1 canary
+Mission XPEX-WAVE1-MEDIA-CANARY-RECOVERY-039 resumes the already-certified Wave 1 canary
 row to the existing production XPeX video adapters.  It is resumable at durable
 Wave 1 checkpoints, claims the sole canary before calling providers, validates
 real media with ffprobe/ffmpeg, and never approves, attaches, or publishes.
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import subprocess
 import tempfile
 from pathlib import Path
@@ -33,10 +34,10 @@ from src.services.xpex.video_pipeline import (
 )
 from src.services.xpex.wave1_courses import CANARY_LESSON_KEY, WAVE_KEY
 
-MISSION_ID = "XPEX-WAVE1-MEDIA-CANARY-RECOVERY-038"
+MISSION_ID = "XPEX-WAVE1-MEDIA-CANARY-RECOVERY-039"
 AUTHORIZED_JOB_ID = "xpw1_a9b0b936e85b51dc846a3613372b3b46"
 FINAL_STATE = "AWAITING_HUMAN_APPROVAL"
-RESUMABLE_STATE = "AVATAR_OR_VISUAL_RENDER"
+RESUMABLE_STATES = {"AVATAR_OR_VISUAL_RENDER", "COMPOSITION", "CAPTIONS", "MEDIA_QA"}
 
 
 def _to_async_url(url: str) -> str:
@@ -98,6 +99,14 @@ def _run_probe(command: list[str], *, timeout_seconds: int = 120) -> bool:
     return result.returncode == 0
 
 
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 async def _media_qa(manifest: LessonVideoManifest) -> dict[str, Any]:
     video = manifest.video_draft
     caption = manifest.captions[0] if manifest.captions else None
@@ -108,6 +117,8 @@ async def _media_qa(manifest: LessonVideoManifest) -> dict[str, Any]:
             "duration_valid": False,
             "playback_valid": False,
             "captions_valid": False,
+            "checksum_valid": False,
+            "captions_checksum_valid": False,
             "review_blocker": True,
         }
 
@@ -146,18 +157,23 @@ async def _media_qa(manifest: LessonVideoManifest) -> dict[str, Any]:
         )
         captions_text = Path(caption_path).read_text(encoding="utf-8").strip()
         captions_valid = bool(captions_text.startswith("WEBVTT") and "-->" in captions_text)
+        actual_checksum = _sha256_file(video_path)
+        actual_captions_checksum = _sha256_file(caption_path)
 
-    review_blocker = bool(manifest.review and manifest.review.has_blocker)
+    review_blocker = manifest.review is None or manifest.review.has_blocker
     return {
         "file_valid": file_valid,
         "audio_valid": audio_valid,
         "duration_valid": duration > 0 and video.duration_seconds > 0,
         "playback_valid": playback_valid,
         "captions_valid": captions_valid,
+        "checksum_valid": actual_checksum == video.checksum_sha256,
+        "captions_checksum_valid": actual_captions_checksum == caption.checksum_sha256,
         "review_blocker": review_blocker,
         "mime_type": video.mime_type,
         "duration_seconds": duration,
-        "checksum_sha256": video.checksum_sha256,
+        "checksum_sha256": actual_checksum,
+        "captions_checksum_sha256": actual_captions_checksum,
         "artifact_uri": video.uri,
         "captions_uri": caption.uri,
     }
@@ -170,6 +186,8 @@ def _qa_passed(qa: dict[str, Any]) -> bool:
         and qa.get("duration_valid")
         and qa.get("playback_valid")
         and qa.get("captions_valid")
+        and qa.get("checksum_valid")
+        and qa.get("captions_checksum_valid")
         and not qa.get("review_blocker")
         and qa.get("mime_type") in {"video/mp4", "video/webm"}
         and qa.get("checksum_sha256")
@@ -231,22 +249,22 @@ async def _claim(session: AsyncSession) -> tuple[XPeXWaveMediaJob, XPeXLesson] |
     job = jobs[0]
     if job.job_id != AUTHORIZED_JOB_ID or job.lesson_id != lesson.id:
         raise RuntimeError("STOP: authorized canary identity mismatch")
-    if job.status != RESUMABLE_STATE:
-        raise RuntimeError(f"STOP: recovery requires {RESUMABLE_STATE}, got {job.status}")
-    if not job.original_error or "VideoProviderError" not in job.original_error:
-        raise RuntimeError("STOP: previous error is not the authorized VideoProviderError")
+    if job.status not in RESUMABLE_STATES:
+        raise RuntimeError(f"STOP: unsupported recovery checkpoint {job.status}")
 
     qa = dict(job.qa_json or {})
     attempts = int(qa.get("recovery_attempt_count", 0))
-    if attempts >= 1:
-        print(f"{MISSION_ID} BLOCKED job_id={job.job_id} retry_exhausted=true")
-        return None
-    job.qa_json = {
-        **qa,
-        "execution_state": "RUNNING",
-        "mission_id": MISSION_ID,
-        "recovery_attempt_count": attempts + 1,
-    }
+    artifact = dict(job.artifact_json or {})
+    manifest = artifact.get("manifest")
+    if job.status == "AVATAR_OR_VISUAL_RENDER":
+        if not job.original_error or "VideoProviderError" not in job.original_error:
+            raise RuntimeError("STOP: previous error is not the authorized VideoProviderError")
+        if attempts >= 1:
+            print(f"{MISSION_ID} BLOCKED job_id={job.job_id} retry_exhausted=true")
+            return None
+    elif artifact.get("mission_id") != MISSION_ID or not manifest:
+        raise RuntimeError("STOP: downstream checkpoint lacks recovery-owned evidence")
+    job.qa_json = {**qa, "execution_state": "CLAIMED", "mission_id": MISSION_ID}
     session.add(job)
     await session.commit()
     return job, lesson
@@ -274,24 +292,29 @@ async def run(*, execute: bool) -> int:
                 return 0
 
             registry = VideoModelRegistry.from_environment()
-            missing = [
-                name
-                for name, value in (
+            required_models = {
+                "AVATAR_OR_VISUAL_RENDER": (
                     ("XPEX_HF_VIDEO_MODEL", registry.video_model),
                     ("XPEX_HF_VIDEO_PROVIDER_MODEL", registry.video_provider_model),
-                    ("XPEX_HF_IMAGE_MODEL", registry.image_model),
+                ),
+                "COMPOSITION": (
                     ("XPEX_HF_STT_MODEL", registry.stt_model),
                     ("XPEX_HF_MULTIMODAL_REVIEW_MODEL", registry.multimodal_review_model),
-                )
+                ),
+                "CAPTIONS": (),
+                "MEDIA_QA": (),
+            }
+            missing = [
+                name
+                for name, value in required_models[job.status]
                 if not value
             ]
-            if registry.video_provider != "fal-ai":
+            if job.status == "AVATAR_OR_VISUAL_RENDER" and registry.video_provider != "fal-ai":
                 missing.append("XPEX_HF_VIDEO_PROVIDER=fal-ai")
             if missing:
-                job.original_error = "VideoProviderNotConfigured: canary configuration incomplete"
                 job.qa_json = {
                     **(job.qa_json or {}),
-                    "execution_state": "BLOCKED",
+                    "execution_state": "CONFIGURATION_BLOCKED",
                     "failed_stage": job.status,
                     "error_class": "VideoProviderNotConfigured",
                     "safe_original_error_message": "canary configuration incomplete",
@@ -326,6 +349,16 @@ async def run(*, execute: bool) -> int:
             stage = job.status
             try:
                 if stage == "AVATAR_OR_VISUAL_RENDER":
+                    job.qa_json = {
+                        **(job.qa_json or {}),
+                        "execution_state": "RUNNING",
+                        "recovery_attempt_count": int(
+                            (job.qa_json or {}).get("recovery_attempt_count", 0)
+                        )
+                        + 1,
+                    }
+                    session.add(job)
+                    await session.commit()
                     manifest = await handlers.rendering(manifest)
                     job.original_error = None
                     await _checkpoint(
