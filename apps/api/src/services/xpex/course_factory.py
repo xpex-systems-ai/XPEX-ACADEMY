@@ -2,13 +2,14 @@
 
 The factory composes the audited editorial and video state machines instead of
 bypassing them. One explicit superadmin/admin invocation generates and reviews the
-11-module professional curriculum, publishes the native editorial structure required
-by Video Studio, renders real lesson videos through the configured providers, and then
+11-module professional curriculum, stages the native editorial structure required by
+Video Studio, renders real lesson videos through the configured providers, and then
 stops at the human video-approval boundary. Re-invocation resumes durable state rather
 than duplicating the course or video jobs.
 
-Video approval, attachment and publication remain explicit Course Studio actions. This
-prevents a provider-generated video from becoming student-visible without human review.
+Video approval, attachment and publication remain explicit Course Studio actions. The
+native course is kept private/unpublished while video work is incomplete and becomes
+student-visible only after every video job reaches PUBLISHED.
 """
 
 from __future__ import annotations
@@ -17,9 +18,11 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.db.courses.courses import CourseUpdate
 from src.db.organizations import Organization
 from src.db.users import PublicUser
 from src.db.xpex_editorial import XPeXEditorialDraft
+from src.services.courses.courses import update_course
 from src.services.courses.locks import is_org_admin
 from src.services.xpex.editorial_studio import (
     EditorialDraftResponse,
@@ -37,7 +40,7 @@ from src.services.xpex.video_studio import (
     process_video_job,
 )
 
-FACTORY_KEY = "XPEX-AI-COURSE-FACTORY-020"
+FACTORY_KEY = "XPEX-AI-COURSE-FACTORY-021"
 FLAGSHIP_TOPIC = (
     "Inteligência Artificial Profissional — do Básico ao Avançado | XPeX Academy AI 2026"
 )
@@ -116,8 +119,6 @@ async def _editorial_to_published(
             db_session,
         )
     else:
-        # Convert durable DB state into the public service response through the
-        # authorized getter path instead of duplicating serialization logic.
         from src.services.xpex.editorial_studio import get_editorial_draft
 
         draft = await get_editorial_draft(record.draft_id, current_user, db_session)
@@ -130,8 +131,6 @@ async def _editorial_to_published(
             db_session,
         )
     if draft.status == "REVIEWED":
-        # The authenticated operator explicitly invoked this factory mission.
-        # Editorial approval is still persisted with actor/revision/hash evidence.
         draft = await approve_editorial_draft(
             draft.draft_id,
             EditorialMutationRequest(expected_revision=draft.revision),
@@ -151,6 +150,22 @@ async def _editorial_to_published(
         return draft, draft.native_course_uuid, f"/orgs/{organization_slug}/course/{draft.native_course_uuid}"
 
     raise HTTPException(status_code=409, detail=f"Factory editorial state cannot advance from {draft.status}")
+
+
+async def _set_student_visibility(
+    request: Request,
+    course_uuid: str,
+    visible: bool,
+    current_user: PublicUser,
+    db_session: AsyncSession,
+) -> None:
+    await update_course(
+        request,
+        CourseUpdate(public=visible, published=visible),
+        course_uuid,
+        current_user,
+        db_session,
+    )
 
 
 async def _advance_video_job(
@@ -177,8 +192,17 @@ async def run_flagship_course_factory(
         db_session,
     )
 
-    # create_video_batch is idempotent for this editorial draft/revision; repeated
-    # factory calls therefore resume the same durable jobs.
+    # The editorial publisher needs a native mapping before Video Studio can create
+    # its durable jobs. Hide the course immediately and keep it staged until every
+    # explicitly approved video reaches PUBLISHED.
+    await _set_student_visibility(
+        request,
+        course_uuid,
+        False,
+        current_user,
+        db_session,
+    )
+
     await create_video_batch(draft.draft_id, current_user, db_session)
     jobs = await list_video_jobs(draft.draft_id, current_user, db_session)
     advanced: list[VideoJobResponse] = []
@@ -192,6 +216,13 @@ async def run_flagship_course_factory(
     failed = any(job.state == "FAILED" for job in advanced)
 
     if all_published:
+        await _set_student_visibility(
+            request,
+            course_uuid,
+            True,
+            current_user,
+            db_session,
+        )
         factory_status = "READY"
         message = "Professional AI course and every approved lesson video are published."
     elif failed:
@@ -200,12 +231,12 @@ async def run_flagship_course_factory(
     elif awaiting_human:
         factory_status = "AWAITING_HUMAN_APPROVAL"
         message = (
-            "Professional videos were rendered and reviewed. Open Course Studio to inspect, approve, "
-            "attach and publish each accepted lesson video."
+            "Professional videos were rendered and reviewed. The course remains private. "
+            "Open Course Studio to inspect, approve, attach and publish each accepted lesson video."
         )
     else:
         factory_status = "IN_PROGRESS"
-        message = "Factory state persisted; re-run safely to resume incomplete video jobs."
+        message = "Factory state persisted; course remains private while incomplete video jobs resume."
 
     return FactoryRunResponse(
         factory_key=FACTORY_KEY,
