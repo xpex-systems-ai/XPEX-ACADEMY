@@ -1,9 +1,13 @@
 """Execute exactly one real Wave 1 media canary to the human approval gate.
 
 Mission XPEX-WAVE1-MEDIA-CANARY-037 bridges the already-certified Wave 1 canary
-row to the existing production XPeX video adapters.  It is resumable at durable
+row to the existing production XPeX video adapters. It is resumable at durable
 Wave 1 checkpoints, claims the sole canary before calling providers, validates
 real media with ffprobe/ffmpeg, and never approves, attaches, or publishes.
+
+Recovery 038 permits exactly one continuation of the already-observed generic
+VideoProviderError at AVATAR_OR_VISUAL_RENDER. It cannot create a second job and
+persists the provider adapter's safe error message if the controlled retry fails.
 """
 
 from __future__ import annotations
@@ -31,10 +35,16 @@ from src.services.xpex.video_pipeline import (
     build_video_stage_handlers,
     manifest_evidence_hash,
 )
+from src.services.xpex.video_providers import (
+    VideoProviderError,
+    VideoProviderNotConfigured,
+)
 from src.services.xpex.wave1_courses import CANARY_LESSON_KEY, WAVE_KEY
 
 MISSION_ID = "XPEX-WAVE1-MEDIA-CANARY-037"
+RECOVERY_ID = "XPEX-WAVE1-MEDIA-CANARY-RECOVERY-038"
 FINAL_STATE = "AWAITING_HUMAN_APPROVAL"
+RECOVERABLE_ERROR = "VideoProviderError: stage execution failed"
 RESUMABLE_STATES = (
     "SCRIPT_READY",
     "TTS_READY",
@@ -102,6 +112,12 @@ def _run_probe(command: list[str], *, timeout_seconds: int = 120) -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
+
+
+def _safe_error_detail(exc: Exception) -> str:
+    if isinstance(exc, (VideoProviderError, VideoProviderNotConfigured)):
+        return str(exc).strip() or "provider stage failed"
+    return "stage execution failed"
 
 
 async def _media_qa(manifest: LessonVideoManifest) -> dict[str, Any]:
@@ -204,9 +220,17 @@ async def _checkpoint(
     job.artifact_json = artifact_json
     job.status = status
     if qa is not None:
-        job.qa_json = {**qa, "execution_state": "COMPLETE" if status == FINAL_STATE else "RUNNING"}
+        job.qa_json = {
+            **qa,
+            "execution_state": "COMPLETE" if status == FINAL_STATE else "RUNNING",
+            "mission_id": MISSION_ID,
+        }
     else:
-        job.qa_json = {**(job.qa_json or {}), "execution_state": "RUNNING", "mission_id": MISSION_ID}
+        job.qa_json = {
+            **(job.qa_json or {}),
+            "execution_state": "RUNNING",
+            "mission_id": MISSION_ID,
+        }
     media = dict(lesson.media_json or {})
     media.update({"video_job_id": job.job_id, "video_status": status})
     if manifest.video_draft is not None:
@@ -234,18 +258,45 @@ async def _claim(session: AsyncSession) -> tuple[XPeXWaveMediaJob, XPeXLesson] |
         return job, lesson
     if job.status not in RESUMABLE_STATES:
         raise RuntimeError(f"STOP: unsupported canary status {job.status}")
-    if job.original_error:
-        print(
-            f"{MISSION_ID} BLOCKED job_id={job.job_id} status={job.status} "
-            "persistent_error=true"
-        )
-        return None
 
     qa = dict(job.qa_json or {})
+    if job.original_error:
+        recoverable = bool(
+            job.status == "AVATAR_OR_VISUAL_RENDER"
+            and job.original_error == RECOVERABLE_ERROR
+            and qa.get("failed_stage") == "AVATAR_OR_VISUAL_RENDER"
+            and qa.get("error_class") == "VideoProviderError"
+            and not qa.get("recovery_attempt")
+        )
+        if not recoverable:
+            print(
+                f"{MISSION_ID} BLOCKED job_id={job.job_id} status={job.status} "
+                "persistent_error=true"
+            )
+            return None
+        job.original_error = None
+        job.qa_json = {
+            **qa,
+            "execution_state": "RECOVERY_CLAIMED",
+            "recovery_attempt": 1,
+            "recovery_mission_id": RECOVERY_ID,
+        }
+        session.add(job)
+        await session.commit()
+        qa = dict(job.qa_json or {})
+        print(
+            f"{RECOVERY_ID} CLAIMED job_id={job.job_id} "
+            "stage=AVATAR_OR_VISUAL_RENDER retry=1"
+        )
+
     if qa.get("execution_state") == "RUNNING" and qa.get("mission_id") == MISSION_ID:
         print(f"{MISSION_ID} BLOCKED job_id={job.job_id} execution_already_claimed=true")
         return None
-    job.qa_json = {**qa, "execution_state": "RUNNING", "mission_id": MISSION_ID}
+    job.qa_json = {
+        **qa,
+        "execution_state": "RUNNING",
+        "mission_id": MISSION_ID,
+    }
     session.add(job)
     await session.commit()
     return job, lesson
@@ -268,7 +319,10 @@ async def run(*, execute: bool) -> int:
                 )
                 return 0
             if not execute:
-                print(f"{MISSION_ID} DRY_RUN job_id={job.job_id} status={job.status} no_provider_call=true")
+                print(
+                    f"{MISSION_ID} DRY_RUN job_id={job.job_id} status={job.status} "
+                    "no_provider_call=true"
+                )
                 job.qa_json = {**(job.qa_json or {}), "execution_state": "DRY_RUN"}
                 session.add(job)
                 await session.commit()
@@ -290,7 +344,11 @@ async def run(*, execute: bool) -> int:
                 missing.append("XPEX_HF_VIDEO_PROVIDER=fal-ai")
             if missing:
                 job.original_error = "VideoProviderNotConfigured: canary configuration incomplete"
-                job.qa_json = {**(job.qa_json or {}), "execution_state": "BLOCKED", "missing": missing}
+                job.qa_json = {
+                    **(job.qa_json or {}),
+                    "execution_state": "BLOCKED",
+                    "missing": missing,
+                }
                 session.add(job)
                 await session.commit()
                 print(
@@ -377,9 +435,13 @@ async def run(*, execute: bool) -> int:
                     stage = "MEDIA_QA"
 
                 if stage == "MEDIA_QA":
-                    qa = await _media_qa(manifest)
-                    if not _qa_passed(qa):
-                        job.qa_json = {**qa, "execution_state": "BLOCKED", "mission_id": MISSION_ID}
+                    qa_result = await _media_qa(manifest)
+                    if not _qa_passed(qa_result):
+                        job.qa_json = {
+                            **qa_result,
+                            "execution_state": "BLOCKED",
+                            "mission_id": MISSION_ID,
+                        }
                         job.original_error = "VideoMediaQAError: media QA failed"
                         session.add(job)
                         await session.commit()
@@ -394,7 +456,7 @@ async def run(*, execute: bool) -> int:
                         lesson=lesson,
                         manifest=manifest,
                         status=FINAL_STATE,
-                        qa=qa,
+                        qa=qa_result,
                     )
                     print(
                         f"{MISSION_ID} PASS job_id={job.job_id} lesson_key={CANARY_LESSON_KEY} "
@@ -404,19 +466,21 @@ async def run(*, execute: bool) -> int:
                     )
                     return 0
             except Exception as exc:  # noqa: BLE001
-                job.original_error = f"{type(exc).__name__}: stage execution failed"
+                detail = _safe_error_detail(exc)
+                job.original_error = f"{type(exc).__name__}: {detail}"
                 job.qa_json = {
                     **(job.qa_json or {}),
                     "execution_state": "BLOCKED",
                     "mission_id": MISSION_ID,
                     "failed_stage": stage,
                     "error_class": type(exc).__name__,
+                    "error_detail": detail,
                 }
                 session.add(job)
                 await session.commit()
                 print(
                     f"{MISSION_ID} FAILED job_id={job.job_id} stage={stage} "
-                    f"error_class={type(exc).__name__} status={job.status}"
+                    f"error_class={type(exc).__name__} error_detail={detail} status={job.status}"
                 )
                 return 5
 
