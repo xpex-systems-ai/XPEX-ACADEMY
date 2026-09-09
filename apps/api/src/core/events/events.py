@@ -43,6 +43,21 @@ async def _reconcile_packs():
         logger.warning("Pack reconciliation skipped (non-fatal): %s", e)
 
 
+async def _reconcile_xpex_official_catalog() -> None:
+    """Idempotently register the private canonical catalog after migrations run."""
+    try:
+        from src.core.events.database import _async_session_factory
+        from src.services.xpex.official_catalog import seed_official_catalog
+
+        async with _async_session_factory() as db_session:
+            result = await seed_official_catalog(db_session)
+            logger.info("XPeX official catalog reconciliation: %s", result)
+    except Exception:  # noqa: BLE001
+        # A failed catalog seed must not prevent auth, payments, or existing student
+        # flows from starting. The exception remains visible with its root traceback.
+        logger.exception("XPeX official catalog reconciliation failed")
+
+
 def startup_app(app: FastAPI) -> Callable:
     async def start_app() -> None:
         learnhouse_config: LearnHouseConfig = get_learnhouse_config()
@@ -52,6 +67,7 @@ def startup_app(app: FastAPI) -> Callable:
         await check_content_directory()
         await auto_install()
         await _reconcile_packs()
+        await _reconcile_xpex_official_catalog()
 
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
