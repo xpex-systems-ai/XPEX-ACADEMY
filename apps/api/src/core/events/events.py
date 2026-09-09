@@ -158,7 +158,7 @@ def shutdown_app(app: FastAPI) -> Callable:
 
         await stop_consumer()
         from src.services.utils.caption_jobs import (
-            start_consumer as start_captions_consumer,
+            stop_consumer as stop_captions_consumer,
         )
 
         await stop_captions_consumer()
