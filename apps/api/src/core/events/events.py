@@ -52,7 +52,7 @@ async def _reconcile_xpex_official_catalog() -> None:
         async with _async_session_factory() as db_session:
             result = await seed_official_catalog(db_session)
             logger.info("XPeX official catalog reconciliation: %s", result)
-    except Exception:  # noqa: BLE001
+    except Exception:
         # A failed catalog seed must not prevent auth, payments, or existing student
         # flows from starting. The exception remains visible with its root traceback.
         logger.exception("XPeX official catalog reconciliation failed")
