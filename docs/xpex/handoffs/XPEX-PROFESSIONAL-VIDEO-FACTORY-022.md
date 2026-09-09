@@ -2,7 +2,7 @@
 
 ## Outcome
 
-`XPEX-PROFESSIONAL-VIDEO-FACTORY-022 = NOT READY — production access is blocked before factory invocation; no job_id exists yet for module-level reporting. Evidence: the execution environment has no authenticated administrative session, no Railway CLI, no GitHub CLI authentication, and its HTTPS proxy rejects the canonical Railway host with HTTP 403. Next safe action: provide an already-authorized administrative session and production network/CLI access, then resume at phase 0 without changing credentials.`
+`XPEX-PROFESSIONAL-VIDEO-FACTORY-022 = NOT READY — the production POST did not reach the application; no job_id exists yet for module-level reporting. Evidence: at 2026-09-09T01:43:35Z the CONNECT proxy rejected the canonical Railway host with HTTP 403, curl exited 56 and reported application HTTP code 000. No authenticated administrative session is exposed to this execution process. Next safe action: resume the same POST from the already-authenticated browser/runtime that can reach production, without exporting or changing credentials.`
 
 This record deliberately does **not** claim generation, review, approval, attachment,
 publication, or player certification. No production mutation was attempted after the
@@ -18,7 +18,7 @@ required access checks failed.
 | Expected deployment ID | `34a055e6-1b7e-4efe-8964-e5753d9784f0` (handoff value; not independently verified) |
 | Production URL | `https://xpex-academy-ai.up.railway.app` |
 | Factory endpoint in source | `POST /api/v1/xpex/course-factory/flagship-ai` |
-| Factory invocation timestamp | Not available — invocation was not authorized or attempted |
+| Factory POST attempt (UTC) | `2026-09-09T01:43:35Z` — transport blocked before application invocation |
 | Draft ID | Not available |
 | Course UUID | Not available |
 | Course publication status | Not independently queried; no publish mutation attempted |
@@ -31,8 +31,10 @@ human approval boundary.
 ## Access checks and blockers
 
 1. `git rev-parse HEAD` returned the certified SHA from the handoff.
-2. `curl --max-time 30 https://xpex-academy-ai.up.railway.app/` was rejected by the
-   environment's CONNECT proxy with HTTP 403 before reaching the application.
+2. An explicit `POST` to the requested factory endpoint, scoped to the documented
+   `kelle-digital-lab` organization, was attempted at `2026-09-09T01:43:35Z`. The
+   environment's CONNECT proxy returned HTTP 403, `curl` exited with code 56, and the
+   application response code was `000`; therefore the request never reached FastAPI.
 3. Probes of `/api/health`, `/health`, `/api/v1/health`, `/api/openapi.json`, and the
    factory path failed at the same proxy boundary; they are not application HTTP
    results and therefore cannot be used as production health evidence.
@@ -40,9 +42,11 @@ human approval boundary.
    deployed SHA cannot be independently inspected from this environment.
 5. `gh auth status` reports no authenticated GitHub host. This does not affect the
    source snapshot but prevents independent remote PR/deployment corroboration.
-6. No administrative browser cookie, session token, or production credential is
-   available in the environment. In accordance with the mission constraints, none was
-   invented, requested through a password reset, replaced, or printed.
+6. No administrative browser process, cookie store, session token, or production
+   credential is available to the shell/tool process. The statement that a session is
+   already authenticated does not make that separate browser state available here. In
+   accordance with the mission constraints, no credential was invented, requested
+   through a password reset, replaced, copied, exported, or printed.
 7. The handoff expects factory key `XPEX-AI-COURSE-FACTORY-020`, while the certified
    source currently declares `XPEX-AI-COURSE-FACTORY-021`. This must be reconciled by
    the production operator before treating a future response as acceptance evidence;
@@ -55,7 +59,7 @@ produce trustworthy application evidence.
 
 ## Video evidence inventory
 
-No factory response was received and consequently there are no safely attributable
+No application-level factory response was received and consequently there are no safely attributable
 `draft_id`, job IDs, module mappings, provider results, media assets, review results,
 approvals, activity IDs, or player results to report. The required inventory remains:
 
