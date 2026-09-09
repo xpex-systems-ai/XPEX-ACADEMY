@@ -122,16 +122,19 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Temporary read-only diagnostic hook for the consumed Wave 1 media canary retry.
-# It performs no provider call and no database mutation; it only emits a bounded,
-# redacted snapshot of the persisted failure evidence for the single authorized job.
+# Temporary guarded rehydration hook for the one authorized Wave 1 media canary.
+# Production diagnostic 041 proved the previous retry stopped before Fal submission
+# because the narration URI pointed to ephemeral container storage. Runner 042
+# regenerates only the missing pre-provider narration, consumes exactly one real
+# video-provider attempt only after local prerequisites materialize, resumes later
+# checkpoints without a second provider call, and stops at human approval.
 (
     sleep 8
     cd /app/api || exit 92
-    echo "XPEX_WAVE1_MEDIA_DIAGNOSTIC_041 runtime hook requested"
-    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py
-    diagnostic_rc=$?
-    echo "XPEX_WAVE1_MEDIA_DIAGNOSTIC_041 runtime hook exit=$diagnostic_rc"
+    echo "XPEX_WAVE1_MEDIA_REHYDRATE_042 runtime hook requested"
+    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_rehydrate_042.py --execute
+    rehydrate_rc=$?
+    echo "XPEX_WAVE1_MEDIA_REHYDRATE_042 runtime hook exit=$rehydrate_rc"
 ) &
 
 # Tail PM2 logs with proper formatting
