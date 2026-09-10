@@ -8,6 +8,8 @@ separate human publish.
 
 from __future__ import annotations
 
+import os
+import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -41,9 +43,11 @@ from src.services.xpex.video_jobs import (
     save_human_transition,
 )
 from src.services.xpex.video_media import (
+    VideoMediaError,
     activity_artifact_key,
     materialize_storage_key,
     persist_local_or_s3,
+    require_durable_media_storage,
 )
 from src.services.xpex.video_pipeline import (
     VideoLessonSource,
@@ -242,19 +246,51 @@ async def list_video_jobs(
     return [await _response(row, db_session) for row in rows]
 
 
-def _require_mvp_registry(registry: VideoModelRegistry) -> None:
+def _require_real_pipeline_ready(registry: VideoModelRegistry) -> str:
+    """Fail closed before a job claim unless every production dependency is real.
+
+    This gate deliberately runs before ``claim_job`` so missing infrastructure does not
+    consume a render attempt. It validates only presence/capability, never logs secret
+    values and never mutates provider, storage or Railway configuration.
+    """
     missing: list[str] = []
+    if not os.getenv("HF_TOKEN", "").strip():
+        missing.append("HF_TOKEN")
+    if registry.video_provider != "fal-ai":
+        missing.append("XPEX_HF_VIDEO_PROVIDER=fal-ai")
+    if not registry.video_model:
+        missing.append("XPEX_HF_VIDEO_MODEL")
+    if not registry.video_provider_model:
+        missing.append("XPEX_HF_VIDEO_PROVIDER_MODEL")
     if not registry.image_model:
         missing.append("XPEX_HF_IMAGE_MODEL")
     if not registry.stt_model:
         missing.append("XPEX_HF_STT_MODEL")
     if not registry.multimodal_review_model:
         missing.append("XPEX_HF_MULTIMODAL_REVIEW_MODEL")
+    if not registry.tts_model and shutil.which("espeak-ng") is None:
+        missing.append("XPEX_HF_TTS_MODEL or espeak-ng")
+
+    storage_backend: str | None = None
+    try:
+        storage_backend = require_durable_media_storage()
+    except VideoMediaError:
+        missing.append("durable media storage (S3 or XPEX_DURABLE_MEDIA_ROOT)")
+
     if missing:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Video provider configuration missing: {', '.join(missing)}",
+            detail=(
+                "XPeX Video Studio REAL_ONLY is blocked; missing production prerequisites: "
+                + ", ".join(missing)
+            ),
         )
+    if storage_backend is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="XPeX Video Studio REAL_ONLY is blocked; durable media storage is unavailable",
+        )
+    return storage_backend
 
 
 async def process_video_job(
@@ -273,7 +309,7 @@ async def process_video_job(
     draft = CourseDraft.model_validate(record.draft_json)
     lesson, _, _ = _resolve_lesson(draft, row.lesson_id)
     registry = VideoModelRegistry.from_environment()
-    _require_mvp_registry(registry)
+    _require_real_pipeline_ready(registry)
 
     claimed = await claim_job(
         db_session,
