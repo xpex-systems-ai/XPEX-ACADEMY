@@ -122,16 +122,18 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Mission 043 is intentionally idempotent and fail-closed. Before each resume,
-# emit the bounded/redacted read-only Mission 041 evidence for the same sole
-# canary. This exposes a consumed provider attempt without revealing credentials,
-# changing job state, or making any provider call. Mission 043 can then resume only
-# when its persisted single-submission guard allows it.
+# Mission 043 remains the only media executor. Before resuming it, emit the
+# bounded/read-only Mission 041 evidence, then allow Mission 051 to re-arm exactly
+# one replacement submit only for the already-persisted HTTP 400 unsupported-model
+# failure and only when the runtime model mapping has been corrected. Mission 051
+# permanently marks its one-time authorization before Mission 043 can submit.
 (
     sleep 8
     cd /app/api || exit 92
     PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py \
         || echo "XPEX-WAVE1-MEDIA-CANARY-DIAGNOSTIC-041 unavailable; guarded resume continues"
+    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_provider_recovery_051.py \
+        || echo "XPEX-WAVE1-PROVIDER-RECOVERY-051 blocked; Mission 043 remains fail-closed"
     PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_final_043.py --execute
 ) &
 
