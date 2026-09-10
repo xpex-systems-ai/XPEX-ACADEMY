@@ -3,23 +3,28 @@ import { redirect } from 'next/navigation'
 
 import { getServerSession } from '@/lib/auth/server'
 import { resolveXpexOrganization } from '@/lib/xpex/access'
+import { authorizePoloManager } from '@/lib/xpex/polo-policy'
 import {
   enrollXpexLaunchStudent,
   inviteXpexLaunchStudent,
   listXpexLaunchCourses,
-  type XpexLaunchCourse,
 } from '@/lib/xpex/launch-ops'
 
 async function getLaunchContext() {
   const session = await getServerSession()
   if (!session?.user) redirect('/login?next=%2Fxpex%2Fpolo%2Falunos')
 
-  const organization = resolveXpexOrganization(session.roles)
+  const organization = resolveXpexOrganization(session.roles, session.user.is_superadmin ? undefined : 'polo')
   const organizationSlug = organization?.slug
   const accessToken = session.tokens?.access_token
   if (!organizationSlug || !accessToken) redirect('/xpex/polo')
 
-  return { organization, organizationSlug, accessToken }
+  try {
+    const courses = await authorizePoloManager(session, organizationSlug, listXpexLaunchCourses)
+    return { organization, organizationSlug, accessToken, courses }
+  } catch {
+    redirect('/xpex/polo')
+  }
 }
 
 async function inviteStudent(formData: FormData) {
@@ -30,9 +35,8 @@ async function inviteStudent(formData: FormData) {
 
   try {
     await inviteXpexLaunchStudent(accessToken, organizationSlug, email)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Falha ao enviar convite.'
-    redirect(`/xpex/polo/alunos?error=${encodeURIComponent(message)}`)
+  } catch {
+    redirect('/xpex/polo/alunos?error=Falha%20ao%20enviar%20convite.')
   }
   redirect('/xpex/polo/alunos?status=Convite%20enviado.%20Aguarde%20o%20aluno%20aceitar%20antes%20da%20matr%C3%ADcula.')
 }
@@ -57,9 +61,8 @@ async function enrollStudent(formData: FormData) {
     message = result?.status === 'already_enrolled'
       ? 'Aluno já estava matriculado neste curso.'
       : 'Matrícula realizada com sucesso.'
-  } catch (error) {
-    const failure = error instanceof Error ? error.message : 'Falha ao realizar matrícula.'
-    redirect(`/xpex/polo/alunos?error=${encodeURIComponent(failure)}`)
+  } catch {
+    redirect('/xpex/polo/alunos?error=Falha%20ao%20realizar%20matr%C3%ADcula.')
   }
   redirect(`/xpex/polo/alunos?status=${encodeURIComponent(message)}`)
 }
@@ -69,18 +72,10 @@ export default async function PoleStudentsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const { organization, organizationSlug, accessToken } = await getLaunchContext()
+  const { organization, organizationSlug, courses } = await getLaunchContext()
   const params = await searchParams
   const status = typeof params.status === 'string' ? params.status : null
   const error = typeof params.error === 'string' ? params.error : null
-
-  let courses: XpexLaunchCourse[] = []
-  let coursesError = false
-  try {
-    courses = await listXpexLaunchCourses(accessToken, organizationSlug)
-  } catch {
-    coursesError = true
-  }
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground">
@@ -139,11 +134,7 @@ export default async function PoleStudentsPage({
             <p className="mt-2 text-sm text-muted-foreground">
               A matrícula só é aceita para aluno que já entrou na organização e para curso publicado.
             </p>
-            {coursesError ? (
-              <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm">
-                Não foi possível carregar os cursos publicados. Atualize a página ou confira o acesso administrativo.
-              </div>
-            ) : courses.length === 0 ? (
+            {courses.length === 0 ? (
               <div className="mt-6 rounded-lg border p-3 text-sm text-muted-foreground">
                 Nenhum curso publicado está disponível para matrícula.
               </div>

@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from '@/lib/auth/server'
+import { authorizePoloManager, canAccessPoloSection } from '@/lib/xpex/polo-policy'
+import { listXpexLaunchCourses } from '@/lib/xpex/launch-ops'
+import { getPoloBranding } from '@/lib/xpex/polo-branding-server'
 import {
   resolveXpexAccess,
   resolveXpexOrganization,
@@ -127,9 +130,24 @@ export async function AuthenticatedXpexExperience({
     : canonicalRoles
   if (!role || (role === 'polo' ? !poloAccess : !roles.includes(role))) return <AccessDenied />
 
+  if (role === 'polo') {
+    if (!session.tokens?.access_token) return <AccessDenied />
+    if (poloSection && !canAccessPoloSection(poloAccess, poloSection)) return <AccessDenied />
+    if (poloAccess?.isManager && !isSuperadmin) {
+      try {
+        await authorizePoloManager(session, organizationSlug, listXpexLaunchCourses)
+      } catch {
+        return <AccessDenied />
+      }
+    }
+  }
+
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Pessoa participante'
   const organizationName = organization?.name
+  const poloBranding = role === 'polo'
+    ? await getPoloBranding(session.tokens!.access_token!, organizationSlug, organizationName)
+    : undefined
 
   // Section-only Polo routes are intentionally lightweight. Once server-side
   // authorization and organization scope are resolved, render the section directly
@@ -142,10 +160,12 @@ export async function AuthenticatedXpexExperience({
         displayName={displayName}
         organizationSlug={organizationSlug}
         adminAccess={isSuperadmin}
+        poloAccess={poloAccess}
+        poloBranding={poloBranding}
       >
         <XpexPoloSection
           section={poloSection}
-          organizationName={organizationName}
+          organizationName={poloBranding?.organization_name ?? organizationName}
           organizationSlug={organizationSlug}
         />
       </XpexAuthenticatedShell>
@@ -187,7 +207,7 @@ export async function AuthenticatedXpexExperience({
   }
 
   return (
-    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug} adminAccess={adminAccess}>
+    <XpexAuthenticatedShell role={role} allowedRoles={roles} displayName={displayName} organizationSlug={organizationSlug} adminAccess={adminAccess} poloAccess={poloAccess} poloBranding={poloBranding}>
       {role === 'aluno' ? (
         <FuturisticStudentDashboard
           displayName={displayName}
@@ -209,6 +229,7 @@ export async function AuthenticatedXpexExperience({
           organizationName={organizationName}
           organizationSlug={organizationSlug}
           poloAccess={poloAccess}
+          poloBranding={poloBranding}
         />
       )}
     </XpexAuthenticatedShell>

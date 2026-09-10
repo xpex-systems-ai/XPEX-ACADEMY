@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const read = path => readFileSync(join(root, path), 'utf8')
 
-describe('Kelle Digital Lab polo operating experience', () => {
+describe('Multi-polo operating experience', () => {
   test('publishes every required authenticated sidebar destination', () => {
     const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
     for (const route of ['turmas', 'cursos', 'trilhas', 'mentorias', 'eventos', 'conteudos', 'relatorios', 'certificados', 'recursos', 'configuracoes']) expect(shell).toContain(`'/xpex/polo/${route}'`)
@@ -20,10 +21,10 @@ describe('Kelle Digital Lab polo operating experience', () => {
     expect(access).toContain('encodeURIComponent(returnPath)')
   })
 
-  test('scopes Kelle identity details to the Kelle tenant without fabricated metrics', () => {
+  test('renders only configured identity without tenant-specific rules', () => {
     const hero = read('components/Xpex/experiences/PoloIdentityHero.tsx')
-    expect(hero).toContain("normalizeTenantName(title) === 'kelle digital lab'")
-    for (const text of ['Educação que inspira, tecnologia que transforma.', 'Planaltina DF, Brasil', 'Professora Kelle']) expect(hero).toContain(text)
+    expect(hero).not.toMatch(/kelle|planaltina|normalizeTenantName/i)
+    for (const field of ['organization_name', 'location', 'coordinator_name', 'tagline']) expect(hero).toContain(`branding.${field}`)
     expect(hero).not.toMatch(/248|1\.250|3\.800|4\.9/)
   })
 
