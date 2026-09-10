@@ -70,32 +70,33 @@ jobs:
           fi
           echo "XPEX_STORAGE_AUTH=AUTHORIZED"
 
-      - name: Verify target context before mutation
+      - name: Link and verify exact production target before mutation
         shell: bash
         run: |
           set -euo pipefail
           railway whoami --json
-          railway service list --project "$XPEX_RAILWAY_PROJECT_ID" --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" --json
+          railway link \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json
+          status="$(railway status --json)"
+          printf '%s\n' "$status"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_PROJECT_ID"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_ENVIRONMENT_ID"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_SERVICE_ID"
+          echo "XPEX_STORAGE_TARGET=VERIFIED"
 
       - name: Create exactly one durable media volume when absent
         shell: bash
         run: |
           set -euo pipefail
-          before="$(railway volume list \
-            --project "$XPEX_RAILWAY_PROJECT_ID" \
-            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-            --service "$XPEX_RAILWAY_SERVICE_ID" \
-            --json)"
+          before="$(railway volume list --json)"
           printf '%s\n' "$before"
           if printf '%s' "$before" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
             echo "XPEX_STORAGE_VOLUME=ALREADY_PRESENT"
           else
-            railway volume add \
-              --project "$XPEX_RAILWAY_PROJECT_ID" \
-              --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-              --service "$XPEX_RAILWAY_SERVICE_ID" \
-              --mount-path "$XPEX_MEDIA_MOUNT" \
-              --json
+            railway volume add --mount-path "$XPEX_MEDIA_MOUNT" --json
             echo "XPEX_STORAGE_VOLUME=CREATED"
           fi
 
@@ -103,11 +104,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          after="$(railway volume list \
-            --project "$XPEX_RAILWAY_PROJECT_ID" \
-            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-            --service "$XPEX_RAILWAY_SERVICE_ID" \
-            --json)"
+          after="$(railway volume list --json)"
           printf '%s\n' "$after"
           if ! printf '%s' "$after" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
             echo "XPEX_STORAGE_VOLUME=VERIFY_FAILED"
@@ -119,30 +116,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          railway variable set \
-            "XPEX_DURABLE_MEDIA_ROOT=$XPEX_MEDIA_MOUNT" \
-            --project "$XPEX_RAILWAY_PROJECT_ID" \
-            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-            --service "$XPEX_RAILWAY_SERVICE_ID"
+          railway variable set "XPEX_DURABLE_MEDIA_ROOT=$XPEX_MEDIA_MOUNT"
           echo "XPEX_DURABLE_MEDIA_ROOT=SET"
 
       - name: Final read-back
         shell: bash
         run: |
           set -euo pipefail
-          railway volume list \
-            --project "$XPEX_RAILWAY_PROJECT_ID" \
-            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-            --service "$XPEX_RAILWAY_SERVICE_ID" \
-            --json
-          vars="$(railway variable list \
-            --project "$XPEX_RAILWAY_PROJECT_ID" \
-            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
-            --service "$XPEX_RAILWAY_SERVICE_ID" \
-            --json)"
+          volumes="$(railway volume list --json)"
+          printf '%s\n' "$volumes"
+          vars="$(railway variable list --json)"
+          if ! printf '%s' "$volumes" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=FINAL_VERIFY_FAILED"
+            exit 4
+          fi
           if ! printf '%s' "$vars" | grep -Fq 'XPEX_DURABLE_MEDIA_ROOT'; then
             echo "XPEX_DURABLE_MEDIA_ROOT=VERIFY_FAILED"
-            exit 4
+            exit 5
           fi
           echo "XPEX_DURABLE_MEDIA_ROOT=VERIFIED"
           echo "XPEX_STORAGE_049=READY_FOR_CANARY"
