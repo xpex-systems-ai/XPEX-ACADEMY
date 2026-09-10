@@ -1,0 +1,75 @@
+name: XPeX Real Storage 048
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/xpex-real-storage-048.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xpex-real-storage-048-production
+  cancel-in-progress: false
+
+jobs:
+  provision-volume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      XPEX_RAILWAY_PROJECT_ID: 7b78507b-5a56-483a-a9e3-cfa31e40232b
+      XPEX_RAILWAY_ENVIRONMENT_ID: 9ee4cfd5-a18e-40dd-bf7c-30182b310770
+      XPEX_RAILWAY_SERVICE_ID: 30327dd8-dca1-474a-b39a-ae7ee9645ad2
+      XPEX_MEDIA_MOUNT: /data/xpex-media
+    steps:
+      - name: Require scoped Railway token
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "XPEX_STORAGE_AUTH=BLOCKED_MISSING_RAILWAY_TOKEN"
+            exit 2
+          fi
+          echo "XPEX_STORAGE_AUTH=PRESENT"
+
+      - name: Install Railway CLI
+        shell: bash
+        run: npm install --global @railway/cli@latest
+
+      - name: Create durable media volume only when absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(railway volume list \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json)"
+          if printf '%s' "$before" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=ALREADY_PRESENT"
+          else
+            railway volume add \
+              --project "$XPEX_RAILWAY_PROJECT_ID" \
+              --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+              --service "$XPEX_RAILWAY_SERVICE_ID" \
+              --mount-path "$XPEX_MEDIA_MOUNT" \
+              --json
+            echo "XPEX_STORAGE_VOLUME=CREATED"
+          fi
+
+      - name: Verify real mount exists in Railway
+        shell: bash
+        run: |
+          set -euo pipefail
+          after="$(railway volume list \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json)"
+          if ! printf '%s' "$after" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=VERIFY_FAILED"
+            exit 3
+          fi
+          echo "XPEX_STORAGE_VOLUME=VERIFIED"
