@@ -1,4 +1,4 @@
-name: XPeX Real Storage 048
+name: XPeX Final Real Storage 049
 
 on:
   pull_request:
@@ -10,53 +10,39 @@ permissions:
   contents: read
 
 concurrency:
-  group: xpex-real-storage-048-production
+  group: xpex-final-real-student-049-production
   cancel-in-progress: false
 
 jobs:
-  provision-volume:
+  provision-real-storage:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-      RAILWAY_PROJECT_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN }}
-      RAILWAY_PRODUCTION_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
       XPEX_RAILWAY_PROJECT_ID: 7b78507b-5a56-483a-a9e3-cfa31e40232b
       XPEX_RAILWAY_ENVIRONMENT_ID: 9ee4cfd5-a18e-40dd-bf7c-30182b310770
       XPEX_RAILWAY_SERVICE_ID: 30327dd8-dca1-474a-b39a-ae7ee9645ad2
       XPEX_MEDIA_MOUNT: /data/xpex-media
     steps:
-      - name: Resolve a scoped Railway token without exposing it
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${RAILWAY_API_TOKEN:-}" ]; then
-            echo "XPEX_STORAGE_AUTH=PRESENT_API_TOKEN"
-            exit 0
-          fi
-          if [ -n "${RAILWAY_TOKEN:-}" ]; then
-            echo "XPEX_STORAGE_AUTH=PRESENT_PROJECT_TOKEN"
-            exit 0
-          fi
-          if [ -n "${RAILWAY_PROJECT_TOKEN:-}" ]; then
-            echo "RAILWAY_TOKEN=${RAILWAY_PROJECT_TOKEN}" >> "$GITHUB_ENV"
-            echo "XPEX_STORAGE_AUTH=PRESENT_PROJECT_ALIAS"
-            exit 0
-          fi
-          if [ -n "${RAILWAY_PRODUCTION_TOKEN:-}" ]; then
-            echo "RAILWAY_TOKEN=${RAILWAY_PRODUCTION_TOKEN}" >> "$GITHUB_ENV"
-            echo "XPEX_STORAGE_AUTH=PRESENT_PRODUCTION_ALIAS"
-            exit 0
-          fi
-          echo "XPEX_STORAGE_AUTH=BLOCKED_NO_SUPPORTED_RAILWAY_SECRET"
-          exit 2
-
       - name: Install Railway CLI
         shell: bash
         run: npm install --global @railway/cli@latest
 
-      - name: Create durable media volume only when absent
+      - name: Authorize Railway for this ephemeral runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "XPEX_STORAGE_AUTH=WAITING_FOR_HUMAN_RAILWAY_OAUTH"
+          railway login --browserless
+          echo "XPEX_STORAGE_AUTH=AUTHORIZED"
+
+      - name: Verify target context before mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway whoami --json
+          railway service list --project "$XPEX_RAILWAY_PROJECT_ID" --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" --json
+
+      - name: Create exactly one durable media volume when absent
         shell: bash
         run: |
           set -euo pipefail
@@ -65,6 +51,7 @@ jobs:
             --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
             --service "$XPEX_RAILWAY_SERVICE_ID" \
             --json)"
+          printf '%s\n' "$before"
           if printf '%s' "$before" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
             echo "XPEX_STORAGE_VOLUME=ALREADY_PRESENT"
           else
@@ -77,7 +64,7 @@ jobs:
             echo "XPEX_STORAGE_VOLUME=CREATED"
           fi
 
-      - name: Verify real mount exists in Railway
+      - name: Verify real mount before setting application variable
         shell: bash
         run: |
           set -euo pipefail
@@ -86,8 +73,41 @@ jobs:
             --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
             --service "$XPEX_RAILWAY_SERVICE_ID" \
             --json)"
+          printf '%s\n' "$after"
           if ! printf '%s' "$after" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
             echo "XPEX_STORAGE_VOLUME=VERIFY_FAILED"
             exit 3
           fi
           echo "XPEX_STORAGE_VOLUME=VERIFIED"
+
+      - name: Activate XPeX durable media root
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway variable set \
+            "XPEX_DURABLE_MEDIA_ROOT=$XPEX_MEDIA_MOUNT" \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID"
+          echo "XPEX_DURABLE_MEDIA_ROOT=SET"
+
+      - name: Final read-back
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway volume list \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json
+          vars="$(railway variable list \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json)"
+          if ! printf '%s' "$vars" | grep -Fq 'XPEX_DURABLE_MEDIA_ROOT'; then
+            echo "XPEX_DURABLE_MEDIA_ROOT=VERIFY_FAILED"
+            exit 4
+          fi
+          echo "XPEX_DURABLE_MEDIA_ROOT=VERIFIED"
+          echo "XPEX_STORAGE_049=READY_FOR_CANARY"
