@@ -122,12 +122,16 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Mission 043 is intentionally idempotent and fail-closed. It can claim only the
-# certified job/lesson and records the single external submission at its boundary.
-# A missing durable backend stops before any provider call.
+# Mission 043 is intentionally idempotent and fail-closed. Before each resume,
+# emit the bounded/redacted read-only Mission 041 evidence for the same sole
+# canary. This exposes a consumed provider attempt without revealing credentials,
+# changing job state, or making any provider call. Mission 043 can then resume only
+# when its persisted single-submission guard allows it.
 (
     sleep 8
     cd /app/api || exit 92
+    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py \
+        || echo "XPEX-WAVE1-MEDIA-CANARY-DIAGNOSTIC-041 unavailable; guarded resume continues"
     PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_final_043.py --execute
 ) &
 
