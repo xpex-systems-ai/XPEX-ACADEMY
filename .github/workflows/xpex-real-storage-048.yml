@@ -136,3 +136,5 @@ jobs:
           fi
           echo "XPEX_DURABLE_MEDIA_ROOT=VERIFIED"
           echo "XPEX_STORAGE_049=READY_FOR_CANARY"
+
+# auth-refresh-2026-09-10-0900
