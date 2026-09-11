@@ -24,6 +24,9 @@ const playerSource = read('app/xpex/courses/[courseId]/learn/[activityId]/Player
 const completionSource = read('app/xpex/courses/[courseId]/learn/[activityId]/actions.ts')
 const activitiesSource = read('app/xpex/activities/page.tsx')
 const certificatesSource = read('app/xpex/certificates/page.tsx')
+const trailsSource = read('app/xpex/trails/page.tsx')
+const aiLabSource = read('app/xpex/ai-lab/page.tsx')
+const communitySource = read('app/xpex/community/page.tsx')
 
 const nativeRouteDirectories = [
   'app/orgs/[orgslug]/dash/courses',
@@ -71,8 +74,17 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(studentSource).toContain('branding: Awaited<ReturnType<typeof getPoloBranding>>')
   })
 
-  test('keeps Polo branding through catalog, course, player, activities and certificates', () => {
-    for (const source of [coursesSource, courseSource, playerPageSource, activitiesSource, certificatesSource]) {
+  test('keeps Polo branding through every student sidebar destination and learning path', () => {
+    for (const source of [
+      coursesSource,
+      courseSource,
+      playerPageSource,
+      activitiesSource,
+      certificatesSource,
+      trailsSource,
+      aiLabSource,
+      communitySource,
+    ]) {
       expect(source).toContain('poloBranding={learning.branding}')
     }
   })
