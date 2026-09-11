@@ -27,6 +27,8 @@ const certificatesSource = read('app/xpex/certificates/page.tsx')
 const trailsSource = read('app/xpex/trails/page.tsx')
 const aiLabSource = read('app/xpex/ai-lab/page.tsx')
 const communitySource = read('app/xpex/community/page.tsx')
+const teacherBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'teacher_dashboard.py')
+const launchBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'launch_ops.py')
 
 const nativeRouteDirectories = [
   'app/orgs/[orgslug]/dash/courses',
@@ -143,6 +145,25 @@ describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
     expect(poloStudentsSource).toContain('<XpexAuthenticatedShell')
     expect(poloStudentsSource).toContain('poloBranding={poloBranding}')
     expect(poloStudentsSource).toContain('Nenhuma senha é criada ou alterada por este painel.')
+  })
+})
+
+describe('XPEX V6-003 real professor and enrollment backend gate', () => {
+  test('teacher dashboard requires real instructor membership and active authorship', () => {
+    expect(teacherBackendSource).toContain('TEACHER_ROLE_UUID = "role_global_instructor"')
+    expect(teacherBackendSource).toContain('UserOrganization.user_id == user.id')
+    expect(teacherBackendSource).toContain('Role.role_uuid == TEACHER_ROLE_UUID')
+    expect(teacherBackendSource).toContain('ResourceAuthor.user_id == user.id')
+    expect(teacherBackendSource).toContain('ResourceAuthorshipStatusEnum.ACTIVE')
+  })
+
+  test('invite and enrollment stay organization-admin scoped', () => {
+    expect(launchBackendSource).toContain('is_org_admin')
+    expect(launchBackendSource).toContain('Organization.slug == organization_slug')
+    expect(launchBackendSource).toContain('Organization administrator access required')
+    expect(launchBackendSource).toContain('Course.org_id == organization.id')
+    expect(launchBackendSource).toContain('Course.published == True')
+    expect(launchBackendSource).toContain('Student must accept the organization invitation before enrollment.')
   })
 })
 
