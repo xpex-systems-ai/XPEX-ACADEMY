@@ -2,7 +2,6 @@
 
 import { signOut } from '@components/Contexts/AuthContext'
 import { Award, Bell, BookOpen, Bot, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode, type RefObject } from 'react'
@@ -22,12 +21,20 @@ type XpexThemeStyle = CSSProperties & Record<`--${string}`, string>
 const getPoloThemeStyle = (branding?: PoloBranding): XpexThemeStyle | undefined => {
   if (!branding) return undefined
   const style: XpexThemeStyle = {}
-  if (branding.primary_color) style['--xpex-color-brand-primary'] = branding.primary_color
-  if (branding.accent_color) {
-    style['--xpex-color-brand-secondary'] = branding.accent_color
-    style['--xpex-orange'] = branding.accent_color
+
+  if (branding.primary_color) {
+    style['--xpex-color-brand-secondary'] = branding.primary_color
+    style['--xpex-orange'] = branding.primary_color
   }
-  if (branding.background) style['--xpex-color-background-base'] = branding.background
+  if (branding.accent_color) {
+    style['--xpex-color-brand-accent'] = branding.accent_color
+    style['--xpex-cyan'] = branding.accent_color
+    style['--xpex-color-status-info'] = branding.accent_color
+  }
+  if (branding.background) {
+    style['--xpex-color-background-base'] = branding.background
+    style['--xpex-background-primary'] = branding.background
+  }
   return style
 }
 
@@ -100,7 +107,8 @@ export function XpexRoleNavigation({ role, organizationSlug, adminAccess = false
 export function XpexSidebar({ role, organizationSlug, adminAccess = false, adminNavigation = false, poloAccess, poloBranding, open, close }: { role: XpexRole; organizationSlug: string; adminAccess?: boolean; adminNavigation?: boolean; poloAccess?: XpexPoloAccess | null; poloBranding?: PoloBranding; open: boolean; close: () => void }) {
   const homeHref = adminNavigation ? '/xpex/admin' : `/xpex/${role}`
   const brandedPolo = role === 'polo' && !adminNavigation && poloBranding
-  return <aside id="xpex-sidebar" aria-label="Menu principal XPeX" className={`xpex-sidebar ${open ? 'is-open' : ''}`}><div className="xpex-brand-row"><Link href={homeHref} className="xpex-brand" aria-label={brandedPolo ? `${poloBranding.organization_name} — início` : 'XPeX Academy AI — início'}>{brandedPolo ? <>{poloBranding.logo ? <Image src={poloBranding.logo} alt="" width={34} height={34} unoptimized className="rounded-lg object-contain"/> : null}<strong>{poloBranding.organization_name}</strong></> : <><span aria-hidden="true">X</span><strong>XPeX<small>Academy AI</small></strong></>}</Link><button className="xpex-icon-button xpex-mobile-only" onClick={close} aria-label="Fechar menu"><X size={20}/></button></div><p className="xpex-nav-label">Aprenda. Automatize. Construa.</p><XpexRoleNavigation role={role} organizationSlug={organizationSlug} adminAccess={adminAccess} adminNavigation={adminNavigation} poloAccess={poloAccess} onNavigate={close}/><div className="xpex-session-card"><ShieldCheck aria-hidden="true" size={17}/><div><strong>Sessão protegida</strong><span>Permissões validadas no servidor</span></div></div>{brandedPolo && poloBranding.footer_credit ? <p className="xpex-legal">{poloBranding.footer_credit}</p> : null}<XpexLegalAttribution/></aside>
+  const poloMark = brandedPolo ? (poloBranding.organization_name.trim().charAt(0).toUpperCase() || 'P') : 'X'
+  return <aside id="xpex-sidebar" aria-label="Menu principal XPeX" className={`xpex-sidebar ${open ? 'is-open' : ''}`}><div className="xpex-brand-row"><Link href={homeHref} className="xpex-brand" aria-label={brandedPolo ? `${poloBranding.organization_name} — início` : 'XPeX Academy AI — início'}>{brandedPolo ? <><span aria-hidden="true">{poloMark}</span><strong>{poloBranding.organization_name}</strong></> : <><span aria-hidden="true">X</span><strong>XPeX<small>Academy AI</small></strong></>}</Link><button className="xpex-icon-button xpex-mobile-only" onClick={close} aria-label="Fechar menu"><X size={20}/></button></div><p className="xpex-nav-label">Aprenda. Automatize. Construa.</p><XpexRoleNavigation role={role} organizationSlug={organizationSlug} adminAccess={adminAccess} adminNavigation={adminNavigation} poloAccess={poloAccess} onNavigate={close}/><div className="xpex-session-card"><ShieldCheck aria-hidden="true" size={17}/><div><strong>Sessão protegida</strong><span>Permissões validadas no servidor</span></div></div>{brandedPolo && poloBranding.footer_credit ? <p className="xpex-context" style={{ marginTop: '1rem' }}>{poloBranding.footer_credit}</p> : null}<XpexLegalAttribution/></aside>
 }
 
 export function XpexTopbar({ role, displayName, organizationSlug, adminNavigation = false, openMenu, menuOpen, menuButtonRef }: { role: XpexRole; displayName: string; organizationSlug: string; adminNavigation?: boolean; openMenu: () => void; menuOpen?: boolean; menuButtonRef?: RefObject<HTMLButtonElement | null> }) {
