@@ -11,7 +11,8 @@ export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
   const primary = branding.primary_color ?? '#ff7a00'
   const accent = branding.accent_color ?? '#00d4ff'
   const background = branding.background ?? '#07111f'
-  const hasCoordinator = Boolean(branding.teacher_photo || branding.coordinator_name)
+  const hasTeacher = Boolean(branding.teacher_photo || branding.coordinator_name)
+  const hasApprovedHero = Boolean(branding.hero_image)
 
   return (
     <section
@@ -23,23 +24,32 @@ export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
       aria-label={`Identidade do polo ${branding.organization_name}`}
     >
       {branding.hero_image ? (
-        <div className="absolute inset-0" aria-hidden="true">
-          <Image src={branding.hero_image} alt="" fill unoptimized className="object-cover opacity-10" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] lg:block" aria-hidden="true">
+          <Image
+            src={branding.hero_image}
+            alt=""
+            fill
+            priority
+            unoptimized
+            className="object-cover object-right"
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(90deg, ${background} 0%, ${withAlpha(background, 'D9') ?? '#07111fd9'} 12%, transparent 58%)` }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-[46%]"
+            style={{ background: `linear-gradient(0deg, ${background} 0%, ${withAlpha(background, 'F2') ?? '#07111ff2'} 38%, transparent 100%)` }}
+          />
         </div>
       ) : null}
 
-      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 text-[18rem] font-black leading-none opacity-[0.06]" style={{ color: primary }}>X</div>
+      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 text-[18rem] font-black leading-none opacity-[0.045] lg:hidden" style={{ color: primary }}>X</div>
       <div aria-hidden="true" className="pointer-events-none absolute left-[34%] top-0 h-px w-[52%]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, ${primary}, transparent)` }} />
 
-      <div className="relative grid min-h-[330px] gap-8 px-6 py-8 md:px-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center lg:px-10 lg:py-10">
+      <div className="relative grid min-h-[330px] gap-8 px-6 py-8 md:px-8 lg:grid-cols-[1.15fr_.85fr] lg:items-center lg:px-10 lg:py-10">
         <div className="relative z-10 max-w-3xl">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            {branding.logo ? (
-              <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-2">
-                <Image src={branding.logo} alt={`Logo ${branding.organization_name}`} width={48} height={48} unoptimized className="max-h-full max-w-full object-contain" />
-              </span>
-            ) : null}
             <span className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-slate-300">
               <Sparkles size={15} aria-hidden="true" style={{ color: accent }} /> Bem-vindo ao Polo
             </span>
@@ -61,21 +71,21 @@ export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
               ) : null}
               {branding.coordinator_name ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-4 py-2 backdrop-blur-sm">
-                  <Users size={16} aria-hidden="true" /> Coordenação: {branding.coordinator_name}
+                  <Users size={16} aria-hidden="true" /> {branding.coordinator_name}
                 </span>
               ) : null}
             </div>
           ) : null}
         </div>
 
-        {hasCoordinator ? (
-          <aside className="relative hidden min-h-[270px] lg:block" aria-label="Coordenação do polo">
+        {!hasApprovedHero && hasTeacher ? (
+          <aside className="relative hidden min-h-[270px] lg:block" aria-label="Professora do polo">
             <div className="absolute inset-6 rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${withAlpha(primary, '38') ?? '#ff7a0038'} 0%, ${withAlpha(accent, '12') ?? '#00d4ff12'} 45%, transparent 72%)` }} />
             {branding.teacher_photo ? (
               <div className="absolute inset-0 overflow-hidden rounded-[28px]">
                 <Image
                   src={branding.teacher_photo}
-                  alt={branding.coordinator_name ?? 'Coordenação do polo'}
+                  alt={branding.coordinator_name ?? 'Professora do polo'}
                   fill
                   priority
                   unoptimized
@@ -89,8 +99,7 @@ export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
             ) : null}
             {branding.coordinator_name ? (
               <div className="absolute bottom-4 right-4 rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-right backdrop-blur-md">
-                <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Coordenação</span>
-                <strong className="mt-1 block text-base text-white">{branding.coordinator_name}</strong>
+                <strong className="block text-base text-white">{branding.coordinator_name}</strong>
               </div>
             ) : null}
           </aside>
