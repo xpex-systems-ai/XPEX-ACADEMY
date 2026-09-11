@@ -1,20 +1,37 @@
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const shellSource = readFileSync(join(WEB_ROOT, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
-const experienceSource = readFileSync(join(WEB_ROOT, 'components/Xpex/AuthenticatedXpexExperience.tsx'), 'utf8')
-const heroSource = readFileSync(join(WEB_ROOT, 'components/Xpex/experiences/PoloIdentityHero.tsx'), 'utf8')
-const brandingSource = readFileSync(join(WEB_ROOT, 'lib/xpex/polo-branding.ts'), 'utf8')
-const presetSource = readFileSync(join(WEB_ROOT, 'lib/xpex/polo-branding-presets.ts'), 'utf8')
-const studentSource = readFileSync(join(WEB_ROOT, 'lib/xpex/student.ts'), 'utf8')
-const coursesSource = readFileSync(join(WEB_ROOT, 'app/xpex/courses/page.tsx'), 'utf8')
-const courseSource = readFileSync(join(WEB_ROOT, 'app/xpex/courses/[courseId]/page.tsx'), 'utf8')
-const playerPageSource = readFileSync(join(WEB_ROOT, 'app/xpex/courses/[courseId]/learn/[activityId]/page.tsx'), 'utf8')
-const activitiesSource = readFileSync(join(WEB_ROOT, 'app/xpex/activities/page.tsx'), 'utf8')
-const certificatesSource = readFileSync(join(WEB_ROOT, 'app/xpex/certificates/page.tsx'), 'utf8')
+const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
+
+const shellSource = read('components/Xpex/XpexAuthenticatedShell.tsx')
+const experienceSource = read('components/Xpex/AuthenticatedXpexExperience.tsx')
+const heroSource = read('components/Xpex/experiences/PoloIdentityHero.tsx')
+const poloSectionSource = read('components/Xpex/experiences/XpexPoloSection.tsx')
+const navigationSource = read('components/Xpex/xpex-navigation.ts')
+const poloPolicySource = read('lib/xpex/polo-policy.ts')
+const poloDynamicRouteSource = read('app/xpex/polo/[section]/page.tsx')
+const poloStudentsSource = read('app/xpex/polo/alunos/page.tsx')
+const brandingSource = read('lib/xpex/polo-branding.ts')
+const presetSource = read('lib/xpex/polo-branding-presets.ts')
+const studentSource = read('lib/xpex/student.ts')
+const coursesSource = read('app/xpex/courses/page.tsx')
+const courseSource = read('app/xpex/courses/[courseId]/page.tsx')
+const playerPageSource = read('app/xpex/courses/[courseId]/learn/[activityId]/page.tsx')
+const playerSource = read('app/xpex/courses/[courseId]/learn/[activityId]/Player.tsx')
+const completionSource = read('app/xpex/courses/[courseId]/learn/[activityId]/actions.ts')
+const activitiesSource = read('app/xpex/activities/page.tsx')
+const certificatesSource = read('app/xpex/certificates/page.tsx')
+
+const nativeRouteDirectories = [
+  'app/orgs/[orgslug]/dash/courses',
+  'app/orgs/[orgslug]/dash/library',
+  'app/orgs/[orgslug]/dash/analytics',
+  'app/orgs/[orgslug]/dash/users/settings/[subpage]',
+  'app/orgs/[orgslug]/dash/org/settings/[subpage]',
+]
 
 describe('XPEX V6-003 persisted Polo identity', () => {
   test('keeps Kelle identity out of runtime source-code conditionals', () => {
@@ -38,11 +55,11 @@ describe('XPEX V6-003 persisted Polo identity', () => {
   })
 
   test('maps organization orange/cyan palette to canonical shell tokens', () => {
-    expect(shellSource).toContain("--xpex-color-brand-secondary")
-    expect(shellSource).toContain("--xpex-color-brand-accent")
-    expect(shellSource).toContain("--xpex-orange")
-    expect(shellSource).toContain("--xpex-cyan")
-    expect(shellSource).toContain("--xpex-color-background-base")
+    expect(shellSource).toContain('--xpex-color-brand-secondary')
+    expect(shellSource).toContain('--xpex-color-brand-accent')
+    expect(shellSource).toContain('--xpex-orange')
+    expect(shellSource).toContain('--xpex-cyan')
+    expect(shellSource).toContain('--xpex-color-background-base')
   })
 
   test('inherits organization branding in both Polo and student experiences', () => {
@@ -64,5 +81,87 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(shellSource).toContain("adminNavigation ? '/xpex/admin' : `/xpex/${role}`")
     expect(shellSource).toContain('adminNavigation={adminNavigation}')
     expect(shellSource).toContain('!adminNavigation')
+  })
+})
+
+describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
+  test('keeps every active sidebar destination behind server-side Polo policy', () => {
+    expect(navigationSource).toContain("'Visão Geral': '/xpex/polo'")
+    expect(navigationSource).toContain("'Alunos': '/xpex/polo/alunos'")
+    expect(navigationSource).toContain("'Turmas': '/xpex/polo/turmas'")
+    expect(navigationSource).toContain("'Cursos': '/xpex/polo/cursos'")
+    expect(navigationSource).toContain("'Conteúdos': '/xpex/polo/conteudos'")
+    expect(navigationSource).toContain("'Relatórios': '/xpex/polo/relatorios'")
+    expect(navigationSource).toContain("'Configurações': '/xpex/polo/configuracoes'")
+    expect(shellSource).toContain('canNavigatePolo(poloAccess, destinations[label])')
+    expect(poloPolicySource).toContain("href === '/xpex/polo/alunos'")
+    expect(poloPolicySource).toContain("poloSectionPolicy[section as keyof typeof poloSectionPolicy].status === 'NATIVE_BRIDGE'")
+  })
+
+  test('rejects unknown Polo sections and authorizes known section routes on the server', () => {
+    expect(poloDynamicRouteSource).toContain('xpexPoloSections.includes')
+    expect(poloDynamicRouteSource).toContain('AuthenticatedXpexExperience')
+    expect(experienceSource).toContain('canAccessPoloSection(poloAccess, poloSection)')
+  })
+
+  test('keeps coming-soon modules out of clickable manager navigation', () => {
+    for (const section of ['trilhas', 'mentorias', 'eventos', 'certificados', 'recursos']) {
+      expect(poloPolicySource).toContain(`${section}: { status: 'COMING_SOON'`)
+    }
+  })
+
+  test('native bridge destinations exist in the checked-out LearnHouse tree', () => {
+    for (const routeDirectory of nativeRouteDirectories) {
+      expect(existsSync(join(WEB_ROOT, routeDirectory))).toBe(true)
+    }
+    expect(poloSectionSource).toContain("native: '/dash/users/settings/usergroups'")
+    expect(poloSectionSource).toContain("native: '/dash/courses'")
+    expect(poloSectionSource).toContain("native: '/dash/library'")
+    expect(poloSectionSource).toContain("native: '/dash/analytics'")
+    expect(poloSectionSource).toContain("native: '/dash/org/settings/general'")
+  })
+
+  test('Alunos stays in the branded shell and requires live manager authorization', () => {
+    expect(poloStudentsSource).toContain('authorizePoloManager')
+    expect(poloStudentsSource).toContain('resolveXpexPoloAccess')
+    expect(poloStudentsSource).toContain('getPoloBranding')
+    expect(poloStudentsSource).toContain('<XpexAuthenticatedShell')
+    expect(poloStudentsSource).toContain('poloBranding={poloBranding}')
+    expect(poloStudentsSource).toContain('Nenhuma senha é criada ou alterada por este painel.')
+  })
+})
+
+describe('XPEX V6-003 student/player persistence gate', () => {
+  test('student access is organization-scoped and enrollment-backed', () => {
+    expect(studentSource).toContain("resolveXpexOrganization(session.roles, 'aluno')")
+    expect(studentSource).toContain("resolveXpexAccess(session.roles, organization.slug).includes('aluno')")
+    expect(studentSource).toContain('getXpexLearningDashboard')
+  })
+
+  test('course and player deny content outside the authorized learning snapshot', () => {
+    expect(courseSource).toContain('if (!learning || !course) return <XpexStudentDenied />')
+    expect(playerPageSource).toContain('if (!learning || !course || index < 0) return <XpexStudentDenied />')
+    expect(playerPageSource).toContain('activity.published !== true')
+    expect(playerPageSource).toContain('activity.is_locked === true')
+  })
+
+  test('player uses real renderers and never fabricates completion for assignments', () => {
+    for (const activityType of ['TYPE_VIDEO', 'TYPE_DOCUMENT', 'TYPE_DYNAMIC', 'TYPE_ASSIGNMENT']) {
+      expect(playerSource).toContain(activityType)
+    }
+    expect(playerSource).toContain('completeXpexActivity')
+    expect(playerSource).toContain("activity.activity_type !== 'TYPE_ASSIGNMENT'")
+  })
+
+  test('completion is persisted and re-read from backend before UI success', () => {
+    expect(completionSource).toContain('markActivityAsComplete')
+    expect(completionSource).toContain('persistedLearning')
+    expect(completionSource).toContain('persistedCourse.activities.some')
+    expect(completionSource).toContain("throw new Error('A conclusão não foi confirmada pelo backend')")
+  })
+
+  test('certificate screen remains tied to authorized enrolled courses', () => {
+    expect(certificatesSource).toContain('getXpexStudentCertificates')
+    expect(certificatesSource).toContain('new Set(learning.data.courses.map((course) => course.course_id))')
   })
 })
