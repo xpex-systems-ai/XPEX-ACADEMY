@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const shellSource = readFileSync(join(WEB_ROOT, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
+const experienceSource = readFileSync(join(WEB_ROOT, 'components/Xpex/AuthenticatedXpexExperience.tsx'), 'utf8')
 const heroSource = readFileSync(join(WEB_ROOT, 'components/Xpex/experiences/PoloIdentityHero.tsx'), 'utf8')
 const brandingSource = readFileSync(join(WEB_ROOT, 'lib/xpex/polo-branding.ts'), 'utf8')
 const presetSource = readFileSync(join(WEB_ROOT, 'lib/xpex/polo-branding-presets.ts'), 'utf8')
@@ -30,14 +31,24 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(presetSource).toContain("location: 'Campos Lindos/Marajó-GO'")
   })
 
-  test('applies organization colors only to the Polo shell', () => {
-    expect(shellSource).toContain("role === 'polo' && !adminNavigation ? getPoloThemeStyle(poloBranding) : undefined")
+  test('maps organization orange/cyan palette to canonical shell tokens', () => {
     expect(shellSource).toContain("--xpex-color-brand-secondary")
+    expect(shellSource).toContain("--xpex-color-brand-accent")
+    expect(shellSource).toContain("--xpex-orange")
+    expect(shellSource).toContain("--xpex-cyan")
     expect(shellSource).toContain("--xpex-color-background-base")
+  })
+
+  test('inherits organization branding in both Polo and student experiences', () => {
+    expect(experienceSource).toContain("role === 'polo' || role === 'aluno'")
+    expect(experienceSource).toContain('poloBranding?.organization_name ?? organizationName')
+    expect(shellSource).toContain("role === 'polo' || role === 'aluno'")
+    expect(shellSource).toContain('brandedOrganization')
   })
 
   test('preserves Super Admin branding path', () => {
     expect(shellSource).toContain("adminNavigation ? '/xpex/admin' : `/xpex/${role}`")
     expect(shellSource).toContain('adminNavigation={adminNavigation}')
+    expect(shellSource).toContain('!adminNavigation')
   })
 })
