@@ -1,5 +1,6 @@
 import { Award, BookOpen, CalendarDays, ChartNoAxesCombined, GraduationCap, Library, MessageCircle, Route, Settings, Users, Wrench } from 'lucide-react'
 import Link from 'next/link'
+import { poloSectionPolicy } from '@/lib/xpex/polo-policy'
 import { getUriWithOrg } from '@services/config/config'
 import { XpexEmptyState, XpexPanel, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
 
@@ -105,11 +106,11 @@ export function XpexPoloSection({ section, organizationName, organizationSlug }:
   const href = content.native ? getUriWithOrg(organizationSlug, content.native) : undefined
 
   return <div className="xpex-dashboard">
-    <XpexRoleHero eyebrow={`Polo XPeX Academy · ${organizationName ?? 'Organização atual'}`} title={content.title} description={content.description}/>
+    <XpexRoleHero eyebrow={`Polo · ${organizationName ?? 'Organização atual'}`} title={content.title} description={content.description}/>
     <XpexPanel className="xpex-polo-section-panel">
       <div className="xpex-section-icon" aria-hidden="true"><Icon size={26}/></div>
       <XpexSectionHeader eyebrow="Dados da organização" title={content.title}/>
-      <div className="mt-5"><XpexEmptyState title={content.stateTitle} description={content.stateDescription}/></div>
+      <div className="mt-5"><XpexEmptyState title={poloSectionPolicy[section].status === 'COMING_SOON' ? `${content.title} — Em breve` : content.stateTitle} description={content.stateDescription}/></div>
       {href && <Link className="xpex-primary" href={href}>{content.cta}</Link>}
     </XpexPanel>
   </div>

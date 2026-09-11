@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(WEB_ROOT, '../..')
 const OFFICIAL_PROJECT_ID = 'prj_EvLi9wcPcy2p7op1ChdvI8kPksKV'
+const PREVIEW_BRANCH = 'feat/xpex-v6-002-polo-foundation'
 const QUARANTINED_PROJECT_IDS = [
   'prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y',
   'prj_lusVrpATbArDHBafb4VQAvh14TyE',
@@ -26,8 +27,13 @@ const readIgnoreCommand = path => {
   return config.ignoreCommand
 }
 
-const commandStatus = (command, projectId) => spawnSync('sh', ['-c', command], {
-  env: { ...process.env, VERCEL_PROJECT_ID: projectId },
+const commandStatus = (command, projectId, { vercelEnv = 'production', gitRef = 'dev' } = {}) => spawnSync('sh', ['-c', command], {
+  env: {
+    ...process.env,
+    VERCEL_PROJECT_ID: projectId,
+    VERCEL_ENV: vercelEnv,
+    VERCEL_GIT_COMMIT_REF: gitRef,
+  },
 }).status
 
 describe('Vercel project governance', () => {
@@ -35,9 +41,10 @@ describe('Vercel project governance', () => {
     const commands = configPaths.map(readIgnoreCommand)
     expect(new Set(commands).size).toBe(1)
     expect(commands[0]).toContain(OFFICIAL_PROJECT_ID)
+    expect(commands[0]).toContain(PREVIEW_BRANCH)
   })
 
-  test('builds only the official project', () => {
+  test('builds the official project and quarantines duplicates by default', () => {
     for (const path of configPaths) {
       const command = readIgnoreCommand(path)
       expect(commandStatus(command, OFFICIAL_PROJECT_ID)).toBe(1)
@@ -45,6 +52,17 @@ describe('Vercel project governance', () => {
         expect(commandStatus(command, projectId)).toBe(0)
       }
       expect(commandStatus(command, 'prj_future_duplicate')).toBe(0)
+    }
+  })
+
+  test('allows only the audited PR preview branch through quarantine', () => {
+    for (const path of configPaths) {
+      const command = readIgnoreCommand(path)
+      for (const projectId of QUARANTINED_PROJECT_IDS) {
+        expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef: PREVIEW_BRANCH })).toBe(1)
+        expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef: 'feat/other-branch' })).toBe(0)
+        expect(commandStatus(command, projectId, { vercelEnv: 'production', gitRef: PREVIEW_BRANCH })).toBe(0)
+      }
     }
   })
 })

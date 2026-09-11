@@ -71,7 +71,8 @@ describe('authenticated XPeX ecosystem', () => {
   test('uses real learner data and honest empty states without fixed metrics', () => {
     expect(dashboard).toContain('data.summary.active_courses')
     expect(dashboard).toContain('Nenhum curso disponível ainda')
-    expect(dashboard).toContain('Nenhuma turma disponível')
+    expect(dashboard).toContain('Resumo de turmas em breve')
+    expect(dashboard).not.toContain('Nenhuma turma disponível')
     expect(dashboard).toContain('Operação ainda sem dados')
     expect(dashboard).not.toMatch(/value="(?:[1-9]\d*|[1-9]\d*%)"/)
   })
