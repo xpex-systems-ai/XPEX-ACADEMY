@@ -8,6 +8,7 @@ import type { PoloBranding } from './polo-branding'
  */
 export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
   default: {
+    hero_image: '/xpex/polos/kelle-digital-lab/hero-kelle.png',
     teacher_photo: '/xpex/polos/kelle-digital-lab/professora-kelle.jpg',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
@@ -15,7 +16,7 @@ export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
     location: 'Campos Lindos/Marajó-GO',
     coordinator_name: 'Professora Kelle',
     tagline: 'Educação que inspira, tecnologia que transforma!',
-    footer_credit: 'Tecnologia educacional XpeX Academy',
+    footer_credit: 'Por XpeX Academy · Tecnologia educacional',
   },
 }
 
