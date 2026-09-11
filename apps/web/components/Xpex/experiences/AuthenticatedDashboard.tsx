@@ -1,13 +1,12 @@
 import { BookOpen, CheckCircle2, FilePlus2, GraduationCap, Route, Users } from 'lucide-react'
 import Link from 'next/link'
-import { xpexCourseStudioRoute, xpexLearnerCoursesRoute, xpexPoloCoursesRoute } from '@/lib/xpexRouteMap'
+import { xpexLearnerCoursesRoute } from '@/lib/xpexRouteMap'
 import type { XpexLearningCourse, XpexLearningDashboardData } from '@/lib/xpex/learning-dashboard'
 import type { XpexTeacherDashboardData } from '@/lib/xpex/teacher-dashboard'
 import type { XpexLaunchReadinessData } from '@/lib/xpex/launch-readiness'
 import type { PoloBranding } from '@/lib/xpex/polo-branding'
 import type { XpexPoloAccess } from '@/lib/xpex/access'
 import { getCourseThumbnailMediaDirectory } from '@services/media/media'
-import { getUriWithOrg } from '@services/config/config'
 import type { XpexRole } from '../xpex-types'
 import { XpexCourseCard, XpexEmptyState, XpexErrorState, XpexKpiGrid, XpexMetricCard, XpexPanel, XpexQuickAction, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
 import { PoloIdentityHero } from './PoloIdentityHero'
@@ -79,30 +78,32 @@ function TeacherDashboard({ data, failed, organizationName }: { data?: XpexTeach
   </>
 }
 
-function ReadinessGate({ label, ready }: { label: string; ready: boolean }) {
-  return <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3"><span className="text-sm font-semibold text-slate-200">{label}</span><span className={`text-xs font-black uppercase tracking-wider ${ready ? 'text-emerald-300' : 'text-amber-300'}`}>{ready ? 'Pronto' : 'Pendente'}</span></div>
+function LearningMetric({ label, value }: { label: string; value: number }) {
+  return <div className="xpex-learning-metric"><span>{label}</span><strong>{value}</strong></div>
 }
 
-function PoleDashboard({ organizationName, organizationSlug, data, failed }: { organizationName?: string; organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
-  if (failed) return <XpexErrorState title="Não foi possível carregar a prontidão operacional" description="O painel continua protegido. Atualize em instantes para carregar novamente os dados persistidos da organização."/>
-  const statusTitle = data?.ready_for_official_intake ? 'Operação pronta para entrada oficial' : data?.ready_for_controlled_pilot ? 'Operação pronta para piloto controlado' : 'Preparação operacional'
+function PoleDashboard({ organizationSlug, data, failed }: { organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
+  if (failed) return <XpexErrorState title="Não foi possível carregar os indicadores operacionais" description="Atualize em instantes para carregar novamente os dados persistidos da organização."/>
   return <>
-    {!organizationName && <p className="xpex-context">Nome da organização indisponível</p>}
     {data ? <XpexKpiGrid>
       <XpexMetricCard icon={BookOpen} label="Cursos publicados" value={String(data.metrics.published_courses)} detail="Cursos disponíveis na organização"/>
       <XpexMetricCard icon={Route} label="Atividades publicadas" value={String(data.metrics.published_activities)} detail="Aulas e atividades publicadas"/>
-      <XpexMetricCard icon={Users} label="Alunos matriculados" value={String(data.metrics.enrolled_students)} detail={`${data.metrics.active_students} em andamento`}/>
+      <XpexMetricCard icon={Users} label="Alunos matriculados" value={String(data.metrics.enrolled_students)} detail="Matrículas registradas"/>
       <XpexMetricCard icon={GraduationCap} label="Professoras" value={String(data.metrics.teachers)} detail="Perfis de instrutora vinculados" tone="orange"/>
-    </XpexKpiGrid> : <XpexEmptyState title="Dados operacionais indisponíveis" description="O backend ainda não retornou o snapshot desta organização."/>}
-    {data && <XpexPanel><XpexSectionHeader eyebrow="Prontidão operacional" title={statusTitle} detail={<span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${data.ready_for_official_intake ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-300'}`}>{data.ready_for_official_intake ? 'OK' : 'REVISAR'}</span>}/><p className="mt-3 text-sm text-slate-400">Verificação calculada somente com publicação, matrícula, progresso e professora vinculada já persistidos.</p><div className="mt-5 grid gap-3 md:grid-cols-2"><ReadinessGate label="Acesso administrativo" ready={data.gates.admin_access}/><ReadinessGate label="Curso publicado" ready={data.gates.published_course}/><ReadinessGate label="Atividade publicada" ready={data.gates.published_activity}/><ReadinessGate label="Matrícula válida" ready={data.gates.pilot_enrollment}/><ReadinessGate label="Progresso verificado" ready={data.gates.progress_verified}/><ReadinessGate label="Professora vinculada" ready={data.gates.teacher_assigned}/></div></XpexPanel>}
-    <section><XpexSectionHeader eyebrow="Operação" title="Ações rápidas"/><div className="xpex-actions"><XpexQuickAction icon={GraduationCap} title="Nova turma" href={getUriWithOrg(organizationSlug, '/dash/users/settings/usergroups')}/><XpexQuickAction icon={BookOpen} title="Novo curso" disabled={false} href={xpexCourseStudioRoute(organizationSlug)} detail="Abrir Course Studio"/><XpexQuickAction icon={Users} title="Novo aluno" href="/xpex/polo/alunos"/><XpexQuickAction icon={FilePlus2} title="Relatórios" href="/xpex/polo/relatorios"/></div></section>
-    {data && <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Operação" title="Estado de aprendizagem"/><div className="mt-5 grid gap-3 sm:grid-cols-3"><ReadinessGate label={`${data.metrics.active_students} alunos ativos`} ready={data.metrics.active_students > 0}/><ReadinessGate label={`${data.metrics.completed_activities} atividades concluídas`} ready={data.metrics.completed_activities > 0}/><ReadinessGate label={`${data.metrics.completed_students} alunos concluídos`} ready={data.metrics.completed_students > 0}/></div></XpexPanel>}<EntryPoints role="polo" organizationSlug={organizationSlug}/>
+    </XpexKpiGrid> : <XpexEmptyState title="Indicadores indisponíveis" description="O snapshot operacional ainda não está disponível para esta organização."/>}
+    <section><XpexSectionHeader eyebrow="Operação" title="Ações rápidas"/><div className="xpex-actions">
+      <XpexQuickAction icon={GraduationCap} title="Nova turma" disabled={false} href="/xpex/polo/turmas" detail="Gerenciar turmas"/>
+      <XpexQuickAction icon={BookOpen} title="Novo curso" disabled={false} href="/xpex/polo/cursos" detail="Gerenciar cursos"/>
+      <XpexQuickAction icon={Users} title="Novo aluno" disabled={false} href="/xpex/polo/alunos" detail="Convidar e matricular"/>
+      <XpexQuickAction icon={FilePlus2} title="Relatórios" disabled={false} href="/xpex/polo/relatorios" detail="Consultar indicadores"/>
+    </div></section>
+    {data ? <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Acompanhamento" title="Estado de aprendizagem"/><div className="mt-5 grid gap-3 sm:grid-cols-3"><LearningMetric label="Alunos ativos" value={data.metrics.active_students}/><LearningMetric label="Atividades concluídas" value={data.metrics.completed_activities}/><LearningMetric label="Alunos concluídos" value={data.metrics.completed_students}/></div></XpexPanel> : null}
+    <EntryPoints role="polo" organizationSlug={organizationSlug}/>
   </>
 }
 
 function EntryPoints({ role, organizationSlug }: { role: XpexRole; organizationSlug?: string }) {
-  const managementCourseLink = organizationSlug ? xpexPoloCoursesRoute(organizationSlug) : null
-  if (role === 'polo' && organizationSlug) return <section aria-label="Acessos operacionais"><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid"><Link href={managementCourseLink!} className="xpex-card block p-5"><span className="xpex-label">Operacional</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Gerencie o catálogo da organização.</p><span className="xpex-primary mt-4">Abrir cursos</span></Link><Link href={xpexCourseStudioRoute(organizationSlug)} className="xpex-card block p-5"><span className="xpex-label">IA editorial</span><h3 className="mt-2 text-lg font-black text-white">Fábrica de Cursos IA</h3><p className="mt-2 text-sm text-slate-400">Criar, revisar, aprovar e publicar cursos.</p><span className="xpex-primary mt-4">Abrir fábrica</span></Link></div></section>
+  if (role === 'polo' && organizationSlug) return <section aria-label="Acessos operacionais"><XpexSectionHeader eyebrow="Acesso rápido" title="Explore o ecossistema"/><div className="xpex-entry-grid"><Link href="/xpex/polo/cursos" className="xpex-card block p-5"><span className="xpex-label">Operacional</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Gerencie o catálogo da organização.</p><span className="xpex-primary mt-4">Abrir cursos</span></Link></div></section>
   if (role === 'aluno') return <section aria-label="Acessos do aluno"><XpexSectionHeader eyebrow="Acesso rápido" title="Explore sua jornada"/><div className="xpex-entry-grid"><Link href={xpexLearnerCoursesRoute()} className="xpex-card block p-5"><span className="xpex-label">Catálogo disponível</span><h3 className="mt-2 text-lg font-black text-white">Cursos</h3><p className="mt-2 text-sm text-slate-400">Acesse os cursos publicados e autorizados para sua matrícula.</p><span className="xpex-primary mt-4">Ver cursos</span></Link><Link href="/xpex/trails" className="xpex-card block p-5"><span className="xpex-label">Jornada</span><h3 className="mt-2 text-lg font-black text-white">Trilhas</h3><p className="mt-2 text-sm text-slate-400">Acompanhe as trilhas disponíveis para sua organização.</p><span className="xpex-primary mt-4">Abrir trilhas</span></Link><Link href="/xpex/ai-lab" className="xpex-card block p-5"><span className="xpex-label">Prática com IA</span><h3 className="mt-2 text-lg font-black text-white">Laboratório de IA</h3><p className="mt-2 text-sm text-slate-400">Use as ferramentas liberadas no ambiente de aprendizagem.</p><span className="xpex-primary mt-4">Abrir laboratório</span></Link></div></section>
   return null
 }

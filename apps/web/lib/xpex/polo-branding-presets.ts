@@ -7,16 +7,15 @@ import type { PoloBranding } from './polo-branding'
  * Keep this file declarative: no role, auth, enrollment or KPI logic belongs here.
  */
 export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
-  default: {
-    hero_image: '/xpex/polos/kelle-digital-lab/hero-kelle.png',
-    teacher_photo: '/xpex/polos/kelle-digital-lab/professora-kelle.jpg',
+  'kelle-digital-lab': {
+    organization_name: 'KELLE DIGITAL LAB',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
     background: '#07111F',
     location: 'Campos Lindos/Marajó-GO',
     coordinator_name: 'Professora Kelle',
     tagline: 'Educação que inspira, tecnologia que transforma!',
-    footer_credit: 'Por XpeX Academy · Tecnologia educacional',
+    footer_credit: 'Tecnologia educacional XpeX Academy',
   },
 }
 

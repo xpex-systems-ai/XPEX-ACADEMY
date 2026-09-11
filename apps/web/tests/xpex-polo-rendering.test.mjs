@@ -21,11 +21,11 @@ const props = { role: 'polo', displayName: 'Test', organizationSlug: 'org-a', or
 describe('Polo factual rendering and navigation', () => {
   test('missing snapshots do not turn into zero metrics or false empty collections', () => {
     const html = render(AuthenticatedDashboard, { ...props, poloAccess: access('role_global_admin') })
-    expect(html).toContain('Prontidão ainda sem dados')
+    expect(html).toContain('Indicadores indisponíveis')
     expect(html).not.toContain('0 alunos ativos')
     expect(html).not.toContain('0 atividades concluídas')
     expect(html).not.toContain('Nenhuma turma disponível')
-    expect(html).toContain('Resumo de turmas em breve')
+    expect(html).toContain('Ações rápidas')
   })
   test('missing teacher data does not become a zero-filled KPI grid', () => {
     const html = render(AuthenticatedDashboard, { ...props, poloAccess: access('role_global_instructor') })
