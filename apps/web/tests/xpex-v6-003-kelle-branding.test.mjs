@@ -8,6 +8,7 @@ const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
 
 const shellSource = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const experienceSource = read('components/Xpex/AuthenticatedXpexExperience.tsx')
+const dashboardSource = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
 const heroSource = read('components/Xpex/experiences/PoloIdentityHero.tsx')
 const poloSectionSource = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const navigationSource = read('components/Xpex/xpex-navigation.ts')
@@ -48,17 +49,21 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(`${shellSource}\n${heroSource}\n${brandingSource}`.toLowerCase()).not.toContain('professora kelle')
   })
 
-  test('renders approved hero and teacher identity only from branding', () => {
+  test('renders approved logo, hero and teacher identity only from branding', () => {
+    expect(heroSource).toContain('branding.logo')
     expect(heroSource).toContain('branding.hero_image')
     expect(heroSource).toContain('branding.teacher_photo')
     expect(heroSource).toContain('branding.coordinator_name')
     expect(heroSource).toContain('branding.location')
     expect(heroSource).toContain('branding.tagline')
     expect(heroSource).not.toContain('Coordenação:')
+    expect(shellSource).toContain('poloBranding!.logo')
+    expect(shellSource).toContain('poloBranding?.teacher_photo')
   })
 
   test('registers the approved Kelle hero asset in the declarative preset', () => {
     expect(presetSource).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-kelle.png'")
+    expect(presetSource).toContain("teacher_photo: '/xpex/polos/kelle-digital-lab/professora-kelle.jpg'")
     expect(presetSource).toContain("coordinator_name: 'Professora Kelle'")
     expect(presetSource).toContain("location: 'Campos Lindos/Marajó-GO'")
   })
@@ -103,6 +108,16 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(shellSource).toContain('adminNavigation={adminNavigation}')
     expect(shellSource).toContain('!adminNavigation')
   })
+
+  test('production dashboard does not render demo, mock or dead coming-soon cards', () => {
+    const visibleDashboard = dashboardSource.toLowerCase()
+    expect(visibleDashboard).not.toContain('dados simulados')
+    expect(visibleDashboard).not.toContain('resumo de turmas em breve')
+    expect(visibleDashboard).not.toContain('xpexcomingsoon')
+    expect(dashboardSource).not.toContain('items={[]}')
+    expect(dashboardSource).not.toContain('title="Mentorias"')
+    expect(dashboardSource).not.toContain('title="Mensagens"')
+  })
 })
 
 describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
@@ -119,16 +134,13 @@ describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
     expect(shellSource).toContain("'Configurações': '/xpex/polo/configuracoes'")
     expect(shellSource).toContain('canNavigatePolo(poloAccess, destinations[label])')
     expect(poloPolicySource).toContain("href === '/xpex/polo/alunos'")
-    expect(poloPolicySource).toContain("poloSectionPolicy[section as keyof typeof poloSectionPolicy].status === 'NATIVE_BRIDGE'")
+    expect(poloPolicySource).toContain("policy.status !== 'NATIVE_BRIDGE'")
   })
 
-  test('rejects unknown Polo sections and authorizes known section routes on the server', () => {
+  test('rejects unknown and unpublished Polo sections on the server', () => {
     expect(poloDynamicRouteSource).toContain('xpexPoloSections.includes')
     expect(poloDynamicRouteSource).toContain('AuthenticatedXpexExperience')
     expect(experienceSource).toContain('canAccessPoloSection(poloAccess, poloSection)')
-  })
-
-  test('keeps coming-soon modules out of clickable manager navigation', () => {
     for (const section of ['trilhas', 'mentorias', 'eventos', 'certificados', 'recursos']) {
       expect(poloPolicySource).toContain(`${section}: { status: 'COMING_SOON'`)
     }
@@ -143,6 +155,7 @@ describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
     expect(poloSectionSource).toContain("native: '/dash/library'")
     expect(poloSectionSource).toContain("native: '/dash/analytics'")
     expect(poloSectionSource).toContain("native: '/dash/org/settings/general'")
+    expect(poloSectionSource).not.toContain('— Em breve')
   })
 
   test('Alunos stays in the branded shell and requires live manager authorization', () => {
@@ -160,6 +173,8 @@ describe('XPEX V6-003 student sidebar route integrity', () => {
     for (const href of ['/xpex/aluno', '/xpex/courses', '/xpex/trails', '/xpex/activities', '/xpex/ai-lab', '/xpex/community', '/xpex/certificates']) {
       expect(shellSource).toContain(`href: '${href}'`)
     }
+    expect(dashboardSource).toContain('href="/xpex/trails"')
+    expect(dashboardSource).toContain('href="/xpex/ai-lab"')
   })
 
   test('student-only topbar tools do not create dead staff routes', () => {
@@ -234,9 +249,9 @@ describe('XPEX V6-003 student/player persistence gate', () => {
 
   test('automatic certificate creation remains real-data and certification-template gated', () => {
     expect(certificationBackendSource).toContain('check_course_completion_and_create_certificate')
-    expect(certificationBackendSource).toContain('all_activities_complete')
-    expect(certificationBackendSource).toContain('CourseCertification.course_id == course_id')
-    expect(certificationBackendSource).toContain('if not certification:')
-    expect(certificationBackendSource).toContain('return None')
+    expect(certificationBackendSource).toContain('completed_count >= total_activities')
+    expect(certificationBackendSource).toContain('select(Certifications).where(Certifications.course_id == course_id)')
+    expect(certificationBackendSource).toContain('if certification and certification.id:')
+    expect(certificationBackendSource).toContain('return False')
   })
 })
