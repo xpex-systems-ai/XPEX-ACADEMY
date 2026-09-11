@@ -32,6 +32,7 @@ const notificationsSource = read('app/xpex/notifications/page.tsx')
 const searchSource = read('app/xpex/search/page.tsx')
 const teacherBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'teacher_dashboard.py')
 const launchBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'launch_ops.py')
+const certificationBackendSource = read('..', 'api', 'src', 'services', 'courses', 'certifications.py')
 
 const nativeRouteDirectories = [
   'app/orgs/[orgslug]/dash/courses',
@@ -229,5 +230,13 @@ describe('XPEX V6-003 student/player persistence gate', () => {
   test('certificate screen remains tied to authorized enrolled courses', () => {
     expect(certificatesSource).toContain('getXpexStudentCertificates')
     expect(certificatesSource).toContain('new Set(learning.data.courses.map((course) => course.course_id))')
+  })
+
+  test('automatic certificate creation remains real-data and certification-template gated', () => {
+    expect(certificationBackendSource).toContain('check_course_completion_and_create_certificate')
+    expect(certificationBackendSource).toContain('all_activities_complete')
+    expect(certificationBackendSource).toContain('CourseCertification.course_id == course_id')
+    expect(certificationBackendSource).toContain('if not certification:')
+    expect(certificationBackendSource).toContain('return None')
   })
 })
