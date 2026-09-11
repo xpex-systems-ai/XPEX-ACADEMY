@@ -26,6 +26,7 @@ const activitiesSource = read('app/xpex/activities/page.tsx')
 const certificatesSource = read('app/xpex/certificates/page.tsx')
 const trailsSource = read('app/xpex/trails/page.tsx')
 const aiLabSource = read('app/xpex/ai-lab/page.tsx')
+const aiLabProjectsSource = read('app/xpex/ai-lab/projects/page.tsx')
 const communitySource = read('app/xpex/community/page.tsx')
 const teacherBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'teacher_dashboard.py')
 const launchBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'launch_ops.py')
@@ -85,6 +86,7 @@ describe('XPEX V6-003 persisted Polo identity', () => {
       certificatesSource,
       trailsSource,
       aiLabSource,
+      aiLabProjectsSource,
       communitySource,
     ]) {
       expect(source).toContain('poloBranding={learning.branding}')
@@ -145,6 +147,23 @@ describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
     expect(poloStudentsSource).toContain('<XpexAuthenticatedShell')
     expect(poloStudentsSource).toContain('poloBranding={poloBranding}')
     expect(poloStudentsSource).toContain('Nenhuma senha é criada ou alterada por este painel.')
+  })
+})
+
+describe('XPEX V6-003 student sidebar route integrity', () => {
+  test('student navigation exposes only real XPeX destinations', () => {
+    for (const href of ['/xpex/aluno', '/xpex/courses', '/xpex/trails', '/xpex/activities', '/xpex/ai-lab', '/xpex/community', '/xpex/certificates']) {
+      expect(shellSource).toContain(`href: '${href}'`)
+    }
+  })
+
+  test('AI Lab scopes native Boards and Library links to the current organization', () => {
+    expect(aiLabSource).toContain("if (href === '/boards' || href === '/library')")
+    expect(aiLabSource).toContain('`/orgs/${organizationSlug}${href}`')
+  })
+
+  test('community cards route through the current organization boundary', () => {
+    expect(communitySource).toContain('`/orgs/${learning.organization.slug}/community/${communityRouteId(community.community_uuid)}`')
   })
 })
 
