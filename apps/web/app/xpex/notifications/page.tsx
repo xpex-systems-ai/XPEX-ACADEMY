@@ -17,12 +17,13 @@ export default async function XpexNotificationsPage() {
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page">
         <header>
           <p className="xpex-label">Central de atualizações</p>
           <h1>Notificações</h1>
-          <p>Acompanhe mudanças relevantes da sua jornada na XPeX Academy AI, sempre a partir de dados reais.</p>
+          <p>Acompanhe mudanças relevantes da sua jornada, sempre a partir de dados reais.</p>
         </header>
         {activeCourses.length > 0 ? (
           <div className="xpex-course-grid">
