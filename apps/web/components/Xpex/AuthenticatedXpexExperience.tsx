@@ -145,7 +145,8 @@ export async function AuthenticatedXpexExperience({
   const fullName = [session.user.first_name, session.user.last_name].filter(Boolean).join(' ').trim()
   const displayName = fullName || session.user.username || 'Pessoa participante'
   const organizationName = organization?.name
-  const poloBranding = role === 'polo'
+  const shouldBrandOrganizationExperience = (role === 'polo' || role === 'aluno') && Boolean(session.tokens?.access_token)
+  const poloBranding = shouldBrandOrganizationExperience
     ? await getPoloBranding(session.tokens!.access_token!, organizationSlug, organizationName)
     : undefined
 
@@ -211,7 +212,7 @@ export async function AuthenticatedXpexExperience({
       {role === 'aluno' ? (
         <FuturisticStudentDashboard
           displayName={displayName}
-          organizationName={organizationName}
+          organizationName={poloBranding?.organization_name ?? organizationName}
           organizationSlug={organizationSlug}
           data={learningData}
           failed={learningDataFailed}

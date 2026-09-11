@@ -53,3 +53,6 @@ jobs:
           echo "Strict-linting changed files:"
           echo "$CHANGED"
           echo "$CHANGED" | xargs bun run lint:strict --no-error-on-unmatched-pattern
+      - name: XPeX V6-003 Polo + student sandbox contract gate
+        working-directory: ./apps/web
+        run: bun test tests/xpex-v6-003-kelle-branding.test.mjs

@@ -16,6 +16,7 @@ export const poloSectionPolicy = {
 export function canAccessPoloSection(access: XpexPoloAccess | null | undefined, section: string): boolean {
   if (!Object.hasOwn(poloSectionPolicy, section)) return false
   const policy = poloSectionPolicy[section as keyof typeof poloSectionPolicy]
+  if (policy.status !== 'NATIVE_BRIDGE') return false
   return Boolean(access?.isManager && access.capabilities.includes(policy.capability))
 }
 
@@ -26,7 +27,6 @@ export function canNavigatePolo(access: XpexPoloAccess | null | undefined, href:
   if (href === '/xpex/polo/alunos') return access.isManager && access.capabilities.includes('manage_students')
   const section = href.replace('/xpex/polo/', '')
   return canAccessPoloSection(access, section)
-    && poloSectionPolicy[section as keyof typeof poloSectionPolicy].status === 'NATIVE_BRIDGE'
 }
 
 type PoloSession = {

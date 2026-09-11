@@ -22,10 +22,11 @@ export default async function XpexCertificatesPage() {
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page">
         <header>
-          <p className="xpex-label">Conquistas verificáveis</p>
+          <p className="xpex-label">{learning.branding.organization_name}</p>
           <h1>Certificados</h1>
           <p>Suas conclusões reais e verificáveis ficam reunidas aqui.</p>
         </header>
@@ -56,7 +57,7 @@ export default async function XpexCertificatesPage() {
           <div className="xpex-card xpex-empty">
             <LockKeyhole aria-hidden="true" size={30} />
             <h2>Seu primeiro certificado começa no primeiro curso</h2>
-            <p>Conclua os requisitos publicados e a XPeX Academy AI reconhecerá sua evolução automaticamente.</p>
+            <p>Conclua os requisitos publicados e a plataforma reconhecerá sua evolução automaticamente.</p>
           </div>
         )}
       </section>

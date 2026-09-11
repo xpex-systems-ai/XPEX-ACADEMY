@@ -30,12 +30,12 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
   }, [])
 
   return (
-    <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug}>
+    <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug} poloBranding={learning.branding}>
       <section className="xpex-native-page pb-14">
         <header className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#050a12] px-6 py-8 md:px-10 md:py-10">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_15%,rgba(0,174,255,0.24),transparent_26%),radial-gradient(circle_at_20%_90%,rgba(255,98,0,0.14),transparent_30%)]" />
           <div className="relative z-10 max-w-4xl">
-            <p className="xpex-label">Curso XPeX · LearnHouse Core</p>
+            <p className="xpex-label">Curso · {learning.branding.organization_name}</p>
             <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">{course.title}</h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">{course.description || 'Conteúdo publicado e autorizado para sua matrícula.'}</p>
             <div className="mt-7 flex flex-wrap gap-3">

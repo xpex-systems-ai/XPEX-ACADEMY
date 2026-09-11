@@ -1,6 +1,5 @@
 import { Award, BookOpen, CalendarDays, ChartNoAxesCombined, GraduationCap, Library, MessageCircle, Route, Settings, Users, Wrench } from 'lucide-react'
 import Link from 'next/link'
-import { poloSectionPolicy } from '@/lib/xpex/polo-policy'
 import { getUriWithOrg } from '@services/config/config'
 import { XpexEmptyState, XpexPanel, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
 
@@ -21,17 +20,17 @@ const sectionCopy: Record<XpexPoloSectionId, SectionCopy> = {
   turmas: {
     title: 'Turmas',
     description: 'Organize grupos e acompanhe as comunidades de aprendizagem do polo.',
-    stateTitle: 'Gestão de turmas no Learning Core',
-    stateDescription: 'Consulte a área nativa para ver os grupos e turmas persistidos desta organização.',
-    cta: 'Gerenciar turmas no Learning Core',
+    stateTitle: 'Gestão de turmas',
+    stateDescription: 'Abra a área de turmas para consultar os grupos persistidos desta organização.',
+    cta: 'Gerenciar turmas',
     native: '/dash/users/settings/usergroups',
     icon: GraduationCap,
   },
   cursos: {
     title: 'Cursos',
-    description: 'Gerencie o catálogo acadêmico real da organização.',
-    stateTitle: 'Catálogo acadêmico da organização',
-    stateDescription: 'Abra a área nativa para consultar os cursos publicados e rascunhos reais desta organização.',
+    description: 'Gerencie o catálogo acadêmico da organização.',
+    stateTitle: 'Catálogo acadêmico',
+    stateDescription: 'Abra a área de cursos para consultar publicações e rascunhos desta organização.',
     cta: 'Abrir cursos',
     native: '/dash/courses',
     icon: BookOpen,
@@ -40,37 +39,37 @@ const sectionCopy: Record<XpexPoloSectionId, SectionCopy> = {
     title: 'Trilhas',
     description: 'Combine cursos em jornadas orientadas para objetivos de aprendizagem.',
     stateTitle: 'Trilhas da organização',
-    stateDescription: 'Esta área exibirá somente trilhas persistidas e autorizadas quando a integração estiver disponível.',
+    stateDescription: 'Área não publicada para operação.',
     icon: Route,
   },
   mentorias: {
     title: 'Mentorias',
     description: 'Centralize o acompanhamento humano e pedagógico.',
     stateTitle: 'Mentorias da organização',
-    stateDescription: 'Esta área exibirá somente mentorias persistidas e autorizadas quando a integração estiver disponível.',
+    stateDescription: 'Área não publicada para operação.',
     icon: MessageCircle,
   },
   eventos: {
     title: 'Eventos',
     description: 'Acompanhe encontros e atividades ao vivo do polo.',
     stateTitle: 'Agenda do polo',
-    stateDescription: 'Esta área exibirá somente eventos persistidos e autorizados quando a integração estiver disponível.',
+    stateDescription: 'Área não publicada para operação.',
     icon: CalendarDays,
   },
   conteudos: {
     title: 'Conteúdos',
-    description: 'Acesse a biblioteca nativa sem duplicar o motor acadêmico.',
+    description: 'Acesse a biblioteca da organização sem duplicar o motor acadêmico.',
     stateTitle: 'Biblioteca da organização',
-    stateDescription: 'Abra a biblioteca nativa para consultar os conteúdos reais disponíveis para esta organização.',
+    stateDescription: 'Abra a biblioteca para consultar os conteúdos disponíveis para esta organização.',
     cta: 'Abrir biblioteca',
     native: '/dash/library',
     icon: Library,
   },
   relatorios: {
     title: 'Relatórios',
-    description: 'Consulte indicadores disponíveis no Learning Core.',
+    description: 'Consulte indicadores disponíveis no motor acadêmico.',
     stateTitle: 'Indicadores operacionais',
-    stateDescription: 'Abra o Analytics para consultar os dados disponíveis. Se a telemetria estiver indisponível, o restante do painel continua operacional.',
+    stateDescription: 'Abra o Analytics para consultar os dados disponíveis da organização.',
     cta: 'Abrir Analytics',
     native: '/dash/analytics',
     icon: ChartNoAxesCombined,
@@ -79,21 +78,21 @@ const sectionCopy: Record<XpexPoloSectionId, SectionCopy> = {
     title: 'Certificados',
     description: 'Acompanhe certificados emitidos pelo mecanismo acadêmico.',
     stateTitle: 'Certificados da organização',
-    stateDescription: 'Esta área exibirá somente certificados persistidos pelo mecanismo acadêmico quando a integração estiver disponível.',
+    stateDescription: 'Área não publicada para operação.',
     icon: Award,
   },
   recursos: {
     title: 'Recursos',
     description: 'Materiais e ferramentas autorizados para a equipe do polo.',
     stateTitle: 'Recursos do polo',
-    stateDescription: 'Esta área exibirá somente recursos persistidos e autorizados quando a integração estiver disponível.',
+    stateDescription: 'Área não publicada para operação.',
     icon: Wrench,
   },
   configuracoes: {
     title: 'Configurações',
-    description: 'Atualize as preferências da organização no ambiente nativo.',
+    description: 'Atualize as preferências da organização no ambiente administrativo.',
     stateTitle: 'Configurações da organização',
-    stateDescription: 'As configurações são mantidas pelo Learning Core e podem ser abertas com segurança no ambiente nativo.',
+    stateDescription: 'Abra as configurações da organização para atualizar preferências autorizadas.',
     cta: 'Abrir configurações',
     native: '/dash/org/settings/general',
     icon: Settings,
@@ -110,7 +109,7 @@ export function XpexPoloSection({ section, organizationName, organizationSlug }:
     <XpexPanel className="xpex-polo-section-panel">
       <div className="xpex-section-icon" aria-hidden="true"><Icon size={26}/></div>
       <XpexSectionHeader eyebrow="Dados da organização" title={content.title}/>
-      <div className="mt-5"><XpexEmptyState title={poloSectionPolicy[section].status === 'COMING_SOON' ? `${content.title} — Em breve` : content.stateTitle} description={content.stateDescription}/></div>
+      <div className="mt-5"><XpexEmptyState title={content.stateTitle} description={content.stateDescription}/></div>
       {href && <Link className="xpex-primary" href={href}>{content.cta}</Link>}
     </XpexPanel>
   </div>
