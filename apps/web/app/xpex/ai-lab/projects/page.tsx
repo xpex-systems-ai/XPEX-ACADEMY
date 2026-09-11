@@ -65,6 +65,7 @@ export default async function XpexAiLabProjectsPage() {
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page">
         <header>
