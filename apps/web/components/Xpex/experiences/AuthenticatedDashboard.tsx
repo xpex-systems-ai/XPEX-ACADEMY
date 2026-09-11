@@ -82,7 +82,7 @@ function LearningMetric({ label, value }: { label: string; value: number }) {
   return <div className="xpex-learning-metric"><span>{label}</span><strong>{value}</strong></div>
 }
 
-function PoleDashboard({ organizationName, organizationSlug, data, failed }: { organizationName?: string; organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
+function PoleDashboard({ organizationSlug, data, failed }: { organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
   if (failed) return <XpexErrorState title="Não foi possível carregar os indicadores operacionais" description="Atualize em instantes para carregar novamente os dados persistidos da organização."/>
   return <>
     {data ? <XpexKpiGrid>
@@ -92,12 +92,12 @@ function PoleDashboard({ organizationName, organizationSlug, data, failed }: { o
       <XpexMetricCard icon={GraduationCap} label="Professoras" value={String(data.metrics.teachers)} detail="Perfis de instrutora vinculados" tone="orange"/>
     </XpexKpiGrid> : <XpexEmptyState title="Indicadores indisponíveis" description="O snapshot operacional ainda não está disponível para esta organização."/>}
     <section><XpexSectionHeader eyebrow="Operação" title="Ações rápidas"/><div className="xpex-actions">
-      <XpexQuickAction icon={GraduationCap} title="Nova turma" href="/xpex/polo/turmas" detail="Gerenciar turmas"/>
-      <XpexQuickAction icon={BookOpen} title="Novo curso" href="/xpex/polo/cursos" detail="Gerenciar cursos"/>
-      <XpexQuickAction icon={Users} title="Novo aluno" href="/xpex/polo/alunos" detail="Convidar e matricular"/>
-      <XpexQuickAction icon={FilePlus2} title="Relatórios" href="/xpex/polo/relatorios" detail="Consultar indicadores"/>
+      <XpexQuickAction icon={GraduationCap} title="Nova turma" disabled={false} href="/xpex/polo/turmas" detail="Gerenciar turmas"/>
+      <XpexQuickAction icon={BookOpen} title="Novo curso" disabled={false} href="/xpex/polo/cursos" detail="Gerenciar cursos"/>
+      <XpexQuickAction icon={Users} title="Novo aluno" disabled={false} href="/xpex/polo/alunos" detail="Convidar e matricular"/>
+      <XpexQuickAction icon={FilePlus2} title="Relatórios" disabled={false} href="/xpex/polo/relatorios" detail="Consultar indicadores"/>
     </div></section>
-    {data ? <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Acompanhamento" title="Estado de aprendizagem"/><div className="mt-5 grid gap-3 sm:grid-cols-3"><LearningMetric label="Alunos ativos" value={data.metrics.active_students}/><LearningMetric label="Atividades concluídas" value={data.metrics.completed_activities}/><LearningMetric label="Cursos concluídos" value={data.metrics.completed_students}/></div></XpexPanel> : null}
+    {data ? <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Acompanhamento" title="Estado de aprendizagem"/><div className="mt-5 grid gap-3 sm:grid-cols-3"><LearningMetric label="Alunos ativos" value={data.metrics.active_students}/><LearningMetric label="Atividades concluídas" value={data.metrics.completed_activities}/><LearningMetric label="Alunos concluídos" value={data.metrics.completed_students}/></div></XpexPanel> : null}
     <EntryPoints role="polo" organizationSlug={organizationSlug}/>
   </>
 }

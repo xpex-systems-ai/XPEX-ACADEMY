@@ -59,7 +59,7 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(heroSource).toContain('branding.tagline')
     expect(heroSource).not.toContain('Coordenação:')
     expect(shellSource).toContain('poloBranding!.logo')
-    expect(shellSource).toContain('poloBranding?.teacher_photo')
+    expect(shellSource).not.toContain('poloBranding?.teacher_photo')
   })
 
   test('registers the approved Kelle hero asset in the declarative preset', () => {

@@ -34,13 +34,18 @@ describe('XPEX V6-004.1 Kelle production overview', () => {
     }
     for (const href of ['/xpex/polo/turmas', '/xpex/polo/cursos', '/xpex/polo/alunos', '/xpex/polo/relatorios']) {
       expect(dashboard).toContain(`href="${href}"`)
+      expect(dashboard).toContain(`disabled={false} href="${href}"`)
     }
     expect(dashboard).not.toContain("'/dash/")
     expect(dashboard).not.toContain('xpexCourseStudioRoute')
+    expect(dashboard).toContain('LearningMetric label="Alunos concluídos" value={data.metrics.completed_students}')
   })
 
   test('keeps Super Admin navigation independent from Polo branding', () => {
     expect(shell).toContain("adminNavigation ? '/xpex/admin' : `/xpex/${role}`")
     expect(shell).toContain('!adminNavigation')
+    expect(shell).toContain('<XpexLegalAttribution/>')
+    expect(shell).toContain('const profileName = displayName')
+    expect(shell).not.toContain('poloBranding?.organization_name ?? displayName')
   })
 })
