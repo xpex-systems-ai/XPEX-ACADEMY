@@ -49,6 +49,11 @@ const discoveryRows = [
   },
 ] as const
 
+function resolveDiscoveryHref(href: string | null, organizationSlug: string) {
+  if (href === '/boards' || href === '/library') return `/orgs/${organizationSlug}${href}`
+  return href
+}
+
 export default async function XpexAiLabPage() {
   const learning = await getAuthorizedStudentLearning('/xpex/ai-lab')
   if (!learning) return <XpexStudentDenied />
@@ -130,17 +135,20 @@ export default async function XpexAiLabPage() {
               </div>
             </div>
             <div className="flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
-              {row.items.map(({ title, eyebrow, description, icon: Icon, href, action }) => (
-                <article key={title} className="group relative min-h-[245px] min-w-[280px] max-w-[340px] flex-1 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#0b1625] p-5 transition duration-300 hover:-translate-y-1 hover:border-orange-500/45 hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
-                  <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_85%_10%,rgba(0,174,255,0.13),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(255,98,0,0.12),transparent_35%)]" />
-                  <div className="relative z-10 flex h-full flex-col">
-                    <div className="flex items-start justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">{eyebrow}</span><Icon className="text-cyan-400" size={24}/></div>
-                    <h3 className="mt-5 text-xl font-black">{title}</h3>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
-                    {href ? <Link href={href} className="mt-auto pt-6 text-sm font-black text-white transition group-hover:text-orange-400">{action} <ArrowRight className="inline" size={15}/></Link> : <span className="mt-auto pt-6 text-sm font-black text-slate-500">{action}</span>}
-                  </div>
-                </article>
-              ))}
+              {row.items.map(({ title, eyebrow, description, icon: Icon, href, action }) => {
+                const resolvedHref = resolveDiscoveryHref(href, learning.organization.slug)
+                return (
+                  <article key={title} className="group relative min-h-[245px] min-w-[280px] max-w-[340px] flex-1 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#0b1625] p-5 transition duration-300 hover:-translate-y-1 hover:border-orange-500/45 hover:shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
+                    <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_85%_10%,rgba(0,174,255,0.13),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(255,98,0,0.12),transparent_35%)]" />
+                    <div className="relative z-10 flex h-full flex-col">
+                      <div className="flex items-start justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">{eyebrow}</span><Icon className="text-cyan-400" size={24}/></div>
+                      <h3 className="mt-5 text-xl font-black">{title}</h3>
+                      <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
+                      {resolvedHref ? <Link href={resolvedHref} className="mt-auto pt-6 text-sm font-black text-white transition group-hover:text-orange-400">{action} <ArrowRight className="inline" size={15}/></Link> : <span className="mt-auto pt-6 text-sm font-black text-slate-500">{action}</span>}
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           </section>
         ))}
