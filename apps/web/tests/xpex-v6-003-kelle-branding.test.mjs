@@ -28,6 +28,8 @@ const trailsSource = read('app/xpex/trails/page.tsx')
 const aiLabSource = read('app/xpex/ai-lab/page.tsx')
 const aiLabProjectsSource = read('app/xpex/ai-lab/projects/page.tsx')
 const communitySource = read('app/xpex/community/page.tsx')
+const notificationsSource = read('app/xpex/notifications/page.tsx')
+const searchSource = read('app/xpex/search/page.tsx')
 const teacherBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'teacher_dashboard.py')
 const launchBackendSource = read('..', 'api', 'src', 'services', 'xpex', 'launch_ops.py')
 
@@ -77,7 +79,7 @@ describe('XPEX V6-003 persisted Polo identity', () => {
     expect(studentSource).toContain('branding: Awaited<ReturnType<typeof getPoloBranding>>')
   })
 
-  test('keeps Polo branding through every student sidebar destination and learning path', () => {
+  test('keeps Polo branding through every student sidebar and utility destination', () => {
     for (const source of [
       coursesSource,
       courseSource,
@@ -88,6 +90,8 @@ describe('XPEX V6-003 persisted Polo identity', () => {
       aiLabSource,
       aiLabProjectsSource,
       communitySource,
+      notificationsSource,
+      searchSource,
     ]) {
       expect(source).toContain('poloBranding={learning.branding}')
     }
@@ -155,6 +159,13 @@ describe('XPEX V6-003 student sidebar route integrity', () => {
     for (const href of ['/xpex/aluno', '/xpex/courses', '/xpex/trails', '/xpex/activities', '/xpex/ai-lab', '/xpex/community', '/xpex/certificates']) {
       expect(shellSource).toContain(`href: '${href}'`)
     }
+  })
+
+  test('student-only topbar tools do not create dead staff routes', () => {
+    expect(shellSource).toContain("const studentTools = role === 'aluno' && !adminNavigation")
+    expect(shellSource).toContain("getUriWithOrg(organizationSlug, '/account/profile')")
+    expect(shellSource).toContain("href=\"/xpex/notifications\"")
+    expect(shellSource).toContain("href=\"/xpex/ai-lab\"")
   })
 
   test('AI Lab scopes native Boards and Library links to the current organization', () => {
