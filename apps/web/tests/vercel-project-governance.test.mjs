@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url'
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(WEB_ROOT, '../..')
 const OFFICIAL_PROJECT_ID = 'prj_EvLi9wcPcy2p7op1ChdvI8kPksKV'
-const PREVIEW_BRANCH = 'feat/xpex-v6-002-polo-foundation'
+const AUDITED_PREVIEW_BRANCHES = [
+  'feat/xpex-v6-002-polo-foundation',
+  'feat/xpex-v6-003-kelle-digital-lab-v1',
+]
 const QUARANTINED_PROJECT_IDS = [
   'prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y',
   'prj_lusVrpATbArDHBafb4VQAvh14TyE',
@@ -41,7 +44,7 @@ describe('Vercel project governance', () => {
     const commands = configPaths.map(readIgnoreCommand)
     expect(new Set(commands).size).toBe(1)
     expect(commands[0]).toContain(OFFICIAL_PROJECT_ID)
-    expect(commands[0]).toContain(PREVIEW_BRANCH)
+    expect(commands[0]).toContain('feat/xpex-v6-*')
   })
 
   test('builds the official project and quarantines duplicates by default', () => {
@@ -55,13 +58,15 @@ describe('Vercel project governance', () => {
     }
   })
 
-  test('allows only the audited PR preview branch through quarantine', () => {
+  test('allows audited XPeX V6 preview branches through quarantine only in preview', () => {
     for (const path of configPaths) {
       const command = readIgnoreCommand(path)
       for (const projectId of QUARANTINED_PROJECT_IDS) {
-        expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef: PREVIEW_BRANCH })).toBe(1)
+        for (const gitRef of AUDITED_PREVIEW_BRANCHES) {
+          expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef })).toBe(1)
+          expect(commandStatus(command, projectId, { vercelEnv: 'production', gitRef })).toBe(0)
+        }
         expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef: 'feat/other-branch' })).toBe(0)
-        expect(commandStatus(command, projectId, { vercelEnv: 'production', gitRef: PREVIEW_BRANCH })).toBe(0)
       }
     }
   })
