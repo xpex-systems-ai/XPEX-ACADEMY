@@ -31,7 +31,7 @@ export default async function TrailsPage() {
   const gxStage = overallProgress < 25 ? 'fundamentos' : overallProgress < 70 ? 'construcao' : 'escala'
 
   return (
-    <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug}>
+    <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug} poloBranding={learning.branding}>
       <section className="xpex-native-page">
         <header>
           <p className="xpex-label">Jornadas de evolução</p>
