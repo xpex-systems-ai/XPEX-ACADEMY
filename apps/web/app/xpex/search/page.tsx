@@ -43,11 +43,12 @@ export default async function XpexSearchPage({
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page">
         <header>
           <p className="xpex-label">Busca inteligente</p>
-          <h1>Pesquisar na XPeX Academy AI</h1>
+          <h1>Pesquisar na sua jornada</h1>
           <p>
             {rawQuery
               ? `Resultados para “${rawQuery}”`
