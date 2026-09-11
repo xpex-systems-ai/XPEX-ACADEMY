@@ -42,10 +42,10 @@ export default async function CoursesPage() {
   const remainingCourses = featured ? courses.filter(course => course.course_id !== featured.course_id) : []
   const featuredComplete = (featured?.progress_percent ?? 0) >= 100
 
-  return <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug}>
+  return <XpexAuthenticatedShell role="aluno" allowedRoles={['aluno']} displayName={learning.displayName} organizationSlug={learning.organization.slug} poloBranding={learning.branding}>
     <main className="xpex-vitrine">
       <header className="xpex-vitrine-heading">
-        <div><p className="xpex-label">XPeX Academy</p><h1>Sua próxima descoberta começa aqui.</h1><p>Explore somente os cursos publicados e liberados para a sua matrícula.</p></div>
+        <div><p className="xpex-label">{learning.branding.organization_name}</p><h1>Sua próxima descoberta começa aqui.</h1><p>Explore somente os cursos publicados e liberados para a sua matrícula.</p></div>
         <div className="xpex-vitrine-trust"><BookOpen aria-hidden="true" size={18} /><span>Catálogo autorizado<br/><strong>{courses.length} {courses.length === 1 ? 'curso disponível' : 'cursos disponíveis'}</strong></span></div>
       </header>
 
