@@ -72,6 +72,7 @@ export default async function XpexAiLabPage() {
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page pb-14">
         <header className="sr-only">
