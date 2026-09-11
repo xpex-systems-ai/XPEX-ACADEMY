@@ -62,12 +62,13 @@ export default async function XpexCommunityPage() {
       allowedRoles={['aluno']}
       displayName={learning.displayName}
       organizationSlug={learning.organization.slug}
+      poloBranding={learning.branding}
     >
       <section className="xpex-native-page">
         <header>
           <p className="xpex-label">Conecte e colabore</p>
-          <h1>Comunidade XPeX</h1>
-          <p>Espaço para dúvidas, projetos, desafios e evolução coletiva na XPeX Academy AI.</p>
+          <h1>Comunidade</h1>
+          <p>Espaço para dúvidas, projetos, desafios e evolução coletiva dentro da identidade do seu Polo.</p>
         </header>
         {communities.length > 0 ? (
           <div className="xpex-course-grid">
