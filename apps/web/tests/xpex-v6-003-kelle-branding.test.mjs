@@ -86,13 +86,16 @@ describe('XPEX V6-003 persisted Polo identity', () => {
 
 describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
   test('keeps every active sidebar destination behind server-side Polo policy', () => {
-    expect(navigationSource).toContain("'Visão Geral': '/xpex/polo'")
-    expect(navigationSource).toContain("'Alunos': '/xpex/polo/alunos'")
-    expect(navigationSource).toContain("'Turmas': '/xpex/polo/turmas'")
-    expect(navigationSource).toContain("'Cursos': '/xpex/polo/cursos'")
-    expect(navigationSource).toContain("'Conteúdos': '/xpex/polo/conteudos'")
-    expect(navigationSource).toContain("'Relatórios': '/xpex/polo/relatorios'")
-    expect(navigationSource).toContain("'Configurações': '/xpex/polo/configuracoes'")
+    for (const label of ['Visão Geral', 'Alunos', 'Turmas', 'Cursos', 'Conteúdos', 'Relatórios', 'Configurações']) {
+      expect(navigationSource).toContain(`label: '${label}'`)
+    }
+    expect(shellSource).toContain("'Visão Geral': '/xpex/polo'")
+    expect(shellSource).toContain("'Alunos': '/xpex/polo/alunos'")
+    expect(shellSource).toContain("'Turmas': '/xpex/polo/turmas'")
+    expect(shellSource).toContain("'Cursos': '/xpex/polo/cursos'")
+    expect(shellSource).toContain("'Conteúdos': '/xpex/polo/conteudos'")
+    expect(shellSource).toContain("'Relatórios': '/xpex/polo/relatorios'")
+    expect(shellSource).toContain("'Configurações': '/xpex/polo/configuracoes'")
     expect(shellSource).toContain('canNavigatePolo(poloAccess, destinations[label])')
     expect(poloPolicySource).toContain("href === '/xpex/polo/alunos'")
     expect(poloPolicySource).toContain("poloSectionPolicy[section as keyof typeof poloSectionPolicy].status === 'NATIVE_BRIDGE'")
