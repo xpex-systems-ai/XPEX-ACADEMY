@@ -77,7 +77,7 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
 
         <section className="mt-8 rounded-2xl border border-orange-400/15 bg-orange-400/[0.04] p-5" aria-label="Arquitetura do conteúdo">
           <p className="xpex-label">Fonte de verdade</p>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Esta experiência não cria um segundo LMS: matrícula, curso, atividades, tipos de conteúdo e progresso continuam vindo da infraestrutura LearnHouse autorizada. Vídeos, documentos, embeds e conteúdos interativos são renderizados pelo player nativo correspondente.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-300">Matrícula, curso, atividades, tipos de conteúdo e progresso continuam vinculados à infraestrutura acadêmica autorizada pela XpeX. Vídeos, documentos, embeds e conteúdos interativos são renderizados pelo player correspondente sem expor o motor interno ao aluno.</p>
         </section>
       </section>
     </XpexAuthenticatedShell>
