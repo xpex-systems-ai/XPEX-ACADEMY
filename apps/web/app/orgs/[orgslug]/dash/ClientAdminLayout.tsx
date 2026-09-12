@@ -7,12 +7,7 @@ import CommandPalette from '@components/Dashboard/CommandPalette/CommandPalette'
 import React from 'react'
 import XpexNativeAdminMenu from './XpexNativeAdminMenu'
 
-function ClientAdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-  params?: any
-}) {
+function ClientAdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionGate>
       <AdminAuthorization authorizationMode="page">
