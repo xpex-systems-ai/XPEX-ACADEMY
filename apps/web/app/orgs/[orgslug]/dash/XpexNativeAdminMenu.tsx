@@ -7,12 +7,12 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
 
 const nativeLinks = [
-  { label: 'Turmas', path: '/dash/users/settings/usergroups', icon: GraduationCap },
-  { label: 'Cursos', path: '/dash/courses', icon: BookOpen },
+  { label: 'Turmas', path: '/dash/users/settings/usergroups', icon: GraduationCap, xpex: false },
+  { label: 'Cursos', path: '/dash/courses', icon: BookOpen, xpex: false },
   { label: 'Alunos', path: '/xpex/polo/alunos', icon: Users, xpex: true },
-  { label: 'Conteúdos', path: '/dash/library', icon: Library },
-  { label: 'Relatórios', path: '/dash/analytics', icon: ChartNoAxesCombined },
-  { label: 'Configurações', path: '/dash/org/settings/general', icon: Settings },
+  { label: 'Conteúdos', path: '/dash/library', icon: Library, xpex: false },
+  { label: 'Relatórios', path: '/dash/analytics', icon: ChartNoAxesCombined, xpex: false },
+  { label: 'Configurações', path: '/dash/org/settings/general', icon: Settings, xpex: false },
 ] as const
 
 function monogram(name?: string) {
