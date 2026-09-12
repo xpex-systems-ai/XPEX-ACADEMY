@@ -21,7 +21,7 @@ function monogram(name?: string) {
 }
 
 export default function XpexNativeAdminMenu() {
-  const org = useOrg() as any
+  const org = useOrg()
   const pathname = usePathname() || ''
 
   if (!org?.slug) return null
