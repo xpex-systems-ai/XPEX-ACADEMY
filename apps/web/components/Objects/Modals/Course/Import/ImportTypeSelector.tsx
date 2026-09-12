@@ -1,5 +1,4 @@
 'use client'
-import React from 'react'
 import { GraduationCap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PlanBadge from '@components/Dashboard/Shared/PlanRestricted/PlanBadge'
