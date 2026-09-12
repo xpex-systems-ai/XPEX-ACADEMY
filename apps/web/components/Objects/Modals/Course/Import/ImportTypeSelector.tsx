@@ -12,7 +12,7 @@ interface ImportTypeSelectorProps {
 
 function ImportTypeSelector({ onSelectType, currentPlan }: ImportTypeSelectorProps) {
   const { t } = useTranslation()
-  const org = useOrg() as any
+  const org = useOrg()
   const rf = org?.config?.config?.resolved_features
   const canUseScorm = rf?.scorm?.enabled === true
 
