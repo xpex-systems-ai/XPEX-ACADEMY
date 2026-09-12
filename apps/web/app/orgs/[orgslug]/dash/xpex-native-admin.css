@@ -155,13 +155,15 @@
 }
 
 /* Containment: keep the academic engine intact while removing its old white shell. */
-.xpex-native-admin [class*="bg-[#f8f8f8]"] {
+.xpex-native-admin [class*="bg-[#f8f8f8]"],
+.xpex-native-admin [class*="bg-[#fcfbfc]"] {
   background: transparent !important;
 }
 
 .xpex-native-admin .bg-white,
 .xpex-native-admin .bg-gray-50,
-.xpex-native-admin .bg-gray-100 {
+.xpex-native-admin .bg-gray-100,
+.xpex-native-admin .bg-gray-200 {
   background-color: var(--xpex-native-surface) !important;
 }
 
@@ -183,8 +185,12 @@
 
 .xpex-native-admin .border-gray-100,
 .xpex-native-admin .border-gray-200,
-.xpex-native-admin .border-gray-300 {
+.xpex-native-admin .border-gray-300,
+.xpex-native-admin [class*="ring-neutral-200"],
+.xpex-native-admin [class*="shadow-neutral-300"] {
   border-color: var(--xpex-native-border) !important;
+  --tw-ring-color: rgba(34, 53, 80, .65) !important;
+  --tw-shadow-color: rgba(0, 0, 0, .24) !important;
 }
 
 .xpex-native-admin input,
