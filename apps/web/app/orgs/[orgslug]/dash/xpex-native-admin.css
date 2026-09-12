@@ -211,6 +211,37 @@
   display: none !important;
 }
 
+/* Radix modals render in a portal under body, outside the route wrapper. */
+body:has(.xpex-native-admin) [role="dialog"] {
+  color: #fff;
+}
+
+body:has(.xpex-native-admin) [role="dialog"] .bg-white,
+body:has(.xpex-native-admin) [role="dialog"].bg-white,
+body:has(.xpex-native-admin) [role="dialog"] .bg-gray-50,
+body:has(.xpex-native-admin) [role="dialog"] .bg-gray-100 {
+  background-color: #0b1220 !important;
+}
+
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-900,
+body:has(.xpex-native-admin) [role="dialog"] .text-black {
+  color: #fff !important;
+}
+
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-800,
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-700,
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-600,
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-500,
+body:has(.xpex-native-admin) [role="dialog"] .text-gray-400 {
+  color: #b8c4d6 !important;
+}
+
+body:has(.xpex-native-admin) [role="dialog"] .border-gray-100,
+body:has(.xpex-native-admin) [role="dialog"] .border-gray-200,
+body:has(.xpex-native-admin) [role="dialog"] .border-gray-300 {
+  border-color: #223550 !important;
+}
+
 @media (max-width: 1024px) {
   .xpex-native-admin-main {
     margin-left: 0;
