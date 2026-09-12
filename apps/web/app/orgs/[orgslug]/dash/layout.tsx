@@ -1,9 +1,10 @@
 import { Metadata } from 'next'
 import React from 'react'
 import ClientAdminLayout from './ClientAdminLayout'
+import './xpex-native-admin.css'
 
 export const metadata: Metadata = {
-  title: 'LearnHouse Dashboard',
+  title: 'XpeX Academy · Operação Acadêmica',
 }
 
 async function DashboardLayout(
@@ -12,19 +13,13 @@ async function DashboardLayout(
     params: Promise<any>
   }
 ) {
-  const params = await props.params;
-
-  const {
-    children
-  } = props;
+  const params = await props.params
+  const { children } = props
 
   return (
-    <>
-      <ClientAdminLayout
-        params={params}>
-        {children}
-      </ClientAdminLayout>
-    </>
+    <ClientAdminLayout params={params}>
+      {children}
+    </ClientAdminLayout>
   )
 }
 
