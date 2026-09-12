@@ -1,3 +1,5 @@
+import { getUriWithOrg } from '@services/config/config'
+
 /** Canonical navigation contract for the launch-critical XPeX surfaces. */
 export const xpexAdminRoute = () => '/xpex/admin' as const
 export const xpexControlCenterRoute = () => '/xpex/control-center' as const
@@ -6,13 +8,16 @@ export const xpexPoloStudentsRoute = () => '/xpex/polo/alunos' as const
 export const xpexStudentRoute = () => '/xpex/aluno' as const
 export const xpexLearnerCoursesRoute = () => '/xpex/courses' as const
 
-/** Course creation and management stay inside the branded XPeX Polo shell. */
-export const xpexCourseStudioRoute = (_orgSlug?: string) => '/xpex/polo/cursos' as const
+/**
+ * Administrative/operator routes remain organization-scoped. Polo/student
+ * containment is enforced by their own XPeX navigation and section surfaces.
+ */
+export const xpexCourseStudioRoute = (orgSlug: string) => getUriWithOrg(orgSlug, '/course-studio')
 
-/** Video work remains attached to the contained course workspace. */
-export const xpexVideoStudioRoute = (_orgSlug?: string) => '/xpex/polo/cursos#video-studio' as const
+/** Direct operator entry point into the human-gated Video Studio section. */
+export const xpexVideoStudioRoute = (orgSlug: string) => `${xpexCourseStudioRoute(orgSlug)}#video-studio`
 
-/** Organization course management never exposes the raw academic-engine dashboard. */
-export function xpexPoloCoursesRoute(_orgSlug?: string): string {
-  return '/xpex/polo/cursos'
+/** Native catalog entry is reserved for authorized admin/control-center callers. */
+export function xpexPoloCoursesRoute(orgSlug: string): string {
+  return getUriWithOrg(orgSlug, '/dash/courses')
 }
