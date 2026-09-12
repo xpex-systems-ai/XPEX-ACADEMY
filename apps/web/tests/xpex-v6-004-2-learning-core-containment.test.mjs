@@ -10,6 +10,9 @@ const section = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const studio = read('components/Xpex/experiences/XpexCourseStudio.tsx')
 const routeMap = read('lib/xpexRouteMap.ts')
 const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
+const dashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
+const aiLab = read('app/xpex/ai-lab/page.tsx')
+const community = read('app/xpex/community/page.tsx')
 
 const rawPoloDestinations = [
   '/dash/users/settings/usergroups',
@@ -27,11 +30,12 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(section).toContain('<XpexCourseStudio')
   })
 
-  test('routes all XPeX course-management helpers to the contained Polo workspace', () => {
-    expect(routeMap).not.toContain("'/dash/courses'")
-    expect(routeMap).not.toContain('getUriWithOrg')
-    expect(routeMap).toContain("'/xpex/polo/cursos'")
-    expect(routeMap).toContain("'/xpex/polo/cursos#video-studio'")
+  test('keeps overview operations on XPeX routes while preserving admin-only native helpers', () => {
+    for (const href of ['/xpex/polo/turmas', '/xpex/polo/cursos', '/xpex/polo/alunos', '/xpex/polo/relatorios']) {
+      expect(dashboard).toContain(`href="${href}"`)
+    }
+    expect(routeMap).toContain("getUriWithOrg(orgSlug, '/course-studio')")
+    expect(routeMap).toContain("getUriWithOrg(orgSlug, '/dash/courses')")
   })
 
   test('course creation remains operational without visible LearnHouse branding', () => {
@@ -45,6 +49,13 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(studio).not.toContain('LearnHouse')
     expect(studio).not.toContain('/orgs/')
     expect(studio).toContain('O motor acadêmico continua operando em segundo plano')
+  })
+
+  test('keeps student Lab and community routes inside XPeX', () => {
+    expect(aiLab).not.toContain('LearnHouse')
+    expect(aiLab).not.toContain('`/orgs/${organizationSlug}')
+    expect(community).not.toContain('`/orgs/${learning.organization.slug}/community/')
+    expect(community).toContain('`/xpex/community/${communityRouteId(community.community_uuid)}`')
   })
 
   test('keeps branded user identity inside XPeX while preserving Super Admin native controls', () => {
