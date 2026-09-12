@@ -148,15 +148,19 @@ describe('XPEX V6-003 Polo sidebar sandbox gate', () => {
     }
   })
 
-  test('native bridge destinations exist in the checked-out LearnHouse tree', () => {
+  test('keeps native engine routes available underneath while XPeX removes direct bridges', () => {
     for (const routeDirectory of nativeRouteDirectories) {
       expect(existsSync(join(WEB_ROOT, routeDirectory))).toBe(true)
     }
-    expect(poloSectionSource).toContain("native: '/dash/users/settings/usergroups'")
-    expect(poloSectionSource).toContain("native: '/dash/courses'")
-    expect(poloSectionSource).toContain("native: '/dash/library'")
-    expect(poloSectionSource).toContain("native: '/dash/analytics'")
-    expect(poloSectionSource).toContain("native: '/dash/org/settings/general'")
+    for (const rawRoute of [
+      "native: '/dash/users/settings/usergroups'",
+      "native: '/dash/courses'",
+      "native: '/dash/library'",
+      "native: '/dash/analytics'",
+      "native: '/dash/org/settings/general'",
+    ]) expect(poloSectionSource).not.toContain(rawRoute)
+    expect(poloSectionSource).not.toContain('getUriWithOrg')
+    expect(poloSectionSource).toContain('<XpexCourseStudio')
     expect(poloSectionSource).not.toContain('— Em breve')
   })
 
@@ -186,13 +190,17 @@ describe('XPEX V6-003 student sidebar route integrity', () => {
     expect(shellSource).toContain("href=\"/xpex/ai-lab\"")
   })
 
-  test('AI Lab scopes native Boards and Library links to the current organization', () => {
-    expect(aiLabSource).toContain("if (href === '/boards' || href === '/library')")
-    expect(aiLabSource).toContain('`/orgs/${organizationSlug}${href}`')
+  test('AI Lab does not route Boards or Library into raw organization chrome', () => {
+    expect(aiLabSource).not.toContain("if (href === '/boards' || href === '/library')")
+    expect(aiLabSource).not.toContain('`/orgs/${organizationSlug}${href}`')
+    expect(aiLabSource).not.toContain('LearnHouse')
+    expect(aiLabSource).toContain("title: 'Boards'")
+    expect(aiLabSource).toContain("title: 'Library'")
   })
 
-  test('community cards route through the current organization boundary', () => {
-    expect(communitySource).toContain('`/orgs/${learning.organization.slug}/community/${communityRouteId(community.community_uuid)}`')
+  test('community cards stay inside the XPeX route boundary', () => {
+    expect(communitySource).toContain('`/xpex/community/${communityRouteId(community.community_uuid)}`')
+    expect(communitySource).not.toContain('`/orgs/${learning.organization.slug}/community/')
   })
 })
 

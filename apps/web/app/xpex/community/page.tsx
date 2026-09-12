@@ -81,7 +81,7 @@ export default async function XpexCommunityPage() {
                 {canRead ? (
                   <Link
                     className="xpex-primary"
-                    href={`/orgs/${learning.organization.slug}/community/${communityRouteId(community.community_uuid)}`}
+                    href={`/xpex/community/${communityRouteId(community.community_uuid)}`}
                   >
                     <MessageCircle aria-hidden="true" size={16} /> Entrar na comunidade
                   </Link>

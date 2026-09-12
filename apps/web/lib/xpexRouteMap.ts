@@ -9,15 +9,15 @@ export const xpexStudentRoute = () => '/xpex/aluno' as const
 export const xpexLearnerCoursesRoute = () => '/xpex/courses' as const
 
 /**
- * Browser-facing organization routes stay unprefixed. getUriWithOrg moves
- * across tenant hosts when required; the proxy adds the internal /orgs scope.
+ * Administrative/operator routes remain organization-scoped. Polo/student
+ * containment is enforced by their own XPeX navigation and section surfaces.
  */
 export const xpexCourseStudioRoute = (orgSlug: string) => getUriWithOrg(orgSlug, '/course-studio')
 
 /** Direct operator entry point into the human-gated Video Studio section. */
 export const xpexVideoStudioRoute = (orgSlug: string) => `${xpexCourseStudioRoute(orgSlug)}#video-studio`
 
-/** The native course manager remains organization-scoped and RBAC protected. */
+/** Native catalog entry is reserved for authorized admin/control-center callers. */
 export function xpexPoloCoursesRoute(orgSlug: string): string {
   return getUriWithOrg(orgSlug, '/dash/courses')
 }
