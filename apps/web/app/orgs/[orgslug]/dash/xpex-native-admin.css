@@ -167,6 +167,25 @@
   background-color: var(--xpex-native-surface) !important;
 }
 
+/* Pastel utility surfaces must also be darkened before gray foregrounds are lifted. */
+.xpex-native-admin [class*="bg-blue-50"],
+.xpex-native-admin [class*="bg-indigo-50"],
+.xpex-native-admin [class*="bg-amber-50"],
+.xpex-native-admin [class*="bg-orange-50"],
+.xpex-native-admin [class*="bg-emerald-50"],
+.xpex-native-admin [class*="bg-green-50"],
+.xpex-native-admin [class*="bg-red-50"],
+.xpex-native-admin [class*="bg-rose-50"],
+.xpex-native-admin [class*="bg-purple-50"],
+.xpex-native-admin [class*="bg-violet-50"],
+.xpex-native-admin [class*="bg-sky-50"],
+.xpex-native-admin [class*="bg-cyan-50"],
+.xpex-native-admin [class*="bg-teal-50"],
+.xpex-native-admin [class*="bg-yellow-50"],
+.xpex-native-admin [class*="bg-slate-50"] {
+  background-color: var(--xpex-native-surface-2) !important;
+}
+
 .xpex-native-admin .text-gray-900,
 .xpex-native-admin .text-black {
   color: #fff !important;
@@ -206,8 +225,9 @@
   color: #70839d;
 }
 
-.xpex-native-admin img[alt*="LearnHouse" i],
-.xpex-native-admin img[alt*="Learnhouse" i] {
+/* Hide only the known legacy dashboard mark, never user-authored images by alt text. */
+.xpex-native-admin img[src$="/lrn-dash.svg"],
+.xpex-native-admin img[src="/lrn-dash.svg"] {
   display: none !important;
 }
 
@@ -221,6 +241,23 @@ body:has(.xpex-native-admin) [role="dialog"].bg-white,
 body:has(.xpex-native-admin) [role="dialog"] .bg-gray-50,
 body:has(.xpex-native-admin) [role="dialog"] .bg-gray-100 {
   background-color: #0b1220 !important;
+}
+
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-blue-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-indigo-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-amber-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-orange-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-emerald-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-green-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-red-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-rose-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-purple-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-violet-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-sky-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-cyan-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-teal-50"],
+body:has(.xpex-native-admin) [role="dialog"] [class*="bg-yellow-50"] {
+  background-color: #101a2b !important;
 }
 
 body:has(.xpex-native-admin) [role="dialog"] .text-gray-900,
