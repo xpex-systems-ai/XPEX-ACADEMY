@@ -121,7 +121,8 @@ export function XpexAppShell({
               Preview Beta
             </p>
             <p className="mt-2 text-xs leading-5 text-slate-400">
-              Ambiente de apresentação. Esta prévia não consulta nem persiste\n              dados operacionais.
+              Ambiente de apresentação. Esta prévia não consulta nem persiste
+              dados operacionais.
             </p>
           </div>
         ) : (
