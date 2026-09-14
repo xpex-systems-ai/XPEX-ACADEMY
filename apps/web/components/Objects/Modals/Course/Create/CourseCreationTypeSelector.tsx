@@ -4,12 +4,10 @@ import { PenLine, Sparkles, Lock, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PlanBadge from '@components/Dashboard/Shared/PlanRestricted/PlanBadge'
 import { PlanLevel } from '@services/plans/plans'
-import Image from 'next/image'
-import lrnaiIcon from 'public/lrnai_icon.png'
 import { useOrg } from '@components/Contexts/OrgContext'
 
 interface CourseCreationTypeSelectorProps {
-  onSelectType: (type: 'scratch' | 'ai' | 'migrate') => void
+  onSelectType: (_type: 'scratch' | 'ai' | 'migrate') => void
   currentPlan: PlanLevel
 }
 
@@ -22,7 +20,6 @@ function CourseCreationTypeSelector({ onSelectType, currentPlan }: CourseCreatio
   return (
     <div className="min-w-[650px] py-2">
       <div className="grid grid-cols-3 gap-4">
-        {/* Start from scratch option */}
         <button
           onClick={() => onSelectType('scratch')}
           className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 bg-white hover:border-black hover:shadow-lg transition-all duration-200"
@@ -38,7 +35,6 @@ function CourseCreationTypeSelector({ onSelectType, currentPlan }: CourseCreatio
           </p>
         </button>
 
-        {/* Start with AI option */}
         <button
           onClick={() => canUseAI && onSelectType('ai')}
           disabled={!canUseAI}
@@ -50,17 +46,11 @@ function CourseCreationTypeSelector({ onSelectType, currentPlan }: CourseCreatio
         >
           <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-colors ${
             canUseAI
-              ? 'rotating-gradient-bg'
+              ? 'bg-purple-500/15 group-hover:bg-purple-500/25'
               : 'bg-gray-100'
           }`}>
             {canUseAI ? (
-              <Image
-                src={lrnaiIcon}
-                alt="AI"
-                width={28}
-                height={28}
-                className="drop-shadow-md"
-              />
+              <Sparkles size={28} className="text-purple-400" aria-hidden="true" />
             ) : (
               <Lock size={28} className="text-gray-400" />
             )}
@@ -76,7 +66,6 @@ function CourseCreationTypeSelector({ onSelectType, currentPlan }: CourseCreatio
           </p>
         </button>
 
-        {/* Start from existing content option */}
         <button
           onClick={() => onSelectType('migrate')}
           className="group flex flex-col items-center p-6 rounded-xl border-2 border-gray-200 bg-white hover:border-black hover:shadow-lg transition-all duration-200"
