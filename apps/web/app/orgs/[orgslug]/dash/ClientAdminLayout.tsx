@@ -4,6 +4,7 @@ import AdminAuthorization from '@components/Security/AdminAuthorization'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
 import { CommandPaletteProvider } from '@components/Dashboard/CommandPalette/CommandPaletteContext'
 import CommandPalette from '@components/Dashboard/CommandPalette/CommandPalette'
+import OnboardingTracker from '@components/Dashboard/Onboarding/OnboardingTracker'
 import React from 'react'
 import XpexNativeAdminMenu from './XpexNativeAdminMenu'
 
@@ -16,6 +17,7 @@ function ClientAdminLayout({ children }: { children: React.ReactNode }) {
             <XpexNativeAdminMenu />
             <div className="xpex-native-admin-main">
               {children}
+              <OnboardingTracker />
             </div>
             <CommandPalette />
           </div>
