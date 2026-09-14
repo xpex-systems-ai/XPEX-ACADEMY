@@ -80,6 +80,20 @@ export function resolveXpexPoloAccess(
   return { experience: isManager ? 'polo_unificado' : 'polo_unificado_reduced', capabilities, isManager, isTeacher }
 }
 
+export function resolveXpexOrganizationBySlug(
+  memberships: LearnHouseMembership[] | undefined,
+  orgSlug: string | undefined,
+  requestedRole?: XpexExperienceRole,
+): LearnHouseMembership['org'] | null {
+  if (!orgSlug) return null
+  const membership = memberships?.find((candidate) => {
+    if (candidate.org?.slug !== orgSlug) return false
+    const role = xpexRoleForMembership(candidate)
+    return Boolean(role && (!requestedRole || role === requestedRole))
+  })
+  return membership?.org ?? null
+}
+
 export function resolveXpexOrganization(
   memberships: LearnHouseMembership[] | undefined,
   requestedRole?: XpexExperienceRole,

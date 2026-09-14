@@ -148,7 +148,7 @@ export default async function PoleStudentsPage({
             <p className="xpex-label">Etapa 1</p>
             <h2 className="mt-2 text-xl font-black text-white">Convidar aluno</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              O fluxo nativo envia o convite para o e-mail informado. O aluno cria ou usa a própria conta e aceita a participação no Polo.
+              A XpeX envia o convite para o e-mail informado. O aluno cria ou usa a própria conta e aceita a participação no Polo.
             </p>
             <form action={inviteStudent} className="mt-6 space-y-4">
               <label className="block text-sm font-semibold text-slate-200" htmlFor="invite-email">E-mail do aluno</label>
@@ -203,7 +203,7 @@ export default async function PoleStudentsPage({
           <p className="xpex-label">Depois da matrícula</p>
           <h2 className="mt-2 text-lg font-black text-white">Jornada do aluno</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            O aluno entra em <strong className="text-white">/xpex/aluno</strong>, abre o curso e conclui as atividades. O progresso é persistido no Learning Core e passa a alimentar tanto o gate de prontidão quanto o painel agregado da professora.
+            O aluno entra em <strong className="text-white">/xpex/aluno</strong>, abre o curso e conclui as atividades. O progresso fica salvo na infraestrutura acadêmica da XpeX e passa a alimentar os indicadores da professora e da organização.
           </p>
         </section>
       </section>

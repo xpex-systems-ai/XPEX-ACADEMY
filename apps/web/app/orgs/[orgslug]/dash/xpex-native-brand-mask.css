@@ -1,0 +1,6 @@
+/* Route-scoped visual containment for legacy engine marks rendered through portals. */
+body:has(.xpex-native-admin) img[src*="lrn-dash.svg"],
+body:has(.xpex-native-admin) img[src*="lrnai_icon"],
+body:has(.xpex-native-admin) img[alt="AI Course"] {
+  display: none !important;
+}

@@ -6,6 +6,7 @@ import { getPoloBranding } from '@/lib/xpex/polo-branding-server'
 import {
   resolveXpexAccess,
   resolveXpexOrganization,
+  resolveXpexOrganizationBySlug,
   resolveXpexPoloAccess,
   type LearnHouseMembership,
   type XpexExperienceRole,
@@ -37,7 +38,14 @@ function membershipOrganizations(
 function resolveOperationalOrganization(
   memberships: LearnHouseMembership[] | undefined,
   isSuperadmin: boolean,
+  requestedOrganizationSlug?: string,
 ): LearnHouseMembership['org'] | null {
+  if (requestedOrganizationSlug) {
+    const requested = resolveXpexOrganizationBySlug(memberships, requestedOrganizationSlug)
+    if (!requested?.slug) return null
+    return resolveXpexPoloAccess(memberships, requested.slug, isSuperadmin) ? requested : null
+  }
+
   if (isSuperadmin) return resolveXpexOrganization(memberships)
 
   for (const org of membershipOrganizations(memberships)) {
@@ -62,10 +70,12 @@ export async function AuthenticatedXpexExperience({
   requestedRole,
   returnPath,
   poloSection,
+  organizationSlugOverride,
 }: {
   requestedRole?: XpexExperienceRole
   returnPath: string
   poloSection?: XpexPoloSectionId
+  organizationSlugOverride?: string
 }) {
   const session = await getServerSession()
   if (!session?.user) redirect(`/login?next=${encodeURIComponent(returnPath)}`)
@@ -87,8 +97,10 @@ export async function AuthenticatedXpexExperience({
   // so a 200 response is server-authoritative proof of teacher access and grants only
   // the reduced teacher capability set — never manager/admin rights.
   let organization = requestedOperationalRole
-    ? resolveOperationalOrganization(memberships, isSuperadmin)
-    : resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)
+    ? resolveOperationalOrganization(memberships, isSuperadmin, organizationSlugOverride)
+    : organizationSlugOverride
+      ? resolveXpexOrganizationBySlug(memberships, organizationSlugOverride, isSuperadmin ? undefined : requestedRole)
+      : resolveXpexOrganization(memberships, isSuperadmin ? undefined : requestedRole)
 
   if (
     requestedOperationalRole
@@ -96,7 +108,10 @@ export async function AuthenticatedXpexExperience({
     && !isSuperadmin
     && session.tokens?.access_token
   ) {
-    for (const candidate of membershipOrganizations(memberships)) {
+    const candidates = organizationSlugOverride
+      ? membershipOrganizations(memberships).filter(candidate => candidate.slug === organizationSlugOverride)
+      : membershipOrganizations(memberships)
+    for (const candidate of candidates) {
       if (!candidate.slug) continue
       try {
         teacherData = await getXpexTeacherDashboard(session.tokens.access_token, candidate.slug)
@@ -105,7 +120,7 @@ export async function AuthenticatedXpexExperience({
         break
       } catch {
         // A 403/404 means this organization does not grant canonical teacher access.
-        // Keep checking other memberships without widening authorization.
+        // Keep checking only the explicitly requested or otherwise eligible memberships.
       }
     }
   }
