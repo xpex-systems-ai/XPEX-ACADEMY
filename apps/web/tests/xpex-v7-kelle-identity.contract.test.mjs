@@ -13,11 +13,12 @@ const experience = read('components/Xpex/AuthenticatedXpexExperience.tsx')
 const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const students = read('app/xpex/polo/alunos/page.tsx')
 const css = read('components/Xpex/xpex.css')
+const legacyPole = read('components/Xpex/experiences/PoleExperience.tsx')
 
 describe('Kelle Digital Lab identity rollout', () => {
   test('pins the approved logo and hero to repository-backed assets', () => {
     expect(presets).toContain("logo: '/xpex/polos/kelle-digital-lab/logo-official.png'")
-    expect(presets).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-official.jpg'")
+    expect(presets).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-official-clean.jpg'")
     expect(presets).toContain("footer_credit: 'Tecnologia XPeX'")
   })
 
@@ -40,5 +41,12 @@ describe('Kelle Digital Lab identity rollout', () => {
     expect(shell).toContain('xpex-polo-sidebar-logo')
     expect(shell).toContain('width={190}')
     expect(css).toContain('.xpex-polo-sidebar-logo')
+  })
+
+  test('keeps presentation surfaces factual and removes demo metrics', () => {
+    expect(legacyPole).not.toContain('Quantidade fictícia')
+    expect(legacyPole).not.toContain('Dados demonstrativos')
+    expect(section).toContain('Ambiente conectado')
+    expect(section).toContain('Dados e ações respeitam a organização atual')
   })
 })
