@@ -1,5 +1,5 @@
 'use client'
-import { GraduationCap } from 'lucide-react'
+import { FileArchive, GraduationCap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import PlanBadge from '@components/Dashboard/Shared/PlanRestricted/PlanBadge'
 import { PlanLevel } from '@services/plans/plans'
@@ -18,7 +18,18 @@ function ImportTypeSelector({ onSelectType, currentPlan }: ImportTypeSelectorPro
 
   return (
     <div className="min-w-[360px] py-2">
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <button
+          onClick={() => onSelectType('learnhouse')}
+          className="group flex flex-col items-center rounded-xl border-2 border-gray-200 bg-white p-6 transition-all duration-200 hover:border-black hover:shadow-lg"
+        >
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-cyan-50 transition-colors group-hover:bg-cyan-100">
+            <FileArchive size={28} className="text-cyan-600" />
+          </div>
+          <h3 className="mb-1 font-semibold text-gray-900">Pacote de curso</h3>
+          <p className="text-center text-sm text-gray-500">Importe um arquivo de curso exportado anteriormente pela plataforma.</p>
+        </button>
+
         <button
           onClick={() => canUseScorm && onSelectType('scorm')}
           disabled={!canUseScorm}
