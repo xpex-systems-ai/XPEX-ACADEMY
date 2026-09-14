@@ -37,14 +37,14 @@ export function AuthenticatedDashboard({ role, displayName, organizationName, or
   const title = role === 'polo' && organizationName ? organizationName : `Olá, ${displayName}.`
   return <div className="xpex-dashboard">
     {role === 'polo' ? <PoloIdentityHero branding={poloBranding ?? { organization_name: organizationName ?? 'Organização atual' }}/> : <XpexRoleHero eyebrow={`${copy[role].eyebrow}${organizationName ? ` · ${organizationName}` : ''}`} title={title} description={copy[role].description}/>}
-    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard data={teacherData} failed={teacherDataFailed} organizationName={organizationName}/> : <UnifiedPoloDashboard organizationName={organizationName} organizationSlug={organizationSlug} data={launchReadiness} failed={launchReadinessFailed} teacherData={teacherData} teacherFailed={teacherDataFailed} access={poloAccess}/>}
+    {role === 'aluno' ? <StudentDashboard data={learningData} failed={learningDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : role === 'professora' ? <TeacherDashboard data={teacherData} failed={teacherDataFailed} organizationName={organizationName} organizationSlug={organizationSlug}/> : <UnifiedPoloDashboard organizationName={organizationName} organizationSlug={organizationSlug} data={launchReadiness} failed={launchReadinessFailed} teacherData={teacherData} teacherFailed={teacherDataFailed} access={poloAccess}/>}
   </div>
 }
 
 function UnifiedPoloDashboard({ access, teacherData, teacherFailed, ...poleProps }: { access?: XpexPoloAccess | null; teacherData?: XpexTeacherDashboardData | null; teacherFailed: boolean; organizationName?: string; organizationSlug: string; data?: XpexLaunchReadinessData | null; failed: boolean }) {
   return <>
     {access?.isManager ? <PoleDashboard {...poleProps}/> : null}
-    {access?.isTeacher ? <section aria-label="Operação pedagógica integrada"><XpexSectionHeader eyebrow="Ensino" title="Minha atuação pedagógica"/><TeacherDashboard data={teacherData} failed={teacherFailed} organizationName={poleProps.organizationName}/></section> : null}
+    {access?.isTeacher ? <section aria-label="Operação pedagógica integrada"><XpexSectionHeader eyebrow="Ensino" title="Minha atuação pedagógica"/><TeacherDashboard data={teacherData} failed={teacherFailed} organizationName={poleProps.organizationName} organizationSlug={poleProps.organizationSlug}/></section> : null}
   </>
 }
 
@@ -63,7 +63,7 @@ function StudentDashboard({ data, failed, organizationName, organizationSlug }: 
   </>
 }
 
-function TeacherDashboard({ data, failed, organizationName }: { data?: XpexTeacherDashboardData | null; failed: boolean; organizationName?: string }) {
+function TeacherDashboard({ data, failed, organizationName, organizationSlug }: { data?: XpexTeacherDashboardData | null; failed: boolean; organizationName?: string; organizationSlug: string }) {
   if (failed || !data) return <XpexErrorState title="Não foi possível carregar sua visão pedagógica" description="Tente novamente em instantes. Nenhum dado de aluno foi exposto fora do seu escopo autorizado."/>
   const courses = data?.courses ?? []
   return <>
@@ -74,7 +74,7 @@ function TeacherDashboard({ data, failed, organizationName }: { data?: XpexTeach
       <XpexMetricCard icon={GraduationCap} label="Alunos em andamento" value={String(data?.summary.active_students ?? 0)} detail="Matrículas ativas"/>
       <XpexMetricCard icon={CheckCircle2} label="Alunos concluídos" value={String(data?.summary.completed_students ?? 0)} detail="Conclusões registradas" tone="orange"/>
     </XpexKpiGrid>
-    <section id="cursos"><XpexSectionHeader eyebrow="Acompanhamento" title="Meus cursos"/>{courses.length ? <div className="xpex-course-grid">{courses.map(course => <Link key={course.course_id} href={course.target_href} className="xpex-card block p-5"><span className="xpex-label">Curso publicado</span><h3 className="mt-2 text-lg font-black text-white">{course.title}</h3>{course.description && <p className="mt-2 text-sm text-slate-400">{course.description}</p>}<div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300"><span><strong className="text-white">{course.enrolled_students}</strong> matriculados</span><span><strong className="text-white">{course.active_students}</strong> em andamento</span><span><strong className="text-white">{course.completed_students}</strong> concluídos</span><span><strong className="text-white">{course.paused_students}</strong> pausados</span></div><span className="xpex-primary mt-4">Abrir curso</span></Link>)}</div> : <div className="mt-4"><XpexEmptyState title="Nenhum curso atribuído" description="Quando sua conta tiver autoria ativa em um curso publicado, os indicadores pedagógicos aparecerão aqui."/></div>}</section>
+    <section id="cursos"><XpexSectionHeader eyebrow="Acompanhamento" title="Meus cursos"/>{courses.length ? <div className="xpex-course-grid">{courses.map(course => <Link key={course.course_id} href={getUriWithOrg(organizationSlug, `/dash/courses/course/${course.course_id}`)} className="xpex-card block p-5"><span className="xpex-label">Curso publicado</span><h3 className="mt-2 text-lg font-black text-white">{course.title}</h3>{course.description && <p className="mt-2 text-sm text-slate-400">{course.description}</p>}<div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300"><span><strong className="text-white">{course.enrolled_students}</strong> matriculados</span><span><strong className="text-white">{course.active_students}</strong> em andamento</span><span><strong className="text-white">{course.completed_students}</strong> concluídos</span><span><strong className="text-white">{course.paused_students}</strong> pausados</span></div><span className="xpex-primary mt-4">Abrir curso</span></Link>)}</div> : <div className="mt-4"><XpexEmptyState title="Nenhum curso atribuído" description="Quando sua conta tiver autoria ativa em um curso publicado, os indicadores pedagógicos aparecerão aqui."/></div>}</section>
     <XpexPanel id="atividades"><XpexSectionHeader eyebrow="Privacidade" title="Visão agregada por padrão"/><p className="mt-3 text-sm text-slate-400">Este painel não lista nomes, e-mails ou dados pessoais de estudantes. Ele resume somente estados de matrícula dos cursos em que sua autoria está ativa.</p></XpexPanel>
   </>
 }
