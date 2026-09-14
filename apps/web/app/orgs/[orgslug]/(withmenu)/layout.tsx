@@ -1,5 +1,5 @@
 'use client'
-import { use, useEffect, type ReactNode } from 'react'
+import { use, useEffect, type CSSProperties, type ReactNode } from 'react'
 import '@styles/globals.css'
 import './xpex-learning-shell.css'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
@@ -90,7 +90,7 @@ function LayoutContent({ children, orgslug }: { children: ReactNode; orgslug: st
         '--xpex-org-accent': primaryColor || '#FF7A00',
         '--xpex-org-glow': primaryColor ? hexToRgba(primaryColor, 0.18) : 'rgba(255,122,0,0.18)',
         ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` } : {}),
-      } as React.CSSProperties}
+      } as CSSProperties}
     >
       <PageViewTracker />
       {!chromeless && <OrgJoinBanner />}
