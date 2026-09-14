@@ -181,7 +181,7 @@ export async function AuthenticatedXpexExperience({
       >
         <XpexPoloSection
           section={poloSection}
-          organizationName={poloBranding?.organization_name ?? organizationName}
+          branding={poloBranding ?? { organization_name: organizationName ?? 'KELLE DIGITAL LAB' }}
           organizationSlug={organizationSlug}
         />
       </XpexAuthenticatedShell>

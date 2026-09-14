@@ -1,7 +1,9 @@
 import { Award, BookOpen, CalendarDays, ChartNoAxesCombined, GraduationCap, Library, MessageCircle, Route, Settings, Users, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { getUriWithOrg } from '@services/config/config'
-import { XpexEmptyState, XpexPanel, XpexRoleHero, XpexSectionHeader } from '../XpexPrimitives'
+import { XpexEmptyState, XpexPanel, XpexSectionHeader } from '../XpexPrimitives'
+import type { PoloBranding } from '@/lib/xpex/polo-branding'
+import { PoloIdentityHero } from './PoloIdentityHero'
 
 export const xpexPoloSections = ['turmas', 'cursos', 'trilhas', 'mentorias', 'eventos', 'conteudos', 'relatorios', 'certificados', 'recursos', 'configuracoes'] as const
 export type XpexPoloSectionId = typeof xpexPoloSections[number]
@@ -99,13 +101,14 @@ const sectionCopy: Record<XpexPoloSectionId, SectionCopy> = {
   },
 }
 
-export function XpexPoloSection({ section, organizationName, organizationSlug }: { section: XpexPoloSectionId; organizationName?: string; organizationSlug: string }) {
+export function XpexPoloSection({ section, branding, organizationSlug }: { section: XpexPoloSectionId; branding: PoloBranding; organizationSlug: string }) {
   const content = sectionCopy[section]
   const Icon = content.icon
   const href = content.native ? getUriWithOrg(organizationSlug, content.native) : undefined
 
   return <div className="xpex-dashboard">
-    <XpexRoleHero eyebrow={`Polo · ${organizationName ?? 'Organização atual'}`} title={content.title} description={content.description}/>
+    <PoloIdentityHero branding={branding}/>
+    <XpexSectionHeader eyebrow={`Kelle Digital Lab · ${content.title}`} title={content.title} detail={<p className="xpex-context">{content.description}</p>}/>
     <XpexPanel className="xpex-polo-section-panel">
       <div className="xpex-section-icon" aria-hidden="true"><Icon size={26}/></div>
       <XpexSectionHeader eyebrow="Dados da organização" title={content.title}/>
