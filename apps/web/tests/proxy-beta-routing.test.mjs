@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isPublicBetaPath, tenantScopedPath } from '../lib/proxyPaths.ts'
+import { isPublicBetaPath, isPublicBrandAsset, tenantScopedPath } from '../lib/proxyPaths.ts'
 
 describe('public beta proxy routing', () => {
   test('/beta/aluno bypasses the tenant-scoped rewrite', () => {
@@ -18,6 +18,14 @@ describe('public beta proxy routing', () => {
     expect(isPublicBetaPath('/beta')).toBe(true)
     expect(isPublicBetaPath('/beta/estado/vazio')).toBe(true)
     expect(isPublicBetaPath('/betamax')).toBe(false)
+  })
+})
+
+describe('public brand asset routing', () => {
+  test('allows official Polo media without opening authenticated pages', () => {
+    expect(isPublicBrandAsset('/xpex/polos/kelle-digital-lab/hero-official-clean.jpg')).toBe(true)
+    expect(isPublicBrandAsset('/xpex/polo')).toBe(false)
+    expect(isPublicBrandAsset('/xpex/polo/alunos')).toBe(false)
   })
 })
 
