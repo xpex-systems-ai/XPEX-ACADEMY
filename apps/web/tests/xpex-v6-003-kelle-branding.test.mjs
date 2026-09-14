@@ -181,7 +181,8 @@ describe('XPEX V6-003 student sidebar route integrity', () => {
 
   test('student-only topbar tools do not create dead staff routes', () => {
     expect(shellSource).toContain("const studentTools = role === 'aluno' && !adminNavigation")
-    expect(shellSource).toContain("getUriWithOrg(organizationSlug, '/account/profile')")
+    expect(shellSource).not.toContain("getUriWithOrg(organizationSlug, '/account/profile')")
+    expect(shellSource).toContain('Sessão de ${profileName}, papel: ${profileRole}')
     expect(shellSource).toContain("href=\"/xpex/notifications\"")
     expect(shellSource).toContain("href=\"/xpex/ai-lab\"")
   })

@@ -16,6 +16,11 @@ const studentCourse = read('app/xpex/courses/[courseId]/page.tsx')
 const poloStudents = read('app/xpex/polo/alunos/page.tsx')
 const poloSections = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const poloDashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
+const teacherDashboard = poloDashboard.slice(
+  poloDashboard.indexOf('function TeacherDashboard'),
+  poloDashboard.indexOf('function LearningMetric'),
+)
+const xpexShell = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const poloPage = read('app/xpex/polo/page.tsx')
 const access = read('lib/xpex/access.ts')
 const i18n = read('lib/i18n.ts')
@@ -63,6 +68,18 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     }
     expect(poloDashboard).toContain("native('/dash/users/settings/users')")
     expect(poloDashboard).not.toContain("native('/dash/users')")
+  })
+
+  test('keeps teacher course actions in the contained academic dashboard', () => {
+    expect(poloDashboard).toContain("`/dash/courses/course/${courseId.replace(/^course_/, '')}/general`")
+    expect(teacherDashboard).toContain('href={getTeacherCourseHref(organizationSlug, course.course_id)}')
+    expect(teacherDashboard).not.toContain('href={course.target_href}')
+  })
+
+  test('does not let the branded XpeX profile control escape to raw organization chrome', () => {
+    expect(xpexShell).not.toContain("getUriWithOrg(organizationSlug, '/account/profile')")
+    expect(xpexShell).not.toContain('href={profileHref}')
+    expect(xpexShell).toContain('Sessão de ${profileName}, papel: ${profileRole}')
   })
 
   test('keeps native course package import functional without visible legacy branding', () => {
