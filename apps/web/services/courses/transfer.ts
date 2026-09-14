@@ -116,7 +116,7 @@ export async function exportCourse(
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: BlobPart[] = []
+    const chunks: Uint8Array<ArrayBuffer>[] = []
 
     while (true) {
       const { done, value } = await reader.read()
@@ -200,7 +200,7 @@ export async function exportCoursesBatch(
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: BlobPart[] = []
+    const chunks: Uint8Array<ArrayBuffer>[] = []
 
     while (true) {
       const { done, value } = await reader.read()
