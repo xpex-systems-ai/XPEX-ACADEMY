@@ -1,3 +1,8 @@
+/** Public, repository-backed visual assets. No user or organization data lives here. */
+export function isPublicBrandAsset(pathname: string): boolean {
+  return pathname.startsWith('/xpex/polos/')
+}
+
 /** Routes owned by the public XpeX beta preview, outside every organization. */
 export function isPublicBetaPath(pathname: string): boolean {
   return pathname === '/beta' || pathname.startsWith('/beta/')
