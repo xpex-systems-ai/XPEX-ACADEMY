@@ -121,8 +121,7 @@ export function XpexAppShell({
               Preview Beta
             </p>
             <p className="mt-2 text-xs leading-5 text-slate-400">
-              Ambiente de apresentação. Todos os indicadores são fictícios e não
-              persistem.
+              Ambiente de apresentação. Esta prévia não consulta nem persiste\n              dados operacionais.
             </p>
           </div>
         ) : (
