@@ -6,7 +6,7 @@ import { PlanLevel } from '@services/plans/plans'
 import { useOrg } from '@components/Contexts/OrgContext'
 
 interface ImportTypeSelectorProps {
-  onSelectType: (type: 'scorm' | 'learnhouse') => void
+  onSelectType: (_type: 'scorm' | 'learnhouse') => void
   currentPlan: PlanLevel
 }
 
