@@ -48,5 +48,10 @@ describe('Kelle Digital Lab identity rollout', () => {
     expect(legacyPole).not.toContain('Dados demonstrativos')
     expect(section).toContain('Ambiente conectado')
     expect(section).toContain('Dados e ações respeitam a organização atual')
+    expect(legacyPole).toContain('Ambiente de demonstração')
+    expect(legacyPole).toContain('Prévia sem dados operacionais')
+    for (const anchor of ['metricas', 'turmas', 'eventos', 'avisos']) {
+      expect(legacyPole).toContain(`id="${anchor}"`)
+    }
   })
 })
