@@ -15,6 +15,7 @@ const embed = read('app/embed/[orgslug]/course/[courseuuid]/activity/[activityid
 const authDesktop = read('components/Auth/AuthBrandingPanel.tsx')
 const authMobile = read('components/Auth/AuthMobileHeader.tsx')
 const poloPresets = read('lib/xpex/polo-branding-presets.ts')
+const poloBrandingServer = read('lib/xpex/polo-branding-server.ts')
 const aiLab = read('app/xpex/ai-lab/page.tsx')
 const projects = read('app/xpex/ai-lab/projects/page.tsx')
 const controlCenter = read('app/xpex/control-center/page.tsx')
@@ -40,12 +41,15 @@ describe('XPEX Academy V7 brand purge', () => {
     expect(orgMenu).not.toContain('getOrgLogoMediaDirectory')
   })
 
-  test('removes the broken persisted logo request from authentication surfaces', () => {
+  test('removes broken persisted logo requests from every branded surface', () => {
     for (const source of [authDesktop, authMobile]) {
       expect(source).toContain('organizationName')
       expect(source).not.toContain('getOrgLogoMediaDirectory')
     }
     expect(poloPresets).toContain("logo: '/xpex/polos/kelle-digital-lab/logo.svg'")
+    expect(poloPresets).toContain('default: {')
+    expect(poloBrandingServer).not.toContain('getOrgLogoMediaDirectory')
+    expect(poloBrandingServer).not.toContain('logo_image')
   })
 
   test('brands course metadata, embeds and XpeX operational copy', () => {
