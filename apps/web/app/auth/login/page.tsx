@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (!orgslug) {
     return {
       title: 'Acesso | XpeX Academy',
-      description: 'Portal de acesso da experiência Beta da XpeX Academy.',
+      description: 'Portal de acesso seguro da XpeX Academy.',
       robots: { index: false, follow: false },
     }
   }
@@ -47,7 +47,7 @@ const Login = async () => {
     }
 
     // Keep the access route useful and transparent when the organization
-    // backend is not available in the visual Beta environment.
+    // backend is temporarily unavailable.
     if (!org) {
       return <OrgNotFound />
     }
