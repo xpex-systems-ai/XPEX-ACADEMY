@@ -8,13 +8,20 @@ const withAlpha = (hex: string | undefined, alpha: string) => {
 }
 
 function BrandMark({ branding }: { branding: PoloBranding }) {
-  const monogram = branding.organization_name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'PO'
+  const monogram = branding.organization_name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'KD'
   return <div className="xpex-polo-logo-slot">
-    {branding.logo ? <Image src={branding.logo} alt={`Logomarca ${branding.organization_name}`} fill unoptimized className="object-contain p-2"/> : <span aria-label="Logomarca aguardando configuração">{monogram}</span>}
+    {branding.logo ? <Image src={branding.logo} alt={`Logomarca ${branding.organization_name}`} fill unoptimized sizes="72px" className="object-contain p-1"/> : <span aria-label="Logomarca aguardando configuração">{monogram}</span>}
   </div>
 }
 
 export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
+  if (branding.hero_image) {
+    return <section className="xpex-polo-hero xpex-polo-hero-official" aria-label={`Identidade do polo ${branding.organization_name}`}>
+      <Image src={branding.hero_image} alt={`Faixa oficial ${branding.organization_name}, coordenada por ${branding.coordinator_name ?? 'Responsável pelo polo'}`} fill priority unoptimized sizes="(min-width: 1024px) calc(100vw - 19rem), 100vw" className="xpex-polo-hero-official-image"/>
+      <span className="sr-only">{branding.tagline}</span>
+    </section>
+  }
+
   const primary = branding.primary_color ?? '#ff7a00'
   const accent = branding.accent_color ?? '#00d4ff'
   const background = branding.background ?? '#07111f'
@@ -33,7 +40,7 @@ export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
         </div>
       </div>
       <aside className="xpex-teacher-photo-slot" aria-label="Espaço para foto oficial da responsável pelo polo">
-        {branding.teacher_photo ? <Image src={branding.teacher_photo} alt={branding.coordinator_name ?? 'Responsável pelo polo'} fill priority unoptimized className="object-cover object-center"/> : <div className="xpex-teacher-photo-placeholder"><ImageOff aria-hidden="true" size={28}/><span>Foto da professora</span></div>}
+        {branding.teacher_photo ? <Image src={branding.teacher_photo} alt={branding.coordinator_name ?? 'Responsável pelo polo'} fill priority unoptimized sizes="(min-width: 1024px) 28rem, 100vw" className="object-cover object-center"/> : <div className="xpex-teacher-photo-placeholder"><ImageOff aria-hidden="true" size={28}/><span>Foto da professora</span></div>}
         <div className="xpex-teacher-photo-overlay" />
         <div className="xpex-teacher-photo-caption"><Sparkles aria-hidden="true" size={15} style={{ color: accent }}/><span>{branding.coordinator_name ?? 'Responsável pelo polo'}</span></div>
       </aside>

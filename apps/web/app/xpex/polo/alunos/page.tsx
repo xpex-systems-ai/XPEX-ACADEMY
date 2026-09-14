@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { XpexAuthenticatedShell } from '@components/Xpex/XpexAuthenticatedShell'
+import { PoloIdentityHero } from '@components/Xpex/experiences/PoloIdentityHero'
 import { getServerSession } from '@/lib/auth/server'
 import { resolveXpexOrganization, resolveXpexPoloAccess } from '@/lib/xpex/access'
 import { getPoloBranding } from '@/lib/xpex/polo-branding-server'
@@ -116,6 +117,7 @@ export default async function PoleStudentsPage({
       poloBranding={poloBranding}
     >
       <section className="xpex-native-page" aria-labelledby="students-heading">
+        <PoloIdentityHero branding={poloBranding}/>
         <header className="xpex-card relative overflow-hidden p-6 md:p-8">
           <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,rgba(0,212,255,.10),transparent_30%),radial-gradient(circle_at_5%_100%,rgba(255,122,0,.10),transparent_34%)]" />
           <div className="relative z-10 flex flex-wrap items-end justify-between gap-5">

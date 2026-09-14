@@ -8,25 +8,27 @@ import type { PoloBranding } from './polo-branding'
  */
 export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
   default: {
-    logo: '/xpex/polos/kelle-digital-lab/logo.svg',
+    logo: '/xpex/polos/kelle-digital-lab/logo-official.png',
+    hero_image: '/xpex/polos/kelle-digital-lab/hero-official.jpg',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
     background: '#07111F',
     location: 'Campos Lindos/Marajó-GO',
     coordinator_name: 'Professora Kelle',
     tagline: 'Educação que inspira, tecnologia que transforma!',
-    footer_credit: 'Tecnologia educacional XpeX Academy',
+    footer_credit: 'Tecnologia XPeX',
   },
   'kelle-digital-lab': {
     organization_name: 'KELLE DIGITAL LAB',
-    logo: '/xpex/polos/kelle-digital-lab/logo.svg',
+    logo: '/xpex/polos/kelle-digital-lab/logo-official.png',
+    hero_image: '/xpex/polos/kelle-digital-lab/hero-official.jpg',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
     background: '#07111F',
     location: 'Campos Lindos/Marajó-GO',
     coordinator_name: 'Professora Kelle',
     tagline: 'Educação que inspira, tecnologia que transforma!',
-    footer_credit: 'Tecnologia educacional XpeX Academy',
+    footer_credit: 'Tecnologia XPeX',
   },
 }
 
