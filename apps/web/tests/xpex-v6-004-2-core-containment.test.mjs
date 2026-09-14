@@ -24,6 +24,7 @@ const proxy = read('proxy.ts')
 const loginPage = read('app/auth/login/page.tsx')
 const loginClient = read('app/auth/login/login.tsx')
 const authBranding = read('components/Auth/AuthBrandingPanel.tsx')
+const legalFooters = read('components/Footers/LegalFooters.tsx')
 
 describe('XPEX V6-004.2 Learning Core containment', () => {
   test('replaces legacy dashboard chrome without weakening auth or headless tracking', () => {
@@ -96,6 +97,10 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(loginClient).toContain('title="XpeX Academy"')
     expect(authBranding).toContain('aria-label="XpeX Academy"')
     expect(authBranding).not.toMatch(/LearnHouse|Learnhouse/)
+    expect(legalFooters).not.toContain("By continuing, you agree to LearnHouse's")
+    expect(legalFooters).not.toContain('© {{year}} LearnHouse, Inc.')
+    expect(legalFooters).toContain('XpeX Academy utiliza componentes de software livre sob licença')
+    expect(legalFooters).toContain('Código-fonte correspondente')
   })
 
   test('keeps the student invite and enrollment flow inside the XpeX Polo shell', () => {
