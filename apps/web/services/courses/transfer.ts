@@ -74,6 +74,12 @@ function getExportStatus(progress: number, isDownloading: boolean): ExportStatus
   return 'downloading'
 }
 
+function copyChunkForBlob(value: Uint8Array<ArrayBufferLike>): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(value.byteLength)
+  copy.set(value)
+  return copy
+}
+
 /**
  * Export a single course as a ZIP file with progress tracking
  */
@@ -82,7 +88,6 @@ export async function exportCourse(
   access_token: string | null | undefined,
   onProgress?: ExportProgressCallback
 ): Promise<Blob> {
-  // Simulate detailed progress stages during server processing
   onProgress?.(5, 'preparing')
 
   const progressInterval = simulateServerProgress(onProgress, 5, 50, 2000)
@@ -106,20 +111,19 @@ export async function exportCourse(
 
   onProgress?.(55, 'downloading')
 
-  // Read the response with progress if possible
   const contentLength = response.headers.get('content-length')
   if (contentLength && response.body) {
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: Uint8Array[] = []
+    const chunks: BlobPart[] = []
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value)
+      chunks.push(copyChunkForBlob(value))
       loaded += value.length
-      const progress = 55 + Math.round((loaded / total) * 40) // 55-95%
+      const progress = 55 + Math.round((loaded / total) * 40)
       onProgress?.(progress, getExportStatus(progress, true))
     }
 
@@ -165,11 +169,9 @@ export async function exportCoursesBatch(
   access_token: string | null | undefined,
   onProgress?: ExportProgressCallback
 ): Promise<Blob> {
-  // Simulate detailed progress stages during server processing
-  // Longer duration for batch exports
   onProgress?.(5, 'preparing')
 
-  const estimatedDuration = Math.min(course_uuids.length * 1500, 10000) // 1.5s per course, max 10s
+  const estimatedDuration = Math.min(course_uuids.length * 1500, 10000)
   const progressInterval = simulateServerProgress(onProgress, 5, 50, estimatedDuration)
 
   const response = await fetch(
@@ -193,20 +195,19 @@ export async function exportCoursesBatch(
 
   onProgress?.(55, 'downloading')
 
-  // Read the response with progress if possible
   const contentLength = response.headers.get('content-length')
   if (contentLength && response.body) {
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: Uint8Array[] = []
+    const chunks: BlobPart[] = []
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value)
+      chunks.push(copyChunkForBlob(value))
       loaded += value.length
-      const progress = 55 + Math.round((loaded / total) * 40) // 55-95%
+      const progress = 55 + Math.round((loaded / total) * 40)
       onProgress?.(progress, getExportStatus(progress, true))
     }
 
