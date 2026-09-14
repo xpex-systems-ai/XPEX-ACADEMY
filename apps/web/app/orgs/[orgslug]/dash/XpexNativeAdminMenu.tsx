@@ -9,7 +9,7 @@ import { getUriWithOrg } from '@services/config/config'
 const nativeLinks = [
   { label: 'Turmas', path: '/dash/users/settings/usergroups', icon: GraduationCap },
   { label: 'Cursos', path: '/dash/courses', icon: BookOpen },
-  { label: 'Alunos', path: '/dash/users', icon: Users },
+  { label: 'Alunos', path: '/dash/users/settings/users', icon: Users },
   { label: 'Conteúdos', path: '/dash/library', icon: Library },
   { label: 'Relatórios', path: '/dash/analytics', icon: ChartNoAxesCombined },
   { label: 'Configurações', path: '/dash/org/settings/general', icon: Settings },
