@@ -27,11 +27,39 @@ const LOCALE_LOADERS: Record<string, () => Promise<{ default: any }>> = {
   sk: () => import('../locales/sk.json'),
 }
 
+const XPEX_ACADEMIC_COPY_PATHS = [
+  ['dashboard', 'courses', 'import_learnhouse'],
+  ['dashboard', 'courses', 'import_learnhouse_description'],
+  ['courses', 'import', 'learnhouse_courses'],
+  ['courses', 'import', 'learnhouse_description'],
+  ['courses', 'import', 'learnhouse_format'],
+  ['courses', 'import', 'learnhouse_info'],
+] as const
+
+function applyXpexAcademicCopy(bundle: any) {
+  const copy = JSON.parse(JSON.stringify(bundle))
+  for (const path of XPEX_ACADEMIC_COPY_PATHS) {
+    let parent = copy
+    for (let index = 0; index < path.length - 1; index += 1) {
+      parent = parent?.[path[index]]
+      if (!parent) break
+    }
+    if (!parent) continue
+    const key = path[path.length - 1]
+    const value = parent[key]
+    if (typeof value === 'string') parent[key] = value.replace(/LearnHouse/gi, 'XpeX Academy')
+  }
+  return copy
+}
+
 export { resolvePreferredLocale }
 export type { LocaleCandidates }
 
 i18n.use(initReactI18next).init({
-  resources: { en: { common: en }, pt: { common: pt } },
+  resources: {
+    en: { common: applyXpexAcademicCopy(en) },
+    pt: { common: applyXpexAcademicCopy(pt) },
+  },
   lng: INITIAL_LOCALE,
   fallbackLng: 'en',
   ns: ['common'],
@@ -46,7 +74,7 @@ async function loadLocale(locale: string) {
   if (code === 'en' || code === INITIAL_LOCALE || i18n.hasResourceBundle(code, 'common')) return code
   try {
     const mod = await LOCALE_LOADERS[code]()
-    i18n.addResourceBundle(code, 'common', mod.default, true, true)
+    i18n.addResourceBundle(code, 'common', applyXpexAcademicCopy(mod.default), true, true)
     return code
   } catch (error) {
     console.warn(`Failed to load locale: ${code}`, error)
