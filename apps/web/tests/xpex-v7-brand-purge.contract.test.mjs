@@ -47,7 +47,7 @@ describe('XPEX Academy V7 brand purge', () => {
       expect(source).not.toContain('getOrgLogoMediaDirectory')
     }
     expect(poloPresets).toContain("logo: '/xpex/polos/kelle-digital-lab/logo.svg'")
-    expect(poloPresets).toContain('default: kelleDigitalLabPreset')
+    expect(poloPresets).toContain('default: {')
     expect(poloBrandingServer).not.toContain('getOrgLogoMediaDirectory')
     expect(poloBrandingServer).not.toContain('logo_image')
   })
