@@ -9,7 +9,7 @@ import type { XpexRole } from './xpex-types'
 import './xpex-tokens.css'
 import './xpex.css'
 
-// Governance marker for the public preview: its indicators "não persistem".
+// Governance marker: the public preview does not read or persist operational data.
 
 const identities = {
   aluno: ['Visitante', 'Área do aluno'],
