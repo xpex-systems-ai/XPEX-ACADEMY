@@ -1,7 +1,7 @@
 import { getAPIUrl } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isPublicBetaPath, tenantScopedPath } from './lib/proxyPaths'
+import { isPublicBetaPath, isPublicBrandAsset, tenantScopedPath } from './lib/proxyPaths'
 import { isPublicRootRequest } from './lib/proxyHosts'
 
 // =============================================================================
@@ -461,6 +461,13 @@ export default async function proxy(req: NextRequest) {
     const response = NextResponse.next()
     setInstanceCookies(response, instance)
     return response
+  }
+
+  // Repository-backed branding is intentionally public so login and preview
+  // surfaces can load official assets before authentication. This narrow
+  // prefix contains presentation media only — never user or organization data.
+  if (isPublicBrandAsset(pathname)) {
+    return NextResponse.next()
   }
 
   // Authenticated XpeX shell. The marker only enables an early redirect; the
