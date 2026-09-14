@@ -1,7 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import CopilotBubble from '@components/Copilot/CopilotBubble'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
@@ -9,7 +8,6 @@ import { getUriWithOrg } from '@services/config/config'
 import { fetchRAGChatSessions, RAGChatSession } from '@services/ai/ai'
 import { HeaderProfileBox } from '@components/Security/HeaderProfileBox'
 import MenuLinks from './OrgMenuLinks'
-import { getOrgLogoMediaDirectory } from '@services/media/media'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { SearchBar } from '@components/Objects/Search/SearchBar'
@@ -156,16 +154,7 @@ export const OrgMenu = (props: any) => {
             <div className="logo flex md:w-auto w-full justify-center">
               <Link href={getUriWithOrg(orgslug, '/')}>
                 <div className="flex w-auto h-9 rounded-md items-center m-auto py-1 justify-center">
-                  {org?.logo_image ? (
-                    <img
-                      src={`${getOrgLogoMediaDirectory(org.org_uuid, org?.logo_image)}`}
-                      alt="Learnhouse"
-                      style={{ width: 'auto', height: '100%' }}
-                      className="rounded-md"
-                    />
-                  ) : (
-                    <LearnHouseLogo logoFilter={colors.logoFilter} />
-                  )}
+                  <XpexLogo organizationName={org?.name} />
                 </div>
               </Link>
             </div>
@@ -315,7 +304,7 @@ export const OrgMenu = (props: any) => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <a
-                        href="https://docs.learnhouse.app"
+                        href="https://github.com/xpex-systems-ai/XPEX-ACADEMY/tree/dev/docs"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2"
@@ -326,7 +315,7 @@ export const OrgMenu = (props: any) => {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a
-                        href="https://learnhouse.app"
+                        href="https://github.com/xpex-systems-ai/XPEX-ACADEMY"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2"
@@ -337,7 +326,7 @@ export const OrgMenu = (props: any) => {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a
-                        href="https://discord.gg/learnhouse"
+                        href="https://github.com/xpex-systems-ai/XPEX-ACADEMY/issues"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2"
@@ -557,14 +546,17 @@ const CopilotMenuButton = ({
   )
 }
 
-const LearnHouseLogo = ({ logoFilter }: { logoFilter: string }) => {
+const XpexLogo = ({ organizationName }: { organizationName?: string }) => {
+  const tenant = organizationName && organizationName.trim().toLowerCase() !== 'default organization'
+    ? organizationName
+    : 'Academy'
   return (
-    <Image
-      src="/lrn-text.svg"
-      alt="LearnHouse logo"
-      width={133}
-      height={40}
-      style={{ height: 'auto', filter: logoFilter }}
-    />
+    <span className="inline-flex items-center gap-2 text-white" aria-label={`XpeX Academy · ${tenant}`}>
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#FF7A00] text-[11px] font-black text-[#0B1220] shadow-[0_0_20px_rgba(255,122,0,.28)]">XP</span>
+      <span className="hidden min-w-0 sm:block">
+        <strong className="block text-xs font-black uppercase tracking-[.16em]">XpeX Academy</strong>
+        <small className="block max-w-40 truncate text-[9px] font-semibold uppercase tracking-[.13em] text-cyan-300/75">{tenant}</small>
+      </span>
+    </span>
   )
 }

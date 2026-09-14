@@ -25,7 +25,7 @@ const discoveryRows = [
     subtitle: 'Fundamentos, prompts e prática guiada para transformar teoria em domínio.',
     items: [
       { title: 'Prompt Engineering', eyebrow: 'GX Studio', description: 'Estruture objetivos, compare estratégias e refine prompts com o GX.', icon: Sparkles, href: '#gx-copilot', action: 'Praticar agora' },
-      { title: 'RAG e conhecimento privado', eyebrow: 'Core LearnHouse', description: 'Use o Copilot/RAG nativo sobre conteúdo autorizado.', icon: BrainCircuit, href: '#gx-copilot', action: 'Abrir bancada' },
+      { title: 'RAG e conhecimento privado', eyebrow: 'Core XPeX', description: 'Use o Copilot/RAG nativo sobre conteúdo autorizado.', icon: BrainCircuit, href: '#gx-copilot', action: 'Abrir bancada' },
       { title: 'Atividades do curso', eyebrow: 'Conteúdo XPeX', description: 'Volte às atividades publicadas e avance com progresso persistido.', icon: Play, href: '/xpex/activities', action: 'Continuar' },
     ],
   },
@@ -34,16 +34,16 @@ const discoveryRows = [
     subtitle: 'Saia do consumo passivo e transforme aprendizado em artefatos, decisões e evidências.',
     items: [
       { title: 'Workspace de Projetos GX', eyebrow: 'LAB-002', description: 'Templates de Prompt Engineering, RAG, Automação e Projeto Final.', icon: FolderKanban, href: '/xpex/ai-lab/projects', action: 'Abrir workspace' },
-      { title: 'Boards', eyebrow: 'Core LearnHouse', description: 'Planeje tarefas, milestones e entregas no domínio colaborativo nativo.', icon: Workflow, href: '/boards', action: 'Planejar projeto' },
-      { title: 'Library', eyebrow: 'Core LearnHouse', description: 'Organize fontes, materiais e referências autorizadas da organização.', icon: LibraryBig, href: '/library', action: 'Organizar fontes' },
+      { title: 'Boards', eyebrow: 'Core XPeX', description: 'Planeje tarefas, milestones e entregas no domínio colaborativo nativo.', icon: Workflow, href: '/boards', action: 'Planejar projeto' },
+      { title: 'Library', eyebrow: 'Core XPeX', description: 'Organize fontes, materiais e referências autorizadas da organização.', icon: LibraryBig, href: '/library', action: 'Organizar fontes' },
     ],
   },
   {
     title: 'Expanda sua jornada',
     subtitle: 'Conecte laboratório, trilhas e comunidade em uma experiência única de evolução.',
     items: [
-      { title: 'Trilhas profissionais', eyebrow: 'XPeX + LearnHouse', description: 'Combine o curso atual com academias oficiais e direção orientada pelo GX.', icon: Route, href: '/xpex/trails', action: 'Explorar trilhas' },
-      { title: 'Comunidade', eyebrow: 'Core LearnHouse', description: 'Compartilhe dúvidas, projetos e aprendizados com a camada comunitária.', icon: Users, href: '/xpex/community', action: 'Abrir comunidade' },
+      { title: 'Trilhas profissionais', eyebrow: 'Ecossistema XPeX', description: 'Combine o curso atual com academias oficiais e direção orientada pelo GX.', icon: Route, href: '/xpex/trails', action: 'Explorar trilhas' },
+      { title: 'Comunidade', eyebrow: 'Core XPeX', description: 'Compartilhe dúvidas, projetos e aprendizados com a camada comunitária.', icon: Users, href: '/xpex/community', action: 'Abrir comunidade' },
       { title: 'Modelos, APIs e sandboxes', eyebrow: 'Roadmap seguro', description: 'Execução isolada só será liberada com quota, persistência, ACL e observabilidade reais.', icon: TerminalSquare, href: null, action: 'Em preparação' },
     ],
   },
@@ -82,7 +82,7 @@ export default async function XpexAiLabPage() {
       <section className="xpex-native-page pb-14">
         <header className="sr-only">
           <h1>Laboratório de I.A. GX</h1>
-          <p>Experiência profissional de prática, projetos e mentoria construída sobre o núcleo LearnHouse.</p>
+          <p>Experiência profissional de prática, projetos e mentoria construída sobre o ecossistema XPeX.</p>
         </header>
 
         <section className="relative -mx-2 overflow-hidden rounded-[28px] border border-white/10 bg-[#050a12] px-6 py-9 md:px-9 lg:min-h-[430px] lg:px-12 lg:py-12">
@@ -91,7 +91,7 @@ export default async function XpexAiLabPage() {
           <div className="absolute right-[13%] top-[22%] hidden h-44 w-44 rounded-full border border-orange-500/20 shadow-[0_0_70px_rgba(255,98,0,0.16)] lg:block" />
 
           <div className="relative z-10 max-w-3xl">
-            <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.24em] text-orange-400"><Bot size={16}/> XPeX AI Lab Studio · LearnHouse Core</p>
+            <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.24em] text-orange-400"><Bot size={16}/> XPeX AI Lab Studio · XPeX Core</p>
             <h2 className="mt-5 text-4xl font-black leading-[0.98] text-white md:text-6xl lg:text-7xl">Aprenda. Pratique. Construa.</h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 md:text-lg">Uma experiência de laboratório em formato de catálogo: continue do ponto certo, descubra práticas, construa projetos e use o GX como mentor dentro do contexto autorizado.</p>
 
@@ -156,7 +156,7 @@ export default async function XpexAiLabPage() {
         <section className="mt-11 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <article className="xpex-card border border-cyan-400/20">
             <p className="xpex-label">Arquitetura operacional</p>
-            <h2 className="mt-2 text-2xl font-black">Um estúdio sobre a fundação LearnHouse.</h2>
+            <h2 className="mt-2 text-2xl font-black">Um estúdio sobre a fundação XPeX.</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-4"><Network className="text-cyan-400" size={20}/><h3 className="mt-3 font-black">GX / Copilot / RAG</h3><p className="mt-2 text-sm text-slate-400">Mentoria e recuperação de contexto autorizado.</p></div>
               <div className="rounded-2xl border border-white/10 bg-black/15 p-4"><Database className="text-cyan-400" size={20}/><h3 className="mt-3 font-black">Course + Trail + TrailRun</h3><p className="mt-2 text-sm text-slate-400">Cursos, matrícula e progresso seguem como fonte de verdade.</p></div>
@@ -176,7 +176,7 @@ export default async function XpexAiLabPage() {
             <div>
               <p className="xpex-label">Bancada central</p>
               <h2 id="gx-copilot-title" className="text-3xl font-black">GX Course Copilot</h2>
-              <p className="mt-2 max-w-4xl text-slate-400">Copilot/RAG real do LearnHouse, reaproveitado pela XPeX para explicar conteúdo, revisar conceitos, montar planos e apoiar projetos.</p>
+              <p className="mt-2 max-w-4xl text-slate-400">Copilot/RAG real da XPeX para explicar conteúdo, revisar conceitos, montar planos e apoiar projetos.</p>
             </div>
           </div>
           <div className="xpex-card overflow-hidden p-0 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">

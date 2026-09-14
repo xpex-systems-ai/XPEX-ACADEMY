@@ -119,7 +119,7 @@ export default async function XpexControlCenterPage() {
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-black text-white md:text-5xl">Operação acadêmica em um só lugar.</h1>
-              <p className="mt-3 max-w-3xl text-slate-300">Cursos, fábrica editorial, produção audiovisual e operação LearnHouse com autorização validada pelo backend.</p>
+              <p className="mt-3 max-w-3xl text-slate-300">Cursos, fábrica editorial, produção audiovisual e operação XPeX com autorização validada pelo backend.</p>
             </div>
             <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300">Admin autorizado · {organizationSlug}</span>
           </div>
@@ -140,7 +140,7 @@ export default async function XpexControlCenterPage() {
 
         <section className={`grid gap-4 ${isSuperadmin ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
           <ActionCard title="Fábrica de Cursos IA" description="Gerar, revisar, aprovar e publicar cursos pelo fluxo editorial XPeX." href={courseStudioPath} action="Abrir Course Studio" />
-          <ActionCard title="Cursos LearnHouse" description="Acompanhar o catálogo nativo, cursos e conteúdos publicados." href={coursesPath} action="Abrir cursos" />
+          <ActionCard title="Cursos XPeX" description="Acompanhar o catálogo nativo, cursos e conteúdos publicados." href={coursesPath} action="Abrir cursos" />
           {isSuperadmin ? <ActionCard title="Administração" description="Acessar recursos avançados da plataforma quando necessário." href="/admin" action="Abrir admin" /> : null}
         </section>
 

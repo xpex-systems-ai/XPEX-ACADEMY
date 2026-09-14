@@ -71,13 +71,13 @@ export default async function XpexAiLabProjectsPage() {
         <header>
           <p className="xpex-label">LAB-002 · Projetos com evidência</p>
           <h1>Workspace de Projetos GX</h1>
-          <p>Transforme aprendizado em entregas reais usando o GX como mentor e Boards + Library do LearnHouse como infraestrutura de organização e evidência.</p>
+          <p>Transforme aprendizado em entregas reais usando o GX como mentor e Boards + Library da XPeX como infraestrutura de organização e evidência.</p>
         </header>
 
         <section className="xpex-card mt-5 overflow-hidden border border-orange-500/25 bg-[radial-gradient(circle_at_85%_0%,rgba(0,180,255,0.20),transparent_32%),radial-gradient(circle_at_10%_10%,rgba(255,106,0,0.18),transparent_38%),#07111d]">
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
             <div>
-              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-orange-400"><FolderKanban size={16}/> Project OS sobre LearnHouse</span>
+              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-orange-400"><FolderKanban size={16}/> Project OS XPeX</span>
               <h2 className="mt-4 text-4xl font-black md:text-5xl">Do curso para um projeto demonstrável.</h2>
               <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX, organize tarefas e decisões em Boards e mantenha fontes e materiais na Library. A XPeX não inventa conclusão de projeto: a evidência continua sendo produzida por você.</p>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -136,7 +136,7 @@ export default async function XpexAiLabProjectsPage() {
         </section>
 
         <section className="mt-10 grid gap-5 xl:grid-cols-3">
-          <article className="xpex-card"><FolderKanban className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">1. Planeje no Board</h2><p className="mt-2 text-slate-400">Quebre o projeto em problema, pesquisa, construção, teste e entrega. O Board continua sob as regras de autenticação do LearnHouse.</p></article>
+          <article className="xpex-card"><FolderKanban className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">1. Planeje no Board</h2><p className="mt-2 text-slate-400">Quebre o projeto em problema, pesquisa, construção, teste e entrega. O Board continua sob as regras de autenticação da XPeX.</p></article>
           <article className="xpex-card"><LibraryBig className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">2. Organize fontes</h2><p className="mt-2 text-slate-400">Use a Library para materiais, referências e artefatos permitidos. Não há progresso inventado a partir de arquivos externos.</p></article>
           <article className="xpex-card"><Bot className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">3. Revise com GX</h2><p className="mt-2 text-slate-400">Peça ao GX para criticar decisões, propor testes e identificar lacunas, mantendo clara a diferença entre sugestão e evidência executada.</p></article>
         </section>
