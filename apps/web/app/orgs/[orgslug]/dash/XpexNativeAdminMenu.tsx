@@ -7,12 +7,12 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
 
 const nativeLinks = [
-  { label: 'Turmas', path: '/dash/users/settings/usergroups', icon: GraduationCap, xpex: false },
-  { label: 'Cursos', path: '/dash/courses', icon: BookOpen, xpex: false },
-  { label: 'Alunos', path: '/xpex/polo/alunos', icon: Users, xpex: true },
-  { label: 'Conteúdos', path: '/dash/library', icon: Library, xpex: false },
-  { label: 'Relatórios', path: '/dash/analytics', icon: ChartNoAxesCombined, xpex: false },
-  { label: 'Configurações', path: '/dash/org/settings/general', icon: Settings, xpex: false },
+  { label: 'Turmas', path: '/dash/users/settings/usergroups', icon: GraduationCap },
+  { label: 'Cursos', path: '/dash/courses', icon: BookOpen },
+  { label: 'Alunos', path: '/dash/users', icon: Users },
+  { label: 'Conteúdos', path: '/dash/library', icon: Library },
+  { label: 'Relatórios', path: '/dash/analytics', icon: ChartNoAxesCombined },
+  { label: 'Configurações', path: '/dash/org/settings/general', icon: Settings },
 ] as const
 
 function monogram(name?: string) {
@@ -26,9 +26,7 @@ export default function XpexNativeAdminMenu() {
 
   if (!org?.slug) return null
 
-  const orgQuery = `org=${encodeURIComponent(org.slug)}`
-  const poloHref = `/xpex/polo?${orgQuery}`
-  const studentsHref = `/xpex/polo/alunos?${orgQuery}`
+  const poloHref = `/xpex/polo?org=${encodeURIComponent(org.slug)}`
 
   return (
     <aside className="xpex-native-admin-menu" aria-label="Navegação acadêmica XpeX">
@@ -48,12 +46,8 @@ export default function XpexNativeAdminMenu() {
       <nav className="xpex-native-admin-nav">
         {nativeLinks.map(item => {
           const Icon = item.icon
-          const href = item.xpex
-            ? (item.path === '/xpex/polo/alunos' ? studentsHref : `${item.path}?${orgQuery}`)
-            : getUriWithOrg(org.slug, item.path)
-          const active = item.xpex
-            ? pathname === item.path || pathname.startsWith(`${item.path}/`)
-            : pathname === item.path || pathname.endsWith(item.path) || pathname.includes(`${item.path}/`)
+          const href = getUriWithOrg(org.slug, item.path)
+          const active = pathname === item.path || pathname.endsWith(item.path) || pathname.includes(`${item.path}/`)
 
           return (
             <Link key={item.label} href={href} className={`xpex-native-admin-link${active ? ' is-active' : ''}`} aria-current={active ? 'page' : undefined}>
