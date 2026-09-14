@@ -1,22 +1,19 @@
-'use client';
-import { use, useEffect, type ReactNode } from "react";
+'use client'
+import { use, useEffect, type CSSProperties, type ReactNode } from 'react'
 import '@styles/globals.css'
-import Watermark from '@components/Objects/Watermark'
+import './xpex-learning-shell.css'
 import { SessionGate } from '@components/Contexts/LHSessionContext'
 import { OrgMenu } from '@components/Objects/Menus/OrgMenu'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { OrgJoinBanner, OrgJoinBannerProvider } from '@components/Objects/Banners/OrgJoinBanner'
 import { PodcastPlayerProvider } from '@components/Contexts/PodcastPlayerContext'
 import dynamic from 'next/dynamic'
-const PodcastPlayer = dynamic(() => import('@components/Objects/Podcasts/PodcastPlayer'), { ssr: false })
-import Image from 'next/image'
-import Link from 'next/link'
 import { PageViewTracker } from '@components/Analytics/PageViewTracker'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { usePlan } from '@components/Hooks/usePlan'
 import { getGoogleFontUrl, DEFAULT_FONT } from '@/lib/fonts'
 
-// Helper to convert hex to rgba
+const PodcastPlayer = dynamic(() => import('@components/Objects/Podcasts/PodcastPlayer'), { ssr: false })
+
 const hexToRgba = (hex: string, alpha: number): string => {
   if (!hex || hex.length < 7) return 'transparent'
   const r = parseInt(hex.slice(1, 3), 16)
@@ -27,28 +24,18 @@ const hexToRgba = (hex: string, alpha: number): string => {
 
 function OrgFooter() {
   const org = useOrg() as any
-  const footerText = org?.config?.config?.customization?.general?.footer_text || org?.config?.config?.general?.footer_text || ''
-  const plan = usePlan()
-  const watermarkConfig = org?.config?.config?.customization?.general?.watermark ?? org?.config?.config?.general?.watermark
-  const isFree = plan === 'free'
-  const showWatermark = isFree || watermarkConfig !== false
+  const footerText = org?.config?.config?.customization?.general?.footer_text
+    || org?.config?.config?.general?.footer_text
+    || 'Tecnologia educacional XpeX Academy'
 
   return (
-    <footer className="w-full py-8 mt-12">
-      <div className="flex flex-col items-center justify-center space-y-4">
-        {footerText && <p className="text-sm text-gray-500">{footerText}</p>}
-        {showWatermark && (
-          <Link href="https://learnhouse.app" target="_blank" rel="noopener noreferrer">
-            <Image
-              src="/lrn.svg"
-              alt="LearnHouse"
-              width={24}
-              height={24}
-              style={{ height: 'auto' }}
-              className="opacity-15 hover:opacity-40 transition-opacity duration-300 cursor-pointer"
-            />
-          </Link>
-        )}
+    <footer className="xpex-learning-footer">
+      <div className="xpex-learning-footer-inner">
+        <span className="xpex-learning-footer-mark" aria-hidden="true">XP</span>
+        <span>
+          <strong>XpeX Academy</strong>
+          <small>{footerText}</small>
+        </span>
       </div>
     </footer>
   )
@@ -60,18 +47,14 @@ function LayoutContent({ children, orgslug }: { children: ReactNode; orgslug: st
   const customFont = org?.config?.config?.customization?.general?.font || org?.config?.config?.general?.font || ''
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  // chrome=none strips the org navigation/footer so this route can be embedded
-  // inside another view (e.g. a Resource activity iframe) without duplicate chrome.
   const chromeless = searchParams?.get('chrome') === 'none'
 
-  // Inject Google Font stylesheet into document head
   useEffect(() => {
     if (!customFont || customFont === DEFAULT_FONT) return
 
     const fontId = `gfont-${customFont.replace(/\s/g, '-')}`
     if (document.getElementById(fontId)) return
 
-    // Add preconnect hints
     const preconnect1 = document.createElement('link')
     preconnect1.rel = 'preconnect'
     preconnect1.href = 'https://fonts.googleapis.com'
@@ -83,7 +66,6 @@ function LayoutContent({ children, orgslug }: { children: ReactNode; orgslug: st
     preconnect2.crossOrigin = 'anonymous'
     document.head.appendChild(preconnect2)
 
-    // Add font stylesheet
     const link = document.createElement('link')
     link.id = fontId
     link.rel = 'stylesheet'
@@ -99,55 +81,38 @@ function LayoutContent({ children, orgslug }: { children: ReactNode; orgslug: st
   }, [customFont])
 
   const pathParts = pathname?.split('/').filter(Boolean) || []
-
-  // Pages that use a full-bleed layout (no footer/watermark)
-  const noFooterPaths = ['copilot']
-  const isFullBleedPage = noFooterPaths.some((p) => pathParts.includes(p))
+  const isFullBleedPage = ['copilot'].some((part) => pathParts.includes(part))
 
   return (
     <div
-      className="flex flex-col min-h-screen"
+      className="xpex-learning-shell flex min-h-screen flex-col"
       style={{
-        backgroundColor: primaryColor ? hexToRgba(primaryColor, 0.05) : 'transparent',
+        '--xpex-org-accent': primaryColor || '#FF7A00',
+        '--xpex-org-glow': primaryColor ? hexToRgba(primaryColor, 0.18) : 'rgba(255,122,0,0.18)',
         ...(customFont ? { fontFamily: `'${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` } : {}),
-      }}
+      } as CSSProperties}
     >
       <PageViewTracker />
       {!chromeless && <OrgJoinBanner />}
       {!chromeless && <OrgMenu orgslug={orgslug} />}
-      <div className="flex-1 relative" style={{ zIndex: 'var(--z-content)' }}>
+      <div className="xpex-learning-content relative flex-1" style={{ zIndex: 'var(--z-content)' }}>
         {children}
       </div>
       {!isFullBleedPage && !chromeless && <OrgFooter />}
-      {!isFullBleedPage && !chromeless && <Watermark />}
     </div>
   )
 }
 
-export default function RootLayout(
-  props: {
-    children: ReactNode
-    params: Promise<any>
-  }
-) {
-  const params = use(props.params);
-
-  const {
-    children
-  } = props;
-
+export default function RootLayout(props: { children: ReactNode; params: Promise<any> }) {
+  const params = use(props.params)
   return (
-    <>
-      <SessionGate>
+    <SessionGate>
       <OrgJoinBannerProvider>
         <PodcastPlayerProvider>
-          <LayoutContent orgslug={params?.orgslug}>
-            {children}
-          </LayoutContent>
+          <LayoutContent orgslug={params?.orgslug}>{props.children}</LayoutContent>
           <PodcastPlayer />
         </PodcastPlayerProvider>
       </OrgJoinBannerProvider>
-      </SessionGate>
-    </>
+    </SessionGate>
   )
 }

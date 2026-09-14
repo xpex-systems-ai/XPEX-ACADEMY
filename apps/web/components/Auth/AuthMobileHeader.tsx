@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
+import { getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 
 const UNSPLASH_UTM = 'utm_source=XpeX_Academy&utm_medium=referral'
@@ -67,12 +67,10 @@ export default function AuthMobileHeader({ org }: { org: any }) {
             Academy
           </small>
         </span>
-        {org?.logo_image && (
-          <img
-            src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-            alt={organizationName || 'XpeX Academy'}
-            className="ml-auto h-10 max-w-32 rounded-lg bg-white/95 object-contain p-1.5"
-          />
+        {organizationName && (
+          <span className="ml-auto max-w-36 truncate rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[.12em]">
+            {organizationName}
+          </span>
         )}
       </div>
 

@@ -4,7 +4,6 @@ import React, { Suspense, lazy, useState, useEffect, useRef, useCallback } from 
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'next/navigation'
 import { getLEARNHOUSE_DOMAIN_VAL, getLEARNHOUSE_HTTP_PROTOCOL_VAL } from '@services/config/config'
-import Image from 'next/image'
 import { CourseContext, CourseDispatchContext } from '@components/Contexts/CourseContext'
 import { useActivity } from '@/hooks/queries/useActivity'
 import { useCourseMeta } from '@/hooks/queries/useCourses'
@@ -121,7 +120,7 @@ function useContentReady(activityType: string, activitySubType?: string) {
 function EmbedActivityClient({ activityId, courseuuid, orgslug, bgcolor }: EmbedActivityClientProps) {
   const { t } = useTranslation()
   const searchParams = useSearchParams()
-  const showLearnHouseLogo = searchParams.get('showlearnhouselogo') !== 'false'
+  const showXpexBrand = searchParams.get('showxpexlogo') !== 'false'
   const textColor = searchParams.get('textcolor')
 
   const { data: activity, isLoading: activityLoading } = useActivity(activityId)
@@ -164,21 +163,13 @@ function EmbedActivityClient({ activityId, courseuuid, orgslug, bgcolor }: Embed
 
   if (!isEmbeddable) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-8">
-        <div className="bg-white rounded-2xl nice-shadow p-8 max-w-md w-full text-center">
-          <div className="mb-6">
-            <Image
-              src="/learnhouse_bigicon.png"
-              alt="LearnHouse"
-              width={64}
-              height={64}
-              className="mx-auto"
-            />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">
+      <div className="min-h-screen bg-[#02050B] text-white flex flex-col items-center justify-center p-8">
+        <div className="rounded-2xl border border-white/10 bg-[#081321] p-8 max-w-md w-full text-center shadow-[0_24px_70px_rgba(0,0,0,.42)]">
+          <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_32px_rgba(255,122,0,.28)]" aria-label="XpeX Academy">XP</div>
+          <h1 className="text-xl font-bold text-white mb-2">
             {t('embed.not_supported_title')}
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-slate-300 mb-6">
             {t('embed.not_supported_description')}
           </p>
           <a
@@ -190,7 +181,7 @@ function EmbedActivityClient({ activityId, courseuuid, orgslug, bgcolor }: Embed
             {t('embed.visit_activity')}
           </a>
         </div>
-        {showLearnHouseLogo && <PoweredByBadge activityUrl={getActivityUrl()} />}
+        {showXpexBrand && <XpexBrandBadge activityUrl={getActivityUrl()} />}
       </div>
     )
   }
@@ -260,12 +251,12 @@ function EmbedActivityClient({ activityId, courseuuid, orgslug, bgcolor }: Embed
       >
         {renderActivityContent()}
       </div>
-      {showLearnHouseLogo && ready && <PoweredByBadge activityUrl={getActivityUrl()} />}
+      {showXpexBrand && ready && <XpexBrandBadge activityUrl={getActivityUrl()} />}
     </div>
   )
 }
 
-function PoweredByBadge({ activityUrl }: { activityUrl: string }) {
+function XpexBrandBadge({ activityUrl }: { activityUrl: string }) {
   const handleClick = () => {
     window.open(activityUrl, '_blank', 'noopener,noreferrer')
   }
@@ -274,14 +265,10 @@ function PoweredByBadge({ activityUrl }: { activityUrl: string }) {
     <div className="fixed bottom-4 right-4 z-50">
       <button
         onClick={handleClick}
-        className="bg-white/80 backdrop-blur-lg rounded-2xl p-2 light-shadow block cursor-pointer"
+        aria-label="Abrir atividade na XpeX Academy"
+        className="grid h-10 w-10 cursor-pointer place-items-center rounded-2xl border border-cyan-400/25 bg-[#07111F]/90 text-[10px] font-black text-[#FF7A00] shadow-[0_14px_38px_rgba(0,0,0,.35)] backdrop-blur-lg"
       >
-        <Image
-          src="/lrn.svg"
-          alt="LearnHouse"
-          width={20}
-          height={20}
-        />
+        XP
       </button>
     </div>
   )

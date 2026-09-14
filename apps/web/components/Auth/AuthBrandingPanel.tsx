@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { getOrgLogoMediaDirectory, getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
+import { getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 
 interface AuthBrandingPanelProps {
@@ -88,12 +88,13 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
         </div>
 
         <div className="my-auto max-w-lg">
-          {org?.logo_image && (
-            <img
-              src={getOrgLogoMediaDirectory(org.org_uuid, org.logo_image)}
-              alt={organizationName || 'XpeX Academy'}
-              className="mb-8 h-16 max-w-48 rounded-xl bg-white/95 object-contain p-2"
-            />
+          {organizationName && (
+            <div className="mb-8 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#00D4FF] text-sm font-black text-[#0B1220]">
+                {organizationName.slice(0, 1).toUpperCase()}
+              </span>
+              <strong className="truncate text-sm font-black uppercase tracking-[.14em]">{organizationName}</strong>
+            </div>
           )}
           <p
             className={cn(
