@@ -13,12 +13,18 @@ const nativeTheme = read('app/orgs/[orgslug]/dash/xpex-native-admin.css')
 const importSelector = read('components/Objects/Modals/Course/Import/ImportTypeSelector.tsx')
 const courseCreationSelector = read('components/Objects/Modals/Course/Create/CourseCreationTypeSelector.tsx')
 const studentCourse = read('app/xpex/courses/[courseId]/page.tsx')
+const poloStudents = read('app/xpex/polo/alunos/page.tsx')
 const poloSections = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const poloDashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
 const poloPage = read('app/xpex/polo/page.tsx')
 const access = read('lib/xpex/access.ts')
 const i18n = read('lib/i18n.ts')
 const transfer = read('services/courses/transfer.ts')
+const proxy = read('proxy.ts')
+const loginPage = read('app/auth/login/page.tsx')
+const loginClient = read('app/auth/login/login.tsx')
+const authBranding = read('components/Auth/AuthBrandingPanel.tsx')
+const legalFooters = read('components/Footers/LegalFooters.tsx')
 
 describe('XPEX V6-004.2 Learning Core containment', () => {
   test('replaces legacy dashboard chrome without weakening auth or headless tracking', () => {
@@ -81,6 +87,29 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(poloSections).not.toContain('motor acadêmico')
     expect(poloSections).not.toContain('Abrir Analytics')
     expect(poloDashboard).not.toContain('<strong>Abrir ${courses[0].title}</strong>')
+  })
+
+  test('keeps the production login canonical, branded and free of beta or legacy copy', () => {
+    expect(proxy).toContain("const authPaths = ['/login', '/signup', '/reset', '/forgot', '/verify-email']")
+    expect(proxy).toContain('new URL(`/auth${pathname}${search}`')
+    expect(loginPage).toContain('Portal de acesso seguro da XpeX Academy.')
+    expect(loginPage).not.toMatch(/Beta|LearnHouse|Learnhouse/)
+    expect(loginClient).toContain('title="XpeX Academy"')
+    expect(authBranding).toContain('aria-label="XpeX Academy"')
+    expect(authBranding).not.toMatch(/LearnHouse|Learnhouse/)
+    expect(legalFooters).not.toContain("By continuing, you agree to LearnHouse's")
+    expect(legalFooters).not.toContain('© {{year}} LearnHouse, Inc.')
+    expect(legalFooters).toContain('XpeX Academy utiliza componentes de software livre sob licença')
+    expect(legalFooters).toContain('Código-fonte correspondente')
+  })
+
+  test('keeps the student invite and enrollment flow inside the XpeX Polo shell', () => {
+    expect(poloStudents).toContain('inviteXpexLaunchStudent')
+    expect(poloStudents).toContain('enrollXpexLaunchStudent')
+    expect(poloStudents).toContain('authorizePoloManager')
+    expect(poloStudents).toContain('XpexAuthenticatedShell')
+    expect(poloStudents).toContain('/xpex/aluno')
+    expect(poloStudents).not.toMatch(/LearnHouse|Learnhouse/)
   })
 
   test('darkens pastel surfaces before lifting gray foreground contrast', () => {
