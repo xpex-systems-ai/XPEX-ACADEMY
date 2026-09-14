@@ -11,11 +11,14 @@ const nativeRouteLayout = read('app/orgs/[orgslug]/dash/layout.tsx')
 const nativeMenu = read('app/orgs/[orgslug]/dash/XpexNativeAdminMenu.tsx')
 const nativeTheme = read('app/orgs/[orgslug]/dash/xpex-native-admin.css')
 const importSelector = read('components/Objects/Modals/Course/Import/ImportTypeSelector.tsx')
+const courseCreationSelector = read('components/Objects/Modals/Course/Create/CourseCreationTypeSelector.tsx')
 const studentCourse = read('app/xpex/courses/[courseId]/page.tsx')
 const poloSections = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const poloDashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
 const poloPage = read('app/xpex/polo/page.tsx')
 const access = read('lib/xpex/access.ts')
+const i18n = read('lib/i18n.ts')
+const transfer = read('services/courses/transfer.ts')
 
 describe('XPEX V6-004.2 Learning Core containment', () => {
   test('replaces legacy dashboard chrome without weakening auth or headless tracking', () => {
@@ -63,6 +66,14 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(importSelector).not.toContain('courses.import.learnhouse_courses')
     expect(importSelector).not.toContain('courses.import.learnhouse_description')
     expect(importSelector).not.toMatch(/LearnHouse|Learnhouse/)
+    expect(i18n).toContain('XPEX_ACADEMIC_COPY_PATHS')
+    expect(i18n).toContain("value.replace(/LearnHouse/gi, 'XpeX Academy')")
+  })
+
+  test('brands downloaded packages and removes the old AI visual mark', () => {
+    expect(transfer).toContain("filename.replace(/learnhouse/gi, 'xpex')")
+    expect(courseCreationSelector).toContain('Sparkles')
+    expect(courseCreationSelector).not.toContain('lrnai_icon')
   })
 
   test('removes visible legacy platform branding from student and polo surfaces', () => {
