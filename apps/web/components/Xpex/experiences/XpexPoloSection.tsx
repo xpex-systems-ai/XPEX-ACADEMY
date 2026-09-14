@@ -108,7 +108,7 @@ export function XpexPoloSection({ section, branding, organizationSlug }: { secti
 
   return <div className="xpex-dashboard">
     <PoloIdentityHero branding={branding}/>
-    <XpexSectionHeader eyebrow={`Kelle Digital Lab · ${content.title}`} title={content.title} detail={<p className="xpex-context">{content.description}</p>}/>
+    <XpexSectionHeader eyebrow={`${branding.organization_name} · ${content.title}`} title={content.title} detail={<p className="xpex-context">{content.description}</p>}/>
     <XpexPanel className="xpex-polo-section-panel">
       <div className="xpex-section-icon" aria-hidden="true"><Icon size={26}/></div>
       <XpexSectionHeader eyebrow="Dados da organização" title={content.title}/>

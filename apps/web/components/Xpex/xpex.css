@@ -42,3 +42,14 @@
 .xpex-polo-hero-official-image{height:100%;object-fit:contain;object-position:center;width:100%}
 .xpex-polo-section-panel+.xpex-primary{margin-top:1rem}
 @media(max-width:639px){.xpex-polo-hero-official{border-radius:1rem}.xpex-polo-sidebar-logo{max-height:3.35rem}}
+
+/* Presentation-grade product polish: calm hierarchy, depth and touch-friendly controls. */
+.xpex-authenticated{--xpex-app-glass:color-mix(in srgb,var(--xpex-surface) 82%,transparent);--xpex-app-hairline:color-mix(in srgb,var(--xpex-cyan) 13%,var(--xpex-border));background:radial-gradient(circle at 72% -10%,color-mix(in srgb,var(--xpex-cyan) 10%,transparent),transparent 38rem),var(--xpex-background-primary)}
+.xpex-authenticated .xpex-card{background:linear-gradient(145deg,color-mix(in srgb,var(--xpex-surface-elevated) 88%,transparent),color-mix(in srgb,var(--xpex-surface) 84%,transparent));border-color:var(--xpex-app-hairline);box-shadow:0 1px 0 rgba(255,255,255,.035) inset,0 20px 60px rgba(0,0,0,.24);backdrop-filter:blur(18px)}
+.xpex-authenticated .xpex-topbar{background:color-mix(in srgb,var(--xpex-background-primary) 84%,transparent);border-color:var(--xpex-app-hairline);box-shadow:0 10px 35px rgba(0,0,0,.16)}
+.xpex-authenticated .xpex-nav-item{transition:background-color var(--xpex-motion-fast),border-color var(--xpex-motion-fast),transform var(--xpex-motion-fast)}
+.xpex-authenticated .xpex-nav-item:hover{background:color-mix(in srgb,var(--xpex-cyan) 7%,transparent);transform:translateX(2px)}
+.xpex-authenticated .xpex-primary{min-height:44px;transition:box-shadow var(--xpex-motion-fast),filter var(--xpex-motion-fast),transform var(--xpex-motion-fast)}
+.xpex-authenticated .xpex-primary:hover{box-shadow:0 12px 34px color-mix(in srgb,var(--xpex-orange) 23%,transparent);filter:saturate(1.08);transform:translateY(-1px)}
+.xpex-native-page>header.xpex-card{border-radius:1.5rem}
+@media(max-width:639px){.xpex-authenticated .xpex-content{padding:.85rem}.xpex-dashboard,.xpex-native-page{gap:1rem}.xpex-authenticated .xpex-card{border-radius:1rem}.xpex-section-header{align-items:flex-start;flex-direction:column}.xpex-section-header .xpex-context{max-width:42rem}}

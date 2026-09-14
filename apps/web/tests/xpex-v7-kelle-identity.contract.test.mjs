@@ -11,6 +11,7 @@ const hero = read('components/Xpex/experiences/PoloIdentityHero.tsx')
 const section = read('components/Xpex/experiences/XpexPoloSection.tsx')
 const experience = read('components/Xpex/AuthenticatedXpexExperience.tsx')
 const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
+const students = read('app/xpex/polo/alunos/page.tsx')
 const css = read('components/Xpex/xpex.css')
 
 describe('Kelle Digital Lab identity rollout', () => {
@@ -30,7 +31,9 @@ describe('Kelle Digital Lab identity rollout', () => {
 
   test('opens every polo section with the shared official identity', () => {
     expect(section).toContain('<PoloIdentityHero branding={branding}/>')
+    expect(section).toContain('eyebrow={`${branding.organization_name} · ${content.title}`}')
     expect(experience).toContain('branding={poloBranding')
+    expect(students).toContain('<PoloIdentityHero branding={poloBranding}/>')
   })
 
   test('uses the complete official logo in the polo sidebar', () => {
