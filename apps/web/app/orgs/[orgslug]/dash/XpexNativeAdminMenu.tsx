@@ -26,9 +26,13 @@ export default function XpexNativeAdminMenu() {
 
   if (!org?.slug) return null
 
+  const orgQuery = `org=${encodeURIComponent(org.slug)}`
+  const poloHref = `/xpex/polo?${orgQuery}`
+  const studentsHref = `/xpex/polo/alunos?${orgQuery}`
+
   return (
     <aside className="xpex-native-admin-menu" aria-label="Navegação acadêmica XpeX">
-      <Link href="/xpex/polo" className="xpex-native-admin-brand" aria-label="Voltar para a visão geral do Polo">
+      <Link href={poloHref} className="xpex-native-admin-brand" aria-label="Voltar para a visão geral do Polo">
         <span className="xpex-native-admin-monogram" aria-hidden="true">{monogram(org?.name)}</span>
         <span className="xpex-native-admin-brand-copy">
           <strong>{org?.name || 'XpeX Academy'}</strong>
@@ -36,7 +40,7 @@ export default function XpexNativeAdminMenu() {
         </span>
       </Link>
 
-      <Link href="/xpex/polo" className="xpex-native-admin-back">
+      <Link href={poloHref} className="xpex-native-admin-back">
         <ArrowLeft size={16} aria-hidden="true" />
         <span>Visão Geral</span>
       </Link>
@@ -44,7 +48,9 @@ export default function XpexNativeAdminMenu() {
       <nav className="xpex-native-admin-nav">
         {nativeLinks.map(item => {
           const Icon = item.icon
-          const href = item.xpex ? item.path : getUriWithOrg(org.slug, item.path)
+          const href = item.xpex
+            ? (item.path === '/xpex/polo/alunos' ? studentsHref : `${item.path}?${orgQuery}`)
+            : getUriWithOrg(org.slug, item.path)
           const active = item.xpex
             ? pathname === item.path || pathname.startsWith(`${item.path}/`)
             : pathname === item.path || pathname.endsWith(item.path) || pathname.includes(`${item.path}/`)
