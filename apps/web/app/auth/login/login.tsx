@@ -336,7 +336,7 @@ const LoginClient = (props: LoginClientProps) => {
         )}
 
         <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
-          <div className="w-full max-w-[420px] py-10">
+          <div className="w-full max-w-[460px] rounded-[28px] border border-white/10 bg-white/[.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,.28)] backdrop-blur-xl md:p-8">
             <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
             <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.login_to')}</h1>
             <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.enter_credentials')}</p>
@@ -359,7 +359,7 @@ const LoginClient = (props: LoginClientProps) => {
                       onBlur={formik.handleBlur}
                       value={formik.values.email}
                       type="email"
-                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#111827_inset]"
                     />
                   </Form.Control>
                 </FormField>
@@ -387,7 +387,7 @@ const LoginClient = (props: LoginClientProps) => {
                       value={formik.values.password}
                       type="password"
                       autoComplete="current-password"
-                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25"
+                      className="box-border inline-flex h-[44px] w-full appearance-none items-center rounded-lg border border-white/15 bg-white/[.06] px-4 text-sm text-white transition-all placeholder:text-white/55 focus:border-[#00D4FF] focus:outline-none focus:ring-2 focus:ring-[#00D4FF]/25 [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#111827_inset]"
                     />
                   </Form.Control>
                 </FormField>

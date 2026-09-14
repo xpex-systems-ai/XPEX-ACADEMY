@@ -14,6 +14,9 @@ const shell = read('components/Xpex/XpexAuthenticatedShell.tsx')
 const students = read('app/xpex/polo/alunos/page.tsx')
 const css = read('components/Xpex/xpex.css')
 const legacyPole = read('components/Xpex/experiences/PoleExperience.tsx')
+const authPanel = read('components/Auth/AuthBrandingPanel.tsx')
+const authMobile = read('components/Auth/AuthMobileHeader.tsx')
+const login = read('app/auth/login/login.tsx')
 
 describe('Kelle Digital Lab identity rollout', () => {
   test('pins the approved logo and hero to repository-backed assets', () => {
@@ -53,5 +56,17 @@ describe('Kelle Digital Lab identity rollout', () => {
     for (const anchor of ['metricas', 'turmas', 'eventos', 'avisos']) {
       expect(legacyPole).toContain(`id="${anchor}"`)
     }
+  })
+
+  test('uses the official Kelle hero across desktop and mobile login', () => {
+    for (const surface of [authPanel, authMobile]) {
+      expect(surface).toContain("identityKey.includes('kelle')")
+      expect(surface).toContain('/xpex/polos/kelle-digital-lab/hero-official-clean.jpg')
+      expect(surface).toContain("import Image from 'next/image'")
+    }
+    expect(authPanel).toContain('sizes="48vw"')
+    expect(authMobile).toContain('sizes="100vw"')
+    expect(login).toContain('rounded-[28px]')
+    expect(login).toContain('-webkit-text-fill-color:white')
   })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
 import { getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,8 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
   const branding = org?.config?.config?.customization?.auth_branding
     || org?.config?.config?.general?.auth_branding
     || {}
+  const identityKey = `${org?.name || ''} ${org?.slug || ''}`.toLocaleLowerCase('pt-BR')
+  const isKelleDigitalLab = identityKey.includes('kelle')
   const hasCustomBackground = Boolean(branding.background_image && branding.background_type !== 'gradient')
   const backgroundImage = branding.background_type === 'custom'
     ? getOrgAuthBackgroundMediaDirectory(org?.org_uuid, branding.background_image)
@@ -32,7 +35,9 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
   const configuredWelcome = typeof branding.welcome_message === 'string' && branding.welcome_message.trim()
     ? branding.welcome_message.trim()
     : null
-  const isDarkText = Boolean(org && branding.text_color === 'dark')
+  // The official Kelle identity always uses the approved cinematic hero and light copy.
+  // This prevents stale organization settings from reverting the login to a white panel.
+  const isDarkText = !isKelleDigitalLab && Boolean(org && branding.text_color === 'dark')
   const unsplashPhotographerUrl = withUnsplashAttribution(
     branding.unsplash_photographer_url || 'https://unsplash.com/',
   )
@@ -51,12 +56,21 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       )}
       aria-label="XpeX Academy"
     >
-      {hasCustomBackground && (
+      {isKelleDigitalLab ? (
+        <Image
+          src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+          alt="Polo Kelle Digital Lab"
+          fill
+          priority
+          sizes="48vw"
+          className="object-cover object-center"
+        />
+      ) : hasCustomBackground ? (
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backgroundImage})` }}
         />
-      )}
+      ) : null}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(255,122,0,.28),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(0,212,255,.22),transparent_30%)]" />
       <div
         className={cn(
@@ -67,7 +81,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-gradient-to-r from-[#020814]/92 via-[#020814]/54 to-[#020814]/20' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 
