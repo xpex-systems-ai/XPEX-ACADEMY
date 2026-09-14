@@ -1,8 +1,4 @@
 import { getAPIUrl } from '@services/config/config'
-import {
-  RequestBodyWithAuthHeader,
-  getResponseMetadata,
-} from '@services/utils/ts/requests'
 
 /**
  * Course Transfer Service
@@ -59,7 +55,7 @@ export type ExportStatus =
   | 'complete'
   | 'error'
 
-export type ExportProgressCallback = (progress: number, status: ExportStatus) => void
+export type ExportProgressCallback = (_progress: number, _status: ExportStatus) => void
 
 /**
  * Get export status based on progress percentage
@@ -116,12 +112,12 @@ export async function exportCourse(
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: BlobPart[] = []
+    const chunks: Uint8Array[] = []
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value as BlobPart)
+      chunks.push(value)
       loaded += value.length
       const progress = 55 + Math.round((loaded / total) * 40) // 55-95%
       onProgress?.(progress, getExportStatus(progress, true))
@@ -148,7 +144,7 @@ function simulateServerProgress(
   startProgress: number,
   endProgress: number,
   duration: number
-): NodeJS.Timeout {
+): ReturnType<typeof setInterval> {
   const steps = 10
   const increment = (endProgress - startProgress) / steps
   const interval = duration / steps
@@ -203,12 +199,12 @@ export async function exportCoursesBatch(
     const total = parseInt(contentLength, 10)
     let loaded = 0
     const reader = response.body.getReader()
-    const chunks: BlobPart[] = []
+    const chunks: Uint8Array[] = []
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value as BlobPart)
+      chunks.push(value)
       loaded += value.length
       const progress = 55 + Math.round((loaded / total) * 40) // 55-95%
       onProgress?.(progress, getExportStatus(progress, true))
@@ -242,7 +238,7 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 
 /**
- * Analyze a LearnHouse course export package for import
+ * Analyze a course export package for import
  */
 export async function analyzeImportPackage(
   file: File,
