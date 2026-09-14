@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
 import { getOrgAuthBackgroundMediaDirectory } from '@services/media/media'
 import { cn } from '@/lib/utils'
 
@@ -14,11 +15,13 @@ export default function AuthMobileHeader({ org }: { org: any }) {
   const branding = org?.config?.config?.customization?.auth_branding
     || org?.config?.config?.general?.auth_branding
     || {}
+  const identityKey = `${org?.name || ''} ${org?.slug || ''}`.toLocaleLowerCase('pt-BR')
+  const isKelleDigitalLab = identityKey.includes('kelle')
   const hasCustomBackground = Boolean(branding.background_image && branding.background_type !== 'gradient')
   const backgroundImage = branding.background_type === 'custom'
     ? getOrgAuthBackgroundMediaDirectory(org?.org_uuid, branding.background_image)
     : branding.background_image
-  const isDarkText = Boolean(org && branding.text_color === 'dark')
+  const isDarkText = !isKelleDigitalLab && Boolean(org && branding.text_color === 'dark')
   const organizationName = org?.name && org.name.trim().toLowerCase() !== 'default organization'
     ? org.name
     : null
@@ -37,20 +40,30 @@ export default function AuthMobileHeader({ org }: { org: any }) {
       aria-label="XpeX Academy"
       className={cn(
         'relative overflow-hidden border-b border-white/10 bg-[#0B1220] px-5 py-4',
+        isKelleDigitalLab && 'min-h-[172px] flex flex-col justify-end',
         isDarkText ? 'text-slate-950' : 'text-white',
       )}
     >
-      {hasCustomBackground && (
+      {isKelleDigitalLab ? (
+        <Image
+          src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+          alt="Polo Kelle Digital Lab"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      ) : hasCustomBackground ? (
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backgroundImage})` }}
         />
-      )}
+      ) : null}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(255,122,0,.24),transparent_42%),radial-gradient(circle_at_90%_0%,rgba(0,212,255,.20),transparent_40%)]" />
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-gradient-to-t from-[#020814]/95 via-[#020814]/45 to-[#020814]/10' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 
