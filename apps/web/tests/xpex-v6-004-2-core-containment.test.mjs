@@ -13,6 +13,7 @@ const nativeTheme = read('app/orgs/[orgslug]/dash/xpex-native-admin.css')
 const importSelector = read('components/Objects/Modals/Course/Import/ImportTypeSelector.tsx')
 const studentCourse = read('app/xpex/courses/[courseId]/page.tsx')
 const poloSections = read('components/Xpex/experiences/XpexPoloSection.tsx')
+const poloDashboard = read('components/Xpex/experiences/AuthenticatedDashboard.tsx')
 const poloPage = read('app/xpex/polo/page.tsx')
 const access = read('lib/xpex/access.ts')
 
@@ -42,7 +43,7 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
   })
 
   test('keeps real academic destinations inside the selected organization shell', () => {
-    for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/users', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {
+    for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/users/settings/users', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {
       expect(nativeMenu).toContain(route)
     }
     expect(nativeMenu).toContain('org=${encodeURIComponent(org.slug)}')
@@ -51,6 +52,8 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {
       expect(poloSections).toContain(route)
     }
+    expect(poloDashboard).toContain("native('/dash/users/settings/users')")
+    expect(poloDashboard).not.toContain("native('/dash/users')")
   })
 
   test('keeps native course package import functional without visible legacy branding', () => {
@@ -66,6 +69,7 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
     expect(studentCourse).not.toMatch(/LearnHouse|Learnhouse/)
     expect(poloSections).not.toContain('motor acadêmico')
     expect(poloSections).not.toContain('Abrir Analytics')
+    expect(poloDashboard).not.toContain('<strong>Abrir ${courses[0].title}</strong>')
   })
 
   test('darkens pastel surfaces before lifting gray foreground contrast', () => {
