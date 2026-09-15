@@ -15,15 +15,47 @@ export async function getOrgCourses(
   org_slug: string,
   next: any,
   access_token?: any,
-  include_unpublished: boolean = false
+  include_unpublished: boolean = false,
+  page: number = 1,
+  limit: number = 100,
 ) {
-  const url = `${getAPIUrl()}courses/org_slug/${org_slug}/page/1/limit/100${include_unpublished ? '?include_unpublished=true' : ''}`
+  const safePage = Math.max(1, page)
+  const safeLimit = Math.min(100, Math.max(1, limit))
+  const url = `${getAPIUrl()}courses/org_slug/${org_slug}/page/${safePage}/limit/${safeLimit}${include_unpublished ? '?include_unpublished=true' : ''}`
   const result: any = await fetch(
     url,
     RequestBodyWithAuthHeader('GET', null, next, access_token)
   )
   const res = await errorHandling(result)
   return res
+}
+
+/**
+ * Return the complete canonical learner-visible course set for an organization.
+ *
+ * The backend caps a single page at 100 items. Library visibility must never use
+ * only page 1 as an authorization surrogate, otherwise legitimate courses after
+ * item 100 disappear from learner-facing organization surfaces. Fetch pages until
+ * the backend returns a short page. A defensive page ceiling prevents accidental
+ * infinite loops if an upstream endpoint ever stops respecting pagination.
+ */
+export async function getAllVisibleOrgCourses(
+  org_slug: string,
+  next: any,
+  access_token?: any,
+) {
+  const pageSize = 100
+  const maxPages = 100
+  const courses: any[] = []
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
+    if (!Array.isArray(batch)) return courses
+    courses.push(...batch)
+    if (batch.length < pageSize) return courses
+  }
+
+  throw new Error('Course catalog pagination exceeded the safety limit')
 }
 
 export async function searchOrgCourses(
@@ -164,7 +196,7 @@ export async function editContributor(course_uuid: string, contributor_id: strin
 export async function applyForContributor(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/apply-contributor`,
-    RequestBodyWithAuthHeader('POST', data, null,access_token || undefined)
+    RequestBodyWithAuthHeader('POST', null, null, access_token || undefined)
   )
   const res = await getResponseMetadata(result)
   return res
@@ -193,6 +225,6 @@ export async function getCourseRights(course_uuid: string, access_token: string 
     `${getAPIUrl()}courses/${course_uuid}/rights`,
     RequestBodyWithAuthHeader('GET', null, null, access_token || undefined)
   )
-  const res = await errorHandling(result)
+  const res = await getResponseMetadata(result)
   return res
 }
