@@ -64,7 +64,7 @@ describe('XPEX V6-003 persisted Polo identity', () => {
 
   test('registers the approved Kelle hero asset in the declarative preset', () => {
     expect(presetSource).toContain("'kelle-digital-lab': {")
-    expect(presetSource).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-background-v2.png'")
+    expect(presetSource).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-official-presentation.png'")
     expect(presetSource).not.toContain('teacher_photo:')
     expect(presetSource).toContain("coordinator_name: 'Professora Kelle'")
     expect(presetSource).toContain("location: 'Campos Lindos/Marajó-GO'")

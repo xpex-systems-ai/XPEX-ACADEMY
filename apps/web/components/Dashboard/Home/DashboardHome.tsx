@@ -59,19 +59,13 @@ export default function DashboardHome() {
           {isKelleDigitalLab && (
             <section className="xpex-kelle-admin-hero" aria-label="Kelle Digital Lab">
               <Image
-                src="/xpex/polos/kelle-digital-lab/hero-background-v2.png"
+                src="/xpex/polos/kelle-digital-lab/hero-official-presentation.png"
                 alt="Kelle Digital Lab — educação, tecnologia e transformação"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 82vw"
                 className="xpex-kelle-admin-hero-image"
               />
-              <div className="xpex-kelle-admin-hero-shade" aria-hidden="true" />
-              <div className="xpex-kelle-admin-hero-copy">
-                <span>Central de operação acadêmica</span>
-                <strong>Kelle Digital Lab</strong>
-                <small>Campos Lindos · Marajó — GO</small>
-              </div>
             </section>
           )}
 

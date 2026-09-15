@@ -23,7 +23,7 @@ describe('public beta proxy routing', () => {
 
 describe('public brand asset routing', () => {
   test('allows official Polo media without opening authenticated pages', () => {
-    expect(isPublicBrandAsset('/xpex/polos/kelle-digital-lab/hero-background-v2.png')).toBe(true)
+    expect(isPublicBrandAsset('/xpex/polos/kelle-digital-lab/hero-official-presentation.png')).toBe(true)
     expect(isPublicBrandAsset('/xpex/polo')).toBe(false)
     expect(isPublicBrandAsset('/xpex/polo/alunos')).toBe(false)
   })
