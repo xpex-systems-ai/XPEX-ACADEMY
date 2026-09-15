@@ -12,7 +12,7 @@ import { getFolderById, removeFolderPrefix } from '@services/folders/folders'
 import { getUriWithOrg } from '@services/config/config'
 import { shareFolderLink } from '@components/Dashboard/Library/shareFolder'
 import { useCourses } from '@/hooks/queries/useCourses'
-import { FolderSimple, LinkSimple } from '@phosphor-icons/react'
+import { FolderSimple, LinkSimple, WarningCircle } from '@phosphor-icons/react'
 import { FolderCard, LibraryItemCard } from '../../library-cards'
 import { useTrackView, AnalyticsEvent } from '@services/analytics'
 
@@ -27,7 +27,9 @@ function FolderClient({
   const session = useLHSession() as any
   const access_token = session?.data?.tokens?.access_token
   const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
-  const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'
+  const authScope = session.status === 'authenticated'
+    ? session?.data?.user?.user_uuid || session?.data?.user?.id || 'authenticated-unresolved'
+    : 'anonymous'
   const folderUuid = `folder_${folderid}`
 
   const {
@@ -56,13 +58,13 @@ function FolderClient({
   const rawItems = folder?.items || []
   const items = useMemo(
     () => rawItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid)
+      item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rawItems, visibleCourseUuids],
+    [rawItems, visibleCourseUuids, catalogCoursesError],
   )
   const breadcrumbs = folder?.breadcrumbs || []
   const loading = !sessionResolved || folderLoading || catalogCoursesLoading
-  const error = folderError || catalogCoursesError
+  const error = folderError
   const isEmpty = subfolders.length === 0 && items.length === 0
 
   useTrackView(
@@ -140,6 +142,13 @@ function FolderClient({
               <p className="text-sm text-gray-500">{folder.description}</p>
             )}
 
+            {catalogCoursesError && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
+                <WarningCircle size={18} className="mt-0.5 shrink-0" />
+                <span>Os cursos desta pasta estão temporariamente indisponíveis. Os demais conteúdos continuam acessíveis.</span>
+              </div>
+            )}
+
             <div className="flex flex-col gap-7">
               {subfolders.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -157,7 +166,7 @@ function FolderClient({
                 </div>
               )}
 
-              {isEmpty && (
+              {isEmpty && !catalogCoursesError && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
