@@ -31,13 +31,15 @@ export async function getOrgCourses(
 }
 
 /**
- * Return the complete canonical learner-visible course set for an organization.
+ * Return the canonical learner-visible course set for an organization.
  *
  * The backend caps a single page at 100 items. Library visibility must never use
  * only page 1 as an authorization surrogate, otherwise legitimate courses after
  * item 100 disappear from learner-facing organization surfaces. Fetch pages until
- * the backend returns a short page. A defensive page ceiling prevents accidental
- * infinite loops if an upstream endpoint ever stops respecting pagination.
+ * the backend returns a short page. A defensive page ceiling bounds work if an
+ * upstream endpoint ever stops respecting pagination; reaching that ceiling
+ * returns the accumulated safe visibility set instead of converting a very large
+ * but valid catalog into a total outage.
  */
 export async function getAllVisibleOrgCourses(
   org_slug: string,
@@ -57,7 +59,12 @@ export async function getAllVisibleOrgCourses(
     if (batch.length < pageSize) return courses
   }
 
-  throw new Error('Course catalog pagination exceeded the safety limit')
+  // Bounded graceful degradation: if every permitted page is full, keep the
+  // verified visible set collected so far. Throwing here would blank /courses
+  // and make Library suppress every course solely because the safety ceiling was
+  // reached. A dedicated count/ID endpoint can replace this bounded strategy in
+  // a future scale-focused change without widening the current V7.2.1 scope.
+  return courses
 }
 
 export async function searchOrgCourses(
@@ -207,7 +214,7 @@ export async function applyForContributor(course_uuid: string, data: any, access
 export async function bulkAddContributors(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/bulk-add-contributors`,
-    RequestBodyWithAuthHeader('POST', data, null,access_token || undefined)
+    RequestBodyWithAuthHeader('POST', data, null,access_token)
   )
   const res = await getResponseMetadata(result)
   return res
@@ -216,7 +223,7 @@ export async function bulkAddContributors(course_uuid: string, data: any, access
 export async function bulkRemoveContributors(course_uuid: string, data: any, access_token: string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/bulk-remove-contributors`,
-    RequestBodyWithAuthHeader('PUT', data, null, access_token || undefined)
+    RequestBodyWithAuthHeader('PUT', data, null,access_token)
   )
   const res = await errorHandling(result)
   return res
@@ -225,7 +232,7 @@ export async function bulkRemoveContributors(course_uuid: string, data: any, acc
 export async function getCourseRights(course_uuid: string, access_token: string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/rights`,
-    RequestBodyWithAuthHeader('GET', null, null, access_token || undefined)
+    RequestBodyWithAuthHeader('GET', null, null,access_token)
   )
   const res = await errorHandling(result)
   return res
