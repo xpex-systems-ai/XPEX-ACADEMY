@@ -1,11 +1,17 @@
+'use client'
+
+import { useTranslation } from 'react-i18next'
+
 export default function DashboardLoading() {
+  const { t } = useTranslation()
+
   return (
     <div
       className="min-h-screen w-full bg-[#05080d] px-4 py-8 text-white sm:px-10"
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">Carregando painel de gestão…</span>
+      <span className="sr-only">{t('common.loading')}</span>
       <div className="mx-auto w-full max-w-[1600px] animate-pulse space-y-6">
         <div className="aspect-[1536/614] w-full rounded-3xl border border-[#223550] bg-[#0b1220]" />
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
