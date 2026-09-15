@@ -30,7 +30,7 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(useCourses).toContain('isLoading: !sessionResolved || query.isLoading')
   })
 
-  test('paginates the complete canonical learner-visible catalog instead of trusting page 1', () => {
+  test('paginates the canonical learner-visible catalog instead of trusting page 1', () => {
     expect(courseService).toContain('export async function getAllVisibleOrgCourses')
     expect(courseService).toContain('for (let page = 1; page <= maxPages; page += 1)')
     expect(courseService).toContain('getOrgCourses(org_slug, next, access_token, false, page, pageSize)')
@@ -40,26 +40,40 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
 
   test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
     expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
+    expect(publicLibrary).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
     expect(publicLibrary).toContain('const visibleCourseUuids = useMemo')
-    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has")
-    expect(publicLibrary).toContain('const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading')
-    expect(publicLibrary).toContain('const libraryError = rootItemsError')
+    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has")
+    expect(publicLibrary).toContain('const libraryLoading = !org?.id || foldersLoading || rootItemsLoading')
+    expect(publicLibrary).toContain('const analyticsReady = !libraryLoading && !libraryError && catalogReady')
     expect(publicLibrary).toContain('catalogCoursesError && (')
     expect(publicLibrary).toContain('<LibraryState kind="loading" />')
     expect(publicLibrary).toContain('<LibraryState kind="error" />')
 
     expect(publicLibraryFolder).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibraryFolder).toContain('queryKey: [...queryKeys.folders.detail(folderUuid), authScope]')
-    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has")
-    expect(publicLibraryFolder).toContain('const error = folderError')
+    expect(publicLibraryFolder).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
+    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has")
+    expect(publicLibraryFolder).toContain('const loading = !sessionResolved || folderLoading')
+    expect(publicLibraryFolder).toContain('const analyticsReady = !loading && !error && !!folder && catalogReady')
     expect(publicLibraryFolder).toContain('catalogCoursesError && (')
   })
 
-  test('fails closed for course cards while preserving unrelated Library content on catalog failure', () => {
+  test('renders independent Library content while course visibility is pending or unavailable', () => {
+    expect(publicLibrary).toContain('Carregando cursos… Os demais conteúdos já estão disponíveis.')
     expect(publicLibrary).toContain('Os cursos estão temporariamente indisponíveis')
+    expect(publicLibrary).not.toContain('rootItemsLoading || catalogCoursesLoading')
     expect(publicLibrary).not.toContain('rootItemsError || catalogCoursesError')
+    expect(publicLibraryFolder).toContain('Carregando cursos desta pasta… Os demais conteúdos já estão disponíveis.')
     expect(publicLibraryFolder).toContain('Os cursos desta pasta estão temporariamente indisponíveis')
+    expect(publicLibraryFolder).not.toContain('folderLoading || catalogCoursesLoading')
     expect(publicLibraryFolder).not.toContain('folderError || catalogCoursesError')
+  })
+
+  test('does not record false empty Library analytics while catalog visibility is unresolved', () => {
+    expect(publicLibrary).toContain('analyticsReady,')
+    expect(publicLibraryFolder).toContain('analyticsReady,')
+    expect(publicLibrary).toContain('const genuineEmpty = folders.length === 0 && rootItems.length === 0')
+    expect(publicLibraryFolder).toContain('const genuineEmpty = subfolders.length === 0 && rawItems.length === 0')
   })
 
   test('uses one resilient image contract for course and community thumbnails', () => {
@@ -87,6 +101,7 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
 
   test('keeps known invite validation failures localized', () => {
     expect(errorMessage).toContain('/^invite code not found$/i')
+    expect(errorMessage).toContain('/^invite code is incorrect$/i')
     expect(errorMessage).toContain('return fallback')
   })
 
