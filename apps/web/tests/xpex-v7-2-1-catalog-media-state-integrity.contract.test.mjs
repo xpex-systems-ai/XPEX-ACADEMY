@@ -38,6 +38,11 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(useCourses).toContain('getAllVisibleOrgCourses(orgSlug, {}, accessToken)')
   })
 
+  test('degrades gracefully instead of blanking the catalog at the pagination safety ceiling', () => {
+    expect(courseService).toContain('return courses')
+    expect(courseService).not.toContain("throw new Error('Course catalog pagination exceeded the safety limit')")
+  })
+
   test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
     expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibrary).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
