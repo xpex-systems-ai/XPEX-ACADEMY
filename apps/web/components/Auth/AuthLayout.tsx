@@ -50,7 +50,7 @@ export default function AuthLayout({ org, welcomeText, title, subtitle, children
         )}
       </div>
 
-      <div className="relative z-10 hidden w-[48%] shrink-0 border-l border-white/10 lg:block">
+      <div className="relative z-10 hidden w-[55%] shrink-0 border-l border-white/10 lg:block">
         <AuthBrandingPanel
           org={org}
           welcomeText={welcomeText}
