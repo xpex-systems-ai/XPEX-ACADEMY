@@ -46,10 +46,12 @@ function FolderClient({
     data: catalogCoursesData,
     isLoading: catalogCoursesLoading,
     isError: catalogCoursesError,
+    isIncomplete: catalogCoursesIncomplete,
   } = useCourses(orgslug)
 
   const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
-  const catalogReady = !catalogCoursesLoading && !catalogCoursesError
+  const catalogUsable = !catalogCoursesLoading && !catalogCoursesError
+  const catalogReady = catalogUsable && !catalogCoursesIncomplete
   const visibleCourseUuids = useMemo(
     () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
     [catalogCourses],
@@ -59,9 +61,9 @@ function FolderClient({
   const rawItems = folder?.items || []
   const items = useMemo(
     () => rawItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
+      item?.resource_type !== 'courses' || (catalogUsable && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rawItems, visibleCourseUuids, catalogReady],
+    [rawItems, visibleCourseUuids, catalogUsable],
   )
   const breadcrumbs = folder?.breadcrumbs || []
   const loading = !sessionResolved || folderLoading
@@ -150,7 +152,7 @@ function FolderClient({
               </div>
             )}
 
-            {catalogCoursesError && (
+            {(catalogCoursesError || catalogCoursesIncomplete) && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
                 <WarningCircle size={18} className="mt-0.5 shrink-0" />
                 <span>{t('library.error_loading')}</span>
