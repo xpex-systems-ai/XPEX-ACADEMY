@@ -161,7 +161,7 @@ export default async function PoleStudentsPage({
           <PoloIdentityHero branding={poloBranding}/>
         </div>
 
-        <header className="xpex-card p-5 md:p-6">
+        <header className={`${styles.consoleHeader} xpex-card p-5 md:p-6`}>
           <div className={styles.headerRow}>
             <div className={styles.headingBlock}>
               <p className={styles.eyebrow}>Console de operação de alunos</p>
