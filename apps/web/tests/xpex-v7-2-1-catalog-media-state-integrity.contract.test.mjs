@@ -9,6 +9,7 @@ const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
 
 const useCourses = read('hooks/queries/useCourses.ts')
 const publicLibrary = read('app/orgs/[orgslug]/(withmenu)/library/LibraryClient.tsx')
+const publicLibraryFolder = read('app/orgs/[orgslug]/(withmenu)/library/folder/[folderid]/FolderClient.tsx')
 const courseThumbnail = read('components/Objects/Thumbnails/CourseThumbnail.tsx')
 const communityCard = read('components/Objects/Communities/CommunityCard.tsx')
 const safeImage = read('components/Objects/SafeImage.tsx')
@@ -19,9 +20,10 @@ const signupGateway = read('app/api/signup/route.ts')
 const signupClient = read('services/auth/auth.ts')
 
 describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () => {
-  test('resolves catalog truth only after auth state and isolates anonymous/authenticated cache scopes', () => {
+  test('resolves catalog truth only after auth state and scopes cache per acting user', () => {
     expect(useCourses).toContain("const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'")
-    expect(useCourses).toContain("const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'")
+    expect(useCourses).toContain("session?.data?.user?.user_uuid || 'authenticated'")
+    expect(useCourses).toContain("'anonymous'")
     expect(useCourses).toContain('queryKey: [...queryKeys.courses.list(orgSlug), authScope]')
     expect(useCourses).toContain('enabled: !!orgSlug && sessionResolved')
     expect(useCourses).toContain('isLoading: !sessionResolved || query.isLoading')
@@ -35,6 +37,11 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(publicLibrary).toContain('const libraryError = rootItemsError || catalogCoursesError')
     expect(publicLibrary).toContain('<LibraryState kind="loading" />')
     expect(publicLibrary).toContain('<LibraryState kind="error" />')
+
+    expect(publicLibraryFolder).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
+    expect(publicLibraryFolder).toContain('queryKey: [...queryKeys.folders.detail(folderUuid), authScope]')
+    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || visibleCourseUuids.has")
+    expect(publicLibraryFolder).toContain('const error = folderError || catalogCoursesError')
   })
 
   test('uses one resilient image contract for course and community thumbnails', () => {
