@@ -81,7 +81,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-gradient-to-r from-[#020814]/92 via-[#020814]/54 to-[#020814]/20' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-transparent' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 
@@ -100,7 +100,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
           </div>
         )}
 
-        <div className="my-auto max-w-lg">
+        <div className={cn('my-auto max-w-lg', isKelleDigitalLab && 'rounded-3xl border border-white/10 bg-[#020814]/70 p-8 shadow-[0_28px_90px_rgba(0,0,0,.42)] backdrop-blur-md')}>
           {organizationName && !isKelleDigitalLab && (
             <div className="mb-8 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#00D4FF] text-sm font-black text-[#0B1220]">

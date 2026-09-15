@@ -112,7 +112,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(90deg, rgba(2, 7, 13, .88) 0%, rgba(2, 7, 13, .42) 38%, transparent 67%);
+  background: linear-gradient(90deg, rgba(2, 7, 13, .38) 0%, rgba(2, 7, 13, .12) 42%, transparent 68%);
 }
 
 .xpex-kelle-admin-hero-copy {
@@ -123,6 +123,11 @@
   display: flex;
   flex-direction: column;
   max-width: 42%;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 18px;
+  background: rgba(2, 7, 13, .72);
+  backdrop-filter: blur(12px);
   text-shadow: 0 3px 18px rgba(0, 0, 0, .8);
 }
 
@@ -428,7 +433,7 @@ body:has(.xpex-native-admin) [role="dialog"] .border-gray-300 {
   }
 
   .xpex-kelle-admin-hero-shade {
-    background: linear-gradient(90deg, rgba(2, 7, 13, .92), rgba(2, 7, 13, .52) 62%, rgba(2, 7, 13, .14));
+    background: linear-gradient(90deg, rgba(2, 7, 13, .28), transparent 72%);
   }
 
   .xpex-kelle-admin-hero-copy {
