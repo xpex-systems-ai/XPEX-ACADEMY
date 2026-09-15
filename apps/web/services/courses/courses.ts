@@ -50,7 +50,9 @@ export async function getAllVisibleOrgCourses(
 
   for (let page = 1; page <= maxPages; page += 1) {
     const batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
-    if (!Array.isArray(batch)) return courses
+    if (!Array.isArray(batch)) {
+      throw new Error('Invalid course catalog response')
+    }
     courses.push(...batch)
     if (batch.length < pageSize) return courses
   }
@@ -196,7 +198,7 @@ export async function editContributor(course_uuid: string, contributor_id: strin
 export async function applyForContributor(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/apply-contributor`,
-    RequestBodyWithAuthHeader('POST', null, null, access_token || undefined)
+    RequestBodyWithAuthHeader('POST', data, null, access_token || undefined)
   )
   const res = await getResponseMetadata(result)
   return res
@@ -225,6 +227,6 @@ export async function getCourseRights(course_uuid: string, access_token: string 
     `${getAPIUrl()}courses/${course_uuid}/rights`,
     RequestBodyWithAuthHeader('GET', null, null, access_token || undefined)
   )
-  const res = await getResponseMetadata(result)
+  const res = await errorHandling(result)
   return res
 }
