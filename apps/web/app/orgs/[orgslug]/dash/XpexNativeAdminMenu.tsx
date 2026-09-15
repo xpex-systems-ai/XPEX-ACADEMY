@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, BookOpen, ChartNoAxesCombined, GraduationCap, Library, Settings, Users } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChartNoAxesCombined, GraduationCap, LayoutDashboard, Library, Settings, Users } from 'lucide-react'
 import { useOrg } from '@components/Contexts/OrgContext'
 import { getUriWithOrg } from '@services/config/config'
 
@@ -28,6 +28,8 @@ export default function XpexNativeAdminMenu() {
   if (!org?.slug) return null
 
   const poloHref = `/xpex/polo?org=${encodeURIComponent(org.slug)}`
+  const dashboardHref = getUriWithOrg(org.slug, '/dash')
+  const dashboardActive = pathname === '/dash' || pathname.endsWith('/dash')
   const isKelleDigitalLab = /kelle/i.test(`${org.slug} ${org.name || ''}`)
 
   return (
@@ -48,10 +50,14 @@ export default function XpexNativeAdminMenu() {
 
       <Link href={poloHref} className="xpex-native-admin-back">
         <ArrowLeft size={16} aria-hidden="true" />
-        <span>Visão Geral</span>
+        <span>Visão Geral do Polo</span>
       </Link>
 
       <nav className="xpex-native-admin-nav">
+        <Link href={dashboardHref} className={`xpex-native-admin-link${dashboardActive ? ' is-active' : ''}`} aria-current={dashboardActive ? 'page' : undefined}>
+          <LayoutDashboard size={18} aria-hidden="true" />
+          <span>Painel de Gestão</span>
+        </Link>
         {nativeLinks.map(item => {
           const Icon = item.icon
           const href = getUriWithOrg(org.slug, item.path)

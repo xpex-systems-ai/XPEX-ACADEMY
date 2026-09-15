@@ -61,6 +61,9 @@ describe('XPEX V6-004.2 Learning Core containment', () => {
       expect(nativeMenu).toContain(route)
     }
     expect(nativeMenu).toContain('org=${encodeURIComponent(org.slug)}')
+    expect(nativeMenu).toContain('Painel de Gestão')
+    expect(nativeMenu).toContain('Visão Geral do Polo')
+    expect(nativeMenu).toContain("getUriWithOrg(org.slug, '/dash')")
     expect(poloPage).toContain('organizationSlugOverride')
     expect(access).toContain('resolveXpexOrganizationBySlug')
     for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {

@@ -22,6 +22,7 @@ export function canAccessPoloSection(access: XpexPoloAccess | null | undefined, 
 
 export function canNavigatePolo(access: XpexPoloAccess | null | undefined, href: string): boolean {
   if (!access) return false
+  if (href === '/dash') return access.isManager
   if (href === '/xpex/polo') return access.isManager || access.isTeacher
   if (href === '/xpex/polo#cursos') return access.isTeacher && access.capabilities.includes('manage_authored_content')
   if (href === '/xpex/polo/alunos') return access.isManager && access.capabilities.includes('manage_students')

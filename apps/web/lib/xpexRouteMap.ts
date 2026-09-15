@@ -14,6 +14,9 @@ export const xpexLearnerCoursesRoute = () => '/xpex/courses' as const
  */
 export const xpexCourseStudioRoute = (orgSlug: string) => getUriWithOrg(orgSlug, '/course-studio')
 
+/** Stable home for the native academic management workspace. */
+export const xpexPoloManagementRoute = (orgSlug: string) => getUriWithOrg(orgSlug, '/dash')
+
 /** Direct operator entry point into the human-gated Video Studio section. */
 export const xpexVideoStudioRoute = (orgSlug: string) => `${xpexCourseStudioRoute(orgSlug)}#video-studio`
 
