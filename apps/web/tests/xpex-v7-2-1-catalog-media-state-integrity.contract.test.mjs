@@ -1,0 +1,79 @@
+import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { buildSignupBackendPath } from '../services/auth/signupRouting.ts'
+
+const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
+
+const useCourses = read('hooks/queries/useCourses.ts')
+const publicLibrary = read('app/orgs/[orgslug]/(withmenu)/library/LibraryClient.tsx')
+const courseThumbnail = read('components/Objects/Thumbnails/CourseThumbnail.tsx')
+const communityCard = read('components/Objects/Communities/CommunityCard.tsx')
+const safeImage = read('components/Objects/SafeImage.tsx')
+const analytics = read('app/orgs/[orgslug]/dash/analytics/page.tsx')
+const dashLoading = read('app/orgs/[orgslug]/dash/loading.tsx')
+const errorMessage = read('services/utils/ts/errorMessage.ts')
+const signupGateway = read('app/api/signup/route.ts')
+const signupClient = read('services/auth/auth.ts')
+
+describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () => {
+  test('resolves catalog truth only after auth state and isolates anonymous/authenticated cache scopes', () => {
+    expect(useCourses).toContain("const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'")
+    expect(useCourses).toContain("const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'")
+    expect(useCourses).toContain('queryKey: [...queryKeys.courses.list(orgSlug), authScope]')
+    expect(useCourses).toContain('enabled: !!orgSlug && sessionResolved')
+    expect(useCourses).toContain('isLoading: !sessionResolved || query.isLoading')
+  })
+
+  test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
+    expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
+    expect(publicLibrary).toContain('const visibleCourseUuids = useMemo')
+    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || visibleCourseUuids.has")
+    expect(publicLibrary).toContain('const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading')
+    expect(publicLibrary).toContain('const libraryError = rootItemsError || catalogCoursesError')
+    expect(publicLibrary).toContain('<LibraryState kind="loading" />')
+    expect(publicLibrary).toContain('<LibraryState kind="error" />')
+  })
+
+  test('uses one resilient image contract for course and community thumbnails', () => {
+    expect(safeImage).toContain('setFailed(true)')
+    expect(courseThumbnail).toContain("import SafeImage from '@components/Objects/SafeImage'")
+    expect(courseThumbnail).toContain('data-thumbnail-fallback="course"')
+    expect(courseThumbnail).not.toContain('style={{ backgroundImage:')
+    expect(communityCard).toContain("import SafeImage from '@components/Objects/SafeImage'")
+    expect(communityCard).toContain('data-thumbnail-fallback="community"')
+  })
+
+  test('does not mount analytics data widgets until provider readiness is confirmed', () => {
+    expect(analytics).toContain('isLoading: analyticsStatusLoading')
+    expect(analytics).toContain('isError: analyticsStatusError')
+    expect(analytics).toContain('analyticsStatusLoading || (!analyticsStatus && !analyticsStatusError)')
+    expect(analytics).toContain("isConfigured && tab === 'overview'")
+    expect(analytics).toContain('analyticsUnavailable')
+  })
+
+  test('provides an explicit accessible loading shell for /dash transitions', () => {
+    expect(dashLoading).toContain('Carregando painel de gestão')
+    expect(dashLoading).toContain('role="status"')
+    expect(dashLoading).toContain('animate-pulse')
+  })
+
+  test('keeps known invite validation failures localized', () => {
+    expect(errorMessage).toContain('/^invite code not found$/i')
+    expect(errorMessage).toContain('return fallback')
+  })
+
+  test('routes invite consumption deterministically without consuming a real code in CI', () => {
+    const valid = buildSignupBackendPath(1, 'AB cd/42')
+    expect(valid).toEqual({ ok: true, path: 'users/1/invite/AB%20cd%2F42' })
+
+    const missingOrg = buildSignupBackendPath(undefined, 'TEST-CODE')
+    expect(missingOrg).toEqual({ ok: false, reason: 'invite_requires_org' })
+
+    expect(signupGateway).toContain('buildSignupBackendPath(org_id, inviteCode)')
+    expect(signupGateway).toContain('const url = `${base}${routeDecision.path}`')
+    expect(signupClient).toContain('body: JSON.stringify({ ...body, inviteCode: invite_code })')
+  })
+})
