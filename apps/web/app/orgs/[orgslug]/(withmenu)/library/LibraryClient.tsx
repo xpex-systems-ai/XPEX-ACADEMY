@@ -22,7 +22,7 @@ function LibraryState({ kind }: { kind: 'loading' | 'error' }) {
     return (
       <div className="w-full animate-pulse" role="status" aria-live="polite">
         <GeneralWrapperStyled>
-          <span className="sr-only">Carregando biblioteca…</span>
+          <span className="sr-only">{t('common.loading')}</span>
           <div className="h-7 bg-gray-200 rounded w-28 mb-4" />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -124,14 +124,14 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
 
             {catalogCoursesLoading && (
               <div className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600" role="status" aria-live="polite">
-                <span>Carregando cursos… Os demais conteúdos já estão disponíveis.</span>
+                <span>{t('common.loading')}</span>
               </div>
             )}
 
             {catalogCoursesError && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
                 <WarningCircle size={18} className="mt-0.5 shrink-0" />
-                <span>Os cursos estão temporariamente indisponíveis. Os demais conteúdos da biblioteca continuam acessíveis.</span>
+                <span>{t('library.error_loading')}</span>
               </div>
             )}
 
