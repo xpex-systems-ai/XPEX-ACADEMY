@@ -9,12 +9,14 @@ export function useCourses(orgSlug: string) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token as string | undefined
   const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
-  const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'
+  const authScope = session.status === 'authenticated'
+    ? session?.data?.user?.user_uuid || 'authenticated'
+    : 'anonymous'
 
   const query = useQuery({
     // Course visibility depends on the acting identity. Never let an anonymous
-    // catalog response fetched during session hydration become the cached truth
-    // for the authenticated learner/admin that appears a moment later.
+    // response fetched during hydration — or another signed-in user on a shared
+    // browser — become the cached catalog truth for the current account.
     queryKey: [...queryKeys.courses.list(orgSlug), authScope],
     queryFn: () => getOrgCourses(orgSlug, {}, accessToken),
     enabled: !!orgSlug && sessionResolved,
