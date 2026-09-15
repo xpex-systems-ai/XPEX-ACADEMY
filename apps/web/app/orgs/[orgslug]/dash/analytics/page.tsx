@@ -12,11 +12,8 @@ import FeatureGate from '@components/Dashboard/Shared/FeatureGate/FeatureGate'
 import { usePlan } from '@components/Hooks/usePlan'
 import ExportAnalyticsButton from '@components/Dashboard/Analytics/AnalyticsExport'
 
-// Core widgets — dynamic to code-split recharts
 const EventOverview = dynamic(() => import('@components/Dashboard/Analytics/EventOverview'))
 const CoreWidgetsRow = dynamic(() => import('@components/Dashboard/Analytics/CoreWidgetsRow'))
-
-// Advanced widgets — only loaded when user clicks the Advanced tab
 const AdvancedGate = dynamic(() => import('@components/Dashboard/Analytics/AdvancedGate').then(m => ({ default: m.AdvancedGate })))
 const CourseDropoffMap = dynamic(() => import('@components/Dashboard/Analytics/CourseDropoffMap'))
 const CohortRetention = dynamic(() => import('@components/Dashboard/Analytics/CohortRetention'))
@@ -62,16 +59,12 @@ export default function AnalyticsDashboard() {
   const [tab, setTab] = useState<Tab>('overview')
   const { data: analyticsStatus } = useAnalyticsStatus()
   const plan = usePlan()
-  // Advanced analytics is the enterprise tier; usePlan() returns the right
-  // pseudo-plan for EE ('enterprise') and OSS ('oss'), so planMeetsRequirement
-  // resolves all modes correctly.
   const isAdvanced = planMeetsRequirement(plan, 'enterprise')
   const isConfigured = analyticsStatus?.configured === true
 
   return (
     <FeatureGate feature="analytics">
     <div className="h-full w-full bg-[#f8f8f8] flex flex-col">
-      {/* Sticky header box */}
       <div className="pl-4 pr-4 sm:pl-10 sm:pr-10 tracking-tight bg-[#fcfbfc] z-10 nice-shadow flex-shrink-0 relative">
         <div className="pt-6 pb-4">
           <Breadcrumbs items={[
@@ -81,9 +74,9 @@ export default function AnalyticsDashboard() {
         <div className="my-2 py-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-col space-y-1">
-              <div className="pt-3 flex font-bold text-4xl tracking-tighter">
+              <h1 className="pt-3 flex font-bold text-4xl tracking-tighter">
                 {t('analytics.title')}
-              </div>
+              </h1>
               <div className="flex font-medium text-gray-400 text-md">
                 {t('analytics.subtitle')}
               </div>
@@ -132,7 +125,6 @@ export default function AnalyticsDashboard() {
         ]} />
       </div>
 
-      {/* Content */}
       <div className="h-6 flex-shrink-0"></div>
       <motion.div
         key={tab}
@@ -145,10 +137,10 @@ export default function AnalyticsDashboard() {
         {analyticsStatus && !isConfigured ? (
           <div className="flex flex-col items-center justify-center h-96 text-center">
             <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md nice-shadow">
-              <div className="text-4xl mb-4">📊</div>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">{t('analytics.not_configured.title')}</h2>
+              <div className="text-4xl mb-4" aria-hidden="true">📊</div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Análises indisponíveis no momento</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                {t('analytics.not_configured.description')}
+                Este recurso ainda não está habilitado para esta organização. A operação acadêmica continua disponível normalmente; a integração de métricas pode ser ativada pela administração quando estiver configurada.
               </p>
             </div>
           </div>
