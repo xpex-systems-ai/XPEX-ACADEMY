@@ -341,7 +341,7 @@ const LoginClient = (props: LoginClientProps) => {
           <div className="w-full max-w-[460px] rounded-[28px] border border-white/10 bg-white/[.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,.28)] backdrop-blur-xl md:p-8">
             {isKelleDigitalLab ? (
               <div className="relative h-16 w-56">
-                <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="224px" className="object-contain object-left" />
+                <Image src="/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg" alt="Kelle Digital Lab" fill sizes="224px" className="object-contain object-left" />
               </div>
             ) : (
               <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
