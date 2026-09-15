@@ -26,21 +26,12 @@
   box-shadow: var(--xpex-native-focus) !important;
 }
 
-/* Admin catalog cards open the editor, not the learner player. Keep the CTA
-   semantically aligned with the destination without changing learner copy. */
+/* CourseThumbnail now renders the destination-accurate admin label in markup.
+   Keep this override visual-only so the visible and accessible names match. */
 .xpex-native-admin a[href*="/dash/courses/course/"][class*="tracking-wider"] {
-  font-size: 0 !important;
+  color: #d8e2f0 !important;
 }
 
-.xpex-native-admin a[href*="/dash/courses/course/"][class*="tracking-wider"]::after {
-  content: "Editar curso";
-  color: #d8e2f0;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.xpex-native-admin a[href*="/dash/courses/course/"][class*="tracking-wider"]:hover::after {
-  color: #fff;
+.xpex-native-admin a[href*="/dash/courses/course/"][class*="tracking-wider"]:hover {
+  color: #fff !important;
 }
