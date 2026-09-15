@@ -1,12 +1,12 @@
 'use client'
 import React from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   PlusCircle,
   ChartBar,
   GearSix,
   Users,
-  BookOpen,
 } from '@phosphor-icons/react'
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
@@ -39,9 +39,10 @@ export default function DashboardHome() {
   const token = session?.data?.tokens?.access_token
   const orgId = org?.id
   const username = session?.data?.user?.username || ''
+  const isKelleDigitalLab = /kelle/i.test(`${org?.slug || ''} ${org?.name || ''}`)
 
   // TanStack Query will dedupe with UsageOverview's identical call via shared queryKey
-  const { data: usageData } = useQuery<OrgUsageResponse>({
+  useQuery<OrgUsageResponse>({
     queryKey: queryKeys.org.usage(orgId),
     queryFn: () => orgUsageFetcher(`${getAPIUrl()}orgs/${orgId}/usage`, token),
     enabled: !!token && !!orgId,
@@ -55,6 +56,25 @@ export default function DashboardHome() {
     <div className="h-full w-full bg-[#f8f8f8]">
       <div className="px-4 sm:px-10 pt-8 pb-10">
         <div className="space-y-6 max-w-[1600px] mx-auto w-full">
+          {isKelleDigitalLab && (
+            <section className="xpex-kelle-admin-hero" aria-label="Kelle Digital Lab">
+              <Image
+                src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+                alt="Kelle Digital Lab — educação, tecnologia e transformação"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 82vw"
+                className="xpex-kelle-admin-hero-image"
+              />
+              <div className="xpex-kelle-admin-hero-shade" aria-hidden="true" />
+              <div className="xpex-kelle-admin-hero-copy">
+                <span>Central de operação acadêmica</span>
+                <strong>Kelle Digital Lab</strong>
+                <small>Campos Lindos · Marajó — GO</small>
+              </div>
+            </section>
+          )}
+
           {/* Welcome Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
