@@ -217,7 +217,7 @@ export default async function PoleStudentsPage({
                   autoComplete="email"
                 />
               </div>
-              <p className={styles.helper}>O aluno usa a própria conta e define as próprias credenciais.</p>
+              <p className={styles.helper}>Nenhuma senha é criada ou alterada por este painel. O aluno usa a própria conta e define as próprias credenciais.</p>
               <button className={styles.primaryButton} type="submit">
                 <Mail aria-hidden="true" size={16}/>
                 Enviar convite
@@ -304,13 +304,13 @@ export default async function PoleStudentsPage({
           <div className={styles.activityHeader}>
             <div>
               <h2 id="activity-heading" className={styles.activityTitle}>Atividade recente</h2>
-              <p className={styles.activityText}>Últimos retornos operacionais gerados nesta página.</p>
+              <p className={styles.activityText}>Retorno da última operação executada nesta página.</p>
             </div>
           </div>
           <div className={styles.activityEmpty}>
             <div>
               <strong>{status || error || 'Nenhuma atividade recente nesta sessão'}</strong>
-              <p>Novos convites e matrículas aparecerão aqui conforme o fluxo for executado.</p>
+              <p>Esta versão mostra apenas o retorno da operação atual e não apresenta histórico persistente sem uma fonte real de dados.</p>
             </div>
           </div>
         </section>
