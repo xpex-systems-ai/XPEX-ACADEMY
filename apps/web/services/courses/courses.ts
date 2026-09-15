@@ -15,15 +15,72 @@ export async function getOrgCourses(
   org_slug: string,
   next: any,
   access_token?: any,
-  include_unpublished: boolean = false
+  include_unpublished: boolean = false,
+  page: number = 1,
+  limit: number = 100,
 ) {
-  const url = `${getAPIUrl()}courses/org_slug/${org_slug}/page/1/limit/100${include_unpublished ? '?include_unpublished=true' : ''}`
+  const safePage = Math.max(1, page)
+  const safeLimit = Math.min(100, Math.max(1, limit))
+  const url = `${getAPIUrl()}courses/org_slug/${org_slug}/page/${safePage}/limit/${safeLimit}${include_unpublished ? '?include_unpublished=true' : ''}`
   const result: any = await fetch(
     url,
     RequestBodyWithAuthHeader('GET', null, next, access_token)
   )
   const res = await errorHandling(result)
   return res
+}
+
+function markCatalogIncomplete(courses: any[]) {
+  Object.defineProperty(courses, 'incomplete', {
+    value: true,
+    enumerable: false,
+    configurable: true,
+  })
+  return courses
+}
+
+/**
+ * Return the canonical learner-visible course set for an organization.
+ *
+ * The backend caps a single page at 100 items. Library visibility must never use
+ * only page 1 as an authorization surrogate, otherwise legitimate courses after
+ * item 100 disappear from learner-facing organization surfaces. Fetch pages until
+ * the backend returns a short page. A defensive page ceiling bounds work if an
+ * upstream endpoint ever stops respecting pagination. If page 2+ fails, preserve
+ * the verified pages but mark the result incomplete so visibility-dependent
+ * empty states and analytics do not treat a partial catalog as authoritative.
+ */
+export async function getAllVisibleOrgCourses(
+  org_slug: string,
+  next: any,
+  access_token?: any,
+) {
+  const pageSize = 100
+  const maxPages = 100
+  const courses: any[] = []
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    let batch: any
+    try {
+      batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
+    } catch (error) {
+      if (page === 1) throw error
+      return markCatalogIncomplete(courses)
+    }
+
+    if (!Array.isArray(batch)) {
+      if (page === 1) throw new Error('Invalid course catalog response')
+      return markCatalogIncomplete(courses)
+    }
+
+    courses.push(...batch)
+    if (batch.length < pageSize) return courses
+  }
+
+  // Bounded graceful degradation: if every permitted page is full, keep the
+  // verified visible set collected so far and expose that it is incomplete.
+  // This avoids blanking /courses while keeping Library readiness gates honest.
+  return markCatalogIncomplete(courses)
 }
 
 export async function searchOrgCourses(
@@ -104,7 +161,6 @@ export async function createNewCourse(
   thumbnail: any,
   access_token: any
 ) {
-  // Send file thumbnail as form data
   const formData = new FormData()
   formData.append('name', course_body.name || '')
   formData.append('description', course_body.description || '')
@@ -164,7 +220,7 @@ export async function editContributor(course_uuid: string, contributor_id: strin
 export async function applyForContributor(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/apply-contributor`,
-    RequestBodyWithAuthHeader('POST', data, null,access_token || undefined)
+    RequestBodyWithAuthHeader('POST', data, null, access_token || undefined)
   )
   const res = await getResponseMetadata(result)
   return res
@@ -173,7 +229,7 @@ export async function applyForContributor(course_uuid: string, data: any, access
 export async function bulkAddContributors(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/bulk-add-contributors`,
-    RequestBodyWithAuthHeader('POST', data, null,access_token || undefined)
+    RequestBodyWithAuthHeader('POST', data, null, access_token || undefined)
   )
   const res = await getResponseMetadata(result)
   return res

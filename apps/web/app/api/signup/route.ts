@@ -4,6 +4,7 @@ import { isSaaSMode, isCustomDomainRequest } from '@lib/saas'
 import { verifyTurnstile, clientIpFromHeaders } from '@lib/turnstile'
 import { validateSignupEmail } from '@services/emails/disposableEmail'
 import { addContactWithLoops, sendLoopsEvent, LOOPS_SIGNED_USERS_GROUP } from '@services/emails/loops'
+import { buildSignupBackendPath } from '@services/auth/signupRouting'
 
 // Signup gateway. Runs the anti-abuse add-ons (Turnstile, disposable-email)
 // server-side BEFORE creating the account and fires the Loops marketing sync
@@ -45,15 +46,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ detail: 'Missing required fields' }, { status: 400 })
   }
 
-  // The anti-abuse add-ons run ONLY on the SaaS deployment. On OSS/self-hosted
-  // this route is a thin proxy to the backend user-create endpoint.
   const saas = await isSaaSMode()
 
   if (saas) {
-    // 1. Turnstile — allowed through automatically when no secret is set. Skipped
-    // on org custom domains: the hostname-locked widget can't render there, so the
-    // client sends no token and the challenge is disabled end-to-end (matches the
-    // client widget + the /api/turnstile/verify route).
     if (!(await isCustomDomainRequest())) {
       const turnstile = await verifyTurnstile(turnstileToken, clientIpFromHeaders(request.headers))
       if (!turnstile.ok) {
@@ -65,7 +60,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Disposable-email gate — offline check + optional AbstractAPI.
     const emailCheck = await validateSignupEmail(email)
     if (!emailCheck.ok) {
       return NextResponse.json(
@@ -76,25 +70,14 @@ export async function POST(request: NextRequest) {
   }
 
   const base = getServerAPIUrl()
-
-  // The backend UserCreate body — account fields only; the org (if any) is in
-  // the URL path, never the body.
   const backendBody = { email, ...rest }
+  const routeDecision = buildSignupBackendPath(org_id, inviteCode)
 
-  let url: string
-  if (inviteCode) {
-    if (!org_id) {
-      return NextResponse.json({ detail: 'Invite signups require an organization.' }, { status: 400 })
-    }
-    url = `${base}users/${org_id}/invite/${encodeURIComponent(inviteCode)}`
-  } else if (org_id) {
-    // Org subdomain: create the account and join that org.
-    url = `${base}users/${org_id}`
-  } else {
-    // Org-less apex: create a standalone account (POST /users/), unattached to
-    // any org — exactly like the platform. The user creates their org next.
-    url = `${base}users/`
+  if (!routeDecision.ok) {
+    return NextResponse.json({ detail: 'Invite signups require an organization.' }, { status: 400 })
   }
+
+  const url = `${base}${routeDecision.path}`
 
   let backendRes: Response
   try {
@@ -111,11 +94,6 @@ export async function POST(request: NextRequest) {
 
   const data = await backendRes.json().catch(() => ({}))
 
-  // On success, sync the marketing contact (SaaS-only, fire-and-forget) — but
-  // ONLY for ORG-LESS signups (learnhouse.io self-serve prospects). Members
-  // signing up INTO an existing org (org_id present) are that org's learners,
-  // not people we market to, so they are not added. Org admins are recorded
-  // separately when they create/administer an org (see /api/loops/admin).
   if (backendRes.ok && saas && !org_id) {
     void addContactWithLoops(email, LOOPS_SIGNED_USERS_GROUP, {
       firstName: rest.first_name || '',

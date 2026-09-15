@@ -57,10 +57,15 @@ export default function AnalyticsDashboard() {
   const { t } = useTranslation()
   const [days, setDays] = useState('30')
   const [tab, setTab] = useState<Tab>('overview')
-  const { data: analyticsStatus } = useAnalyticsStatus()
+  const {
+    data: analyticsStatus,
+    isLoading: analyticsStatusLoading,
+    isError: analyticsStatusError,
+  } = useAnalyticsStatus()
   const plan = usePlan()
   const isAdvanced = planMeetsRequirement(plan, 'enterprise')
   const isConfigured = analyticsStatus?.configured === true
+  const analyticsUnavailable = analyticsStatusError || (!!analyticsStatus && !isConfigured)
 
   return (
     <FeatureGate feature="analytics">
@@ -87,6 +92,7 @@ export default function AnalyticsDashboard() {
                   <button
                     key={r.value}
                     onClick={() => setDays(r.value)}
+                    disabled={!isConfigured}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                       days === r.value
                         ? 'bg-white text-gray-900 shadow-sm'
@@ -134,7 +140,16 @@ export default function AnalyticsDashboard() {
         transition={{ duration: 0.1, type: 'spring', stiffness: 80 }}
         className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-10 pb-10"
       >
-        {analyticsStatus && !isConfigured ? (
+        {analyticsStatusLoading || (!analyticsStatus && !analyticsStatusError) ? (
+          <div className="flex h-96 items-center justify-center" role="status" aria-live="polite">
+            <div className="w-full max-w-md animate-pulse rounded-2xl border border-gray-100 bg-white p-10 nice-shadow">
+              <span className="sr-only">{t('common.loading')}</span>
+              <div className="mx-auto mb-5 h-12 w-12 rounded-xl bg-gray-100" />
+              <div className="mx-auto mb-3 h-5 w-48 rounded bg-gray-100" />
+              <div className="mx-auto h-4 w-64 rounded bg-gray-100" />
+            </div>
+          </div>
+        ) : analyticsUnavailable ? (
           <div className="flex flex-col items-center justify-center h-96 text-center">
             <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md nice-shadow">
               <div className="text-4xl mb-4" aria-hidden="true">📊</div>
@@ -146,12 +161,12 @@ export default function AnalyticsDashboard() {
               </p>
             </div>
           </div>
-        ) : tab === 'overview' ? (
+        ) : isConfigured && tab === 'overview' ? (
           <div className="space-y-6 max-w-[1600px] mx-auto w-full">
             <EventOverview days={days} />
             <CoreWidgetsRow days={days} />
           </div>
-        ) : (
+        ) : isConfigured ? (
           <div className="space-y-6 max-w-[1600px] mx-auto w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <AdvancedGate isAdvanced={isAdvanced} currentPlan={plan}>
@@ -220,7 +235,7 @@ export default function AnalyticsDashboard() {
               <SearchEffectiveness days={days} />
             </AdvancedGate>
           </div>
-        )}
+        ) : null}
       </motion.div>
     </div>
     </FeatureGate>
