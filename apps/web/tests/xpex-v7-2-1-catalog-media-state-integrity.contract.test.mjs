@@ -64,14 +64,25 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
   })
 
   test('renders independent Library content while course visibility is pending or unavailable', () => {
-    expect(publicLibrary).toContain('Carregando cursos… Os demais conteúdos já estão disponíveis.')
-    expect(publicLibrary).toContain('Os cursos estão temporariamente indisponíveis')
+    expect(publicLibrary).toContain("<span>{t('common.loading')}</span>")
+    expect(publicLibrary).toContain("<span>{t('library.error_loading')}</span>")
     expect(publicLibrary).not.toContain('rootItemsLoading || catalogCoursesLoading')
     expect(publicLibrary).not.toContain('rootItemsError || catalogCoursesError')
-    expect(publicLibraryFolder).toContain('Carregando cursos desta pasta… Os demais conteúdos já estão disponíveis.')
-    expect(publicLibraryFolder).toContain('Os cursos desta pasta estão temporariamente indisponíveis')
+    expect(publicLibraryFolder).toContain("<span>{t('common.loading')}</span>")
+    expect(publicLibraryFolder).toContain("<span>{t('library.error_loading')}</span>")
     expect(publicLibraryFolder).not.toContain('folderLoading || catalogCoursesLoading')
     expect(publicLibraryFolder).not.toContain('folderError || catalogCoursesError')
+  })
+
+  test('keeps learner Library status copy inside the translation system', () => {
+    expect(publicLibrary).not.toContain('Carregando cursos… Os demais conteúdos já estão disponíveis.')
+    expect(publicLibrary).not.toContain('Os cursos estão temporariamente indisponíveis.')
+    expect(publicLibraryFolder).not.toContain('Carregando cursos desta pasta… Os demais conteúdos já estão disponíveis.')
+    expect(publicLibraryFolder).not.toContain('Os cursos desta pasta estão temporariamente indisponíveis.')
+    expect(publicLibrary).toContain("t('common.loading')")
+    expect(publicLibrary).toContain("t('library.error_loading')")
+    expect(publicLibraryFolder).toContain("t('common.loading')")
+    expect(publicLibraryFolder).toContain("t('library.error_loading')")
   })
 
   test('does not record false empty Library analytics while catalog visibility is unresolved', () => {
