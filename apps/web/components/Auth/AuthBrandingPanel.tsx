@@ -54,7 +54,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
         'relative h-full overflow-hidden bg-[#0B1220]',
         isDarkText ? 'text-slate-950' : 'text-white',
       )}
-      aria-label="XpeX Academy"
+      aria-label={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}
     >
       {isKelleDigitalLab ? (
         <Image
@@ -86,23 +86,22 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       />
 
       <div className="relative z-10 flex h-full flex-col p-10 xl:p-16">
-        <div className="inline-flex w-fit items-center gap-3 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_36px_rgba(255,122,0,.32)]">XP</span>
-          <span>
-            <strong className="block tracking-[.2em]">XpeX</strong>
-            <small
-              className={cn(
-                'text-[10px] font-bold uppercase tracking-[.24em]',
-                isDarkText ? 'text-slate-700' : 'text-white/55',
-              )}
-            >
-              Academy
-            </small>
-          </span>
-        </div>
+        {isKelleDigitalLab ? (
+          <div className="relative h-20 w-64" aria-label="Kelle Digital Lab">
+            <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="256px" className="object-contain object-left" />
+          </div>
+        ) : (
+          <div className="inline-flex w-fit items-center gap-3 rounded-2xl">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_36px_rgba(255,122,0,.32)]">XP</span>
+            <span>
+              <strong className="block tracking-[.2em]">XpeX</strong>
+              <small className={cn('text-[10px] font-bold uppercase tracking-[.24em]', isDarkText ? 'text-slate-700' : 'text-white/55')}>Academy</small>
+            </span>
+          </div>
+        )}
 
         <div className="my-auto max-w-lg">
-          {organizationName && (
+          {organizationName && !isKelleDigitalLab && (
             <div className="mb-8 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#00D4FF] text-sm font-black text-[#0B1220]">
                 {organizationName.slice(0, 1).toUpperCase()}
@@ -116,10 +115,10 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
               isDarkText ? 'text-[#075985]' : 'text-[#00D4FF]',
             )}
           >
-            {configuredWelcome || welcomeText || 'XpeX Academy'}
+            {isKelleDigitalLab ? 'Seu futuro começa aqui' : configuredWelcome || welcomeText || 'XpeX Academy'}
           </p>
           <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight xl:text-5xl">
-            {title || 'XpeX Academy'}
+            {isKelleDigitalLab ? 'Bem-vindo à Kelle Digital Lab' : title || 'XpeX Academy'}
           </h1>
           {subtitle && (
             <p
@@ -131,7 +130,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
               {subtitle}
             </p>
           )}
-          {organizationName && (
+          {organizationName && !isKelleDigitalLab && (
             <p className={cn('mt-7 text-sm font-semibold', isDarkText ? 'text-slate-800' : 'text-white/75')}>
               {organizationName}
             </p>
@@ -139,9 +138,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <p className={cn('text-xs font-semibold leading-5', isDarkText ? 'text-slate-700' : 'text-white/55')}>
-            XpeX Academy
-          </p>
+          <span aria-hidden="true" />
           {showUnsplashCredit && (
             <p className={cn('text-[11px] font-medium', isDarkText ? 'text-slate-700' : 'text-white/70')}>
               ©{' '}
