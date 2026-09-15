@@ -27,34 +27,30 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   const org = useOrg() as any;
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin, loading } = useAdminStatus() as any
+  const { isAdmin, loading } = useAdminStatus() as any;
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
+  const sessionPending = session.status !== 'authenticated' && session.status !== 'unauthenticated';
+  const orgPending = isUserAuthenticated && !org?.slug;
 
   const checkPathname = useCallback((pattern: string, pathname: string) => {
-    // Ensure the inputs are strings
     if (typeof pattern !== 'string' || typeof pathname !== 'string') {
       return false;
     }
 
-    // Convert pattern to a regex pattern
     const regexPattern = new RegExp(`^${pattern.replace(/[\/.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`);
-
-    // Test the pathname against the regex pattern
     return regexPattern.test(pathname);
   }, []);
-
 
   const isAdminPath = useMemo(() => ADMIN_PATHS.some(path => checkPathname(path, pathname)), [pathname, checkPathname]);
 
   const authorizeUser = useCallback(() => {
-    if (loading) {
-      return; // Wait until the admin status is determined
-    }
+    // Never classify a session/org hydration state as an authorization failure.
+    if (loading || sessionPending || orgPending) return;
 
     if (!isUserAuthenticated) {
-      router.push(getUriWithOrg(org.slug, '/login'));
+      router.replace(org?.slug ? getUriWithOrg(org.slug, '/login') : '/login');
       return;
     }
 
@@ -64,24 +60,25 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
           setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
-          router.push('/dash');
+          router.replace('/dash');
         }
       } else {
         setIsAuthorized(true);
       }
     } else if (authorizationMode === 'component') {
-      setIsAuthorized(isAdmin);
+      setIsAuthorized(Boolean(isAdmin));
     }
-  }, [loading, isUserAuthenticated, isAdmin, isAdminPath, authorizationMode, router]);
+  }, [loading, sessionPending, orgPending, isUserAuthenticated, isAdmin, isAdminPath, authorizationMode, router, org?.slug]);
 
   useEffect(() => {
     authorizeUser();
   }, [authorizeUser]);
 
-  if (loading) {
+  if (loading || sessionPending || orgPending) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen" role="status" aria-live="polite">
         <PageLoading />
+        <span className="sr-only">Carregando acesso administrativo…</span>
       </div>
     );
   }
@@ -89,7 +86,7 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   if (authorizationMode === 'page' && !isAuthorized) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <h1 className="text-2xl">You are not authorized to access this page</h1>
+        <h1 className="text-2xl">Acesso administrativo indisponível</h1>
       </div>
     );
   }
