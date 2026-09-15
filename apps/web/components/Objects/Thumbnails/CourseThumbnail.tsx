@@ -4,6 +4,7 @@ import AuthenticatedClientElement from '@components/Security/AuthenticatedClient
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
 import Modal from '@components/Objects/StyledElements/Modal/Modal'
 import ManageAccessPopover from '@components/Dashboard/Library/ManageAccessPopover'
+import SafeImage from '@components/Objects/SafeImage'
 import { getUriWithOrg } from '@services/config/config'
 import { deleteCourseFromBackend, cloneCourse } from '@services/courses/courses'
 import { exportCourse, downloadBlob, ExportStatus } from '@services/courses/transfer'
@@ -12,7 +13,7 @@ import { getCourseThumbnailMediaDirectory, getUserAvatarMediaDirectory } from '@
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query/keys'
 import { getCourseMetadata } from '@services/courses/courses'
-import { BookMinus, FilePenLine, Settings2, MoreVertical, Copy, Download, CheckSquare, Square, Lock } from 'lucide-react'
+import { BookOpen, BookMinus, FilePenLine, Settings2, MoreVertical, Copy, Download, CheckSquare, Square, Lock } from 'lucide-react'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import Link from 'next/link'
 import React from 'react'
@@ -78,7 +79,6 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
     })
   }
 
-  // Prefetch course meta on hover so the course page feels instant
   const handleMouseEnter = () => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.courses.meta(cleanUuid),
@@ -147,15 +147,24 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
     }
   }
 
-  const thumbnailImage = course.thumbnail_image
-    ? getCourseThumbnailMediaDirectory(org?.org_uuid, course.course_uuid, course.thumbnail_image)
-    : '/empty_thumbnail.png'
+  const thumbnailImage = course.thumbnail_image && org?.org_uuid
+    ? getCourseThumbnailMediaDirectory(org.org_uuid, course.course_uuid, course.thumbnail_image)
+    : undefined
+
+  const thumbnailFallback = (
+    <div
+      data-thumbnail-fallback="course"
+      className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-300"
+      aria-label={t('courses.course')}
+    >
+      <BookOpen className="h-10 w-10" strokeWidth={1.5} aria-hidden="true" />
+    </div>
+  )
 
   const courseLink = customLink ? customLink : getUriWithOrg(orgslug, `/course/${removeCoursePrefix(course.course_uuid)}`)
 
   return (
     <div onMouseEnter={handleMouseEnter} className={`group relative flex flex-col bg-white rounded-xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01] ${isSelected ? 'ring-2 ring-black ring-offset-2' : ''}`}>
-      {/* Selection checkbox - visible on hover or when selected (dashboard only) */}
       {isDashboard && onToggleSelect && (
         <button
           onClick={handleSelectClick}
@@ -172,7 +181,6 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
         </button>
       )}
 
-      {/* Options menu - visible on hover or when dropdown is open */}
       <AdminEditOptions
         course={course}
         orgSlug={orgslug}
@@ -183,20 +191,13 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
       />
 
       <Link prefetch={false} href={courseLink} onClick={handleCardOpen} className="block relative aspect-video overflow-hidden bg-gray-50">
-        {/* Hidden img gives the browser a real resource hint so it can fetch the background-image early as an LCP candidate */}
-        {isPriority && (
-           
-          <img
-            src={thumbnailImage}
-            alt=""
-            aria-hidden="true"
-            fetchPriority="high"
-            className="absolute w-0 h-0 opacity-0 pointer-events-none"
-          />
-        )}
-        <div
-          className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-          style={{ backgroundImage: `url(${thumbnailImage})` }}
+        <SafeImage
+          src={thumbnailImage}
+          alt={course.name}
+          fetchPriority={isPriority ? 'high' : 'auto'}
+          loading={isPriority ? 'eager' : 'lazy'}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fallback={thumbnailFallback}
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
         {isDashboard && (
@@ -225,7 +226,7 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
             {course.name}
           </Link>
         </div>
-        
+
         {course.description && (
           <p className="text-[11px] text-gray-500 line-clamp-2 min-h-[1.5rem]">
             {course.description}
@@ -237,8 +238,8 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
             {displayedAuthors.length > 0 && (
               <div className="flex -space-x-2 items-center">
                 {displayedAuthors.map((author, index) => (
-                  <div 
-                    key={author.user.user_uuid} 
+                  <div
+                    key={author.user.user_uuid}
                     className="relative"
                     style={{ zIndex: displayedAuthors.length - index }}
                   >
@@ -262,14 +263,14 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
                 )}
               </div>
             )}
-            
+
             {course.update_date && (
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                {new Date(course.update_date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
+                {new Date(course.update_date).toLocaleDateString(i18n.language === 'pt' || i18n.language === 'pt-BR' ? 'pt-BR' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
               </span>
             )}
           </div>
-          
+
           <Link
             prefetch={false}
             href={courseLink}
@@ -308,7 +309,7 @@ const AdminEditOptions = ({ course, orgSlug, deleteCourse, cloneCourse, exportCo
       }`}>
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
-            <button aria-label="Course actions"className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md">
+            <button aria-label="Course actions" className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md">
               <MoreVertical size={18} className="text-gray-700" />
             </button>
           </DropdownMenuTrigger>
