@@ -78,25 +78,28 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
     data: catalogCoursesData,
     isLoading: catalogCoursesLoading,
     isError: catalogCoursesError,
+    isIncomplete: catalogCoursesIncomplete,
   } = useCourses(orgslug)
 
   const folders = Array.isArray(foldersData) ? foldersData : []
   const rootItems = Array.isArray(rootItemsData) ? rootItemsData : []
   const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
-  const catalogReady = !catalogCoursesLoading && !catalogCoursesError
+  const catalogUsable = !catalogCoursesLoading && !catalogCoursesError
+  const catalogReady = catalogUsable && !catalogCoursesIncomplete
 
   const visibleCourseUuids = useMemo(
     () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
     [catalogCourses],
   )
 
-  // Course cards fail closed until canonical visibility is known. Independent
-  // folders/media/podcasts/etc. render as soon as their own data is ready.
+  // Verified course cards may render from a degraded/partial catalog, while
+  // unknown courses remain fail-closed. Only a complete catalog may authorize
+  // learner-empty states or empty-library analytics.
   const visibleRootItems = useMemo(
     () => rootItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
+      item?.resource_type !== 'courses' || (catalogUsable && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rootItems, visibleCourseUuids, catalogReady],
+    [rootItems, visibleCourseUuids, catalogUsable],
   )
 
   const libraryLoading = !org?.id || !sessionResolved || foldersLoading || rootItemsLoading
@@ -132,7 +135,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
               </div>
             )}
 
-            {catalogCoursesError && (
+            {(catalogCoursesError || catalogCoursesIncomplete) && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
                 <WarningCircle size={18} className="mt-0.5 shrink-0" />
                 <span>{t('library.error_loading')}</span>
