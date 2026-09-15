@@ -8,6 +8,7 @@ import {
   xpexCourseStudioRoute,
   xpexLearnerCoursesRoute,
   xpexPoloCoursesRoute,
+  xpexPoloManagementRoute,
   xpexPoloRoute,
   xpexPoloStudentsRoute,
   xpexStudentRoute,
@@ -36,6 +37,7 @@ describe('XPeX canonical navigation contract', () => {
     }
     expect(xpexCourseStudioRoute('authorized-polo')).toBe('/course-studio')
     expect(xpexPoloCoursesRoute('authorized-polo')).toBe('/dash/courses')
+    expect(xpexPoloManagementRoute('authorized-polo')).toBe('/dash')
     expect(existsSync(join(webRoot, 'app/orgs/[orgslug]/dash/courses/page.tsx'))).toBe(true)
     expect(existsSync(join(webRoot, 'app/orgs/[orgslug]/(withmenu)/course-studio/page.tsx'))).toBe(true)
   })
@@ -71,6 +73,7 @@ describe('XPeX canonical navigation contract', () => {
     const shell = readFileSync(join(webRoot, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
     expect(shell).not.toContain('?section=${index}')
     expect(shell).toContain("'Alunos': '/xpex/polo/alunos'")
+    expect(shell).toContain("'Painel de Gestão': xpexPoloManagementRoute(organizationSlug)")
     for (const route of ['/dash/users/settings/usergroups', '/dash/courses', '/dash/library', '/dash/analytics', '/dash/org/settings/general']) {
       expect(shell).toContain(route)
     }

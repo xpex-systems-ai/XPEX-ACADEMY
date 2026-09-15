@@ -11,6 +11,7 @@ import { getUriWithOrg } from '@services/config/config'
 import type { XpexPoloAccess } from '@/lib/xpex/access'
 import type { PoloBranding } from '@/lib/xpex/polo-branding'
 import { canNavigatePolo } from '@/lib/xpex/polo-policy'
+import { xpexPoloManagementRoute } from '@/lib/xpexRouteMap'
 import type { XpexRole } from './xpex-types'
 import './xpex-tokens.css'
 import './xpex.css'
@@ -80,6 +81,7 @@ export function XpexRoleNavigation({ role, organizationSlug, adminAccess = false
     : role === 'polo'
       ? {
           'Visão Geral': '/xpex/polo',
+          'Painel de Gestão': xpexPoloManagementRoute(organizationSlug),
           'Alunos': '/xpex/polo/alunos',
           'Turmas': '/xpex/polo/turmas',
           'Cursos': '/xpex/polo/cursos',
