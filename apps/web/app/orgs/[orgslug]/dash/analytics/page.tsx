@@ -143,7 +143,7 @@ export default function AnalyticsDashboard() {
         {analyticsStatusLoading || (!analyticsStatus && !analyticsStatusError) ? (
           <div className="flex h-96 items-center justify-center" role="status" aria-live="polite">
             <div className="w-full max-w-md animate-pulse rounded-2xl border border-gray-100 bg-white p-10 nice-shadow">
-              <span className="sr-only">Carregando disponibilidade das análises…</span>
+              <span className="sr-only">{t('common.loading')}</span>
               <div className="mx-auto mb-5 h-12 w-12 rounded-xl bg-gray-100" />
               <div className="mx-auto mb-3 h-5 w-48 rounded bg-gray-100" />
               <div className="mx-auto h-4 w-64 rounded bg-gray-100" />
