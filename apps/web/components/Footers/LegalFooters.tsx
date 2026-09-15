@@ -6,10 +6,9 @@
 import React from 'react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
-import { getPlatformUrl } from '@services/config/config'
 
-const TERMS_URL = getPlatformUrl('/terms') || 'https://www.learnhouse.io/terms'
-const PRIVACY_URL = getPlatformUrl('/privacy') || 'https://www.learnhouse.io/privacy'
+const TERMS_URL = '/terms'
+const PRIVACY_URL = '/privacy'
 const LICENSE_URL = 'https://github.com/xpex-systems-ai/XPEX-ACADEMY/blob/dev/LICENSE'
 const SOURCE_URL = 'https://github.com/xpex-systems-ai/XPEX-ACADEMY'
 
@@ -35,8 +34,6 @@ export function AuthFooter({ className = '', tone = 'light' }: { className?: str
         {termsLead}{' '}
         <Link
           href={TERMS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
           className={`${link} transition-colors`}
         >
           {t('auth.terms_of_service', { defaultValue: 'Terms of Service' })}
@@ -44,8 +41,6 @@ export function AuthFooter({ className = '', tone = 'light' }: { className?: str
         {t('auth.and', { defaultValue: isPortuguese ? 'e' : 'and' })}{' '}
         <Link
           href={PRIVACY_URL}
-          target="_blank"
-          rel="noopener noreferrer"
           className={`${link} transition-colors`}
         >
           {t('auth.privacy_policy', { defaultValue: 'Privacy Policy' })}
@@ -88,16 +83,12 @@ export function CopyrightFooter({
         <nav className="flex items-center gap-x-5">
           <Link
             href={TERMS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className={`${link} transition-colors`}
           >
             {t('auth.terms_of_service', { defaultValue: 'Terms of Service' })}
           </Link>
           <Link
             href={PRIVACY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
             className={`${link} transition-colors`}
           >
             {t('auth.privacy_policy', { defaultValue: 'Privacy Policy' })}

@@ -29,6 +29,8 @@ describe('public root host routing', () => {
     expect(isRailwayServiceHost('xpex.up.railway.app.evil.com')).toBe(false)
     expect(isRailwayServiceHost('fakeup.railway.app')).toBe(false)
     expect(isPublicRootRequest('/', 'xpex-academy-ai.up.railway.app', [])).toBe(true)
+    expect(isPublicRootRequest('/terms', 'xpex-academy-ai.up.railway.app', [])).toBe(true)
+    expect(isPublicRootRequest('/privacy', 'xpex-academy-ai.up.railway.app', [])).toBe(true)
     expect(isPublicRootRequest('/login', 'xpex-academy-ai.up.railway.app', [])).toBe(false)
   })
 

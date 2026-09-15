@@ -39,7 +39,8 @@ export function isPublicRootRequest(
   host: string | null,
   configuredApexHosts: Array<string | null | undefined>,
 ): boolean {
-  if (pathname !== '/') return false
+  const publicApexPaths = new Set(['/', '/terms', '/privacy'])
+  if (!publicApexPaths.has(pathname)) return false
 
   const currentHost = normalizeProxyHost(host)
   if (!currentHost) return false
