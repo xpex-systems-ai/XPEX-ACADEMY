@@ -138,9 +138,11 @@ export default function AnalyticsDashboard() {
           <div className="flex flex-col items-center justify-center h-96 text-center">
             <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md nice-shadow">
               <div className="text-4xl mb-4" aria-hidden="true">📊</div>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Análises indisponíveis no momento</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">
+                {t('common.features.disabled.public.title', { feature: t('analytics.title') })}
+              </h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Este recurso ainda não está habilitado para esta organização. A operação acadêmica continua disponível normalmente; a integração de métricas pode ser ativada pela administração quando estiver configurada.
+                {t('common.features.disabled.public.description')}
               </p>
             </div>
           </div>
