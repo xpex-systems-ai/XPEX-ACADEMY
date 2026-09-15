@@ -98,13 +98,13 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
   const libraryLoading = !org?.id || foldersLoading || rootItemsLoading
   const libraryError = rootItemsError
   const analyticsReady = !libraryLoading && !libraryError && catalogReady
-  const genuineEmpty = folders.length === 0 && rootItems.length === 0
+  const learnerEmpty = folders.length === 0 && visibleRootItems.length === 0
 
   useTrackView(
     AnalyticsEvent.LibraryViewed,
     {
       folder_count: folders.length,
-      is_empty: folders.length === 0 && visibleRootItems.length === 0,
+      is_empty: learnerEmpty,
     },
     analyticsReady,
     'learner',
@@ -152,7 +152,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
                 </div>
               )}
 
-              {genuineEmpty && (
+              {catalogReady && learnerEmpty && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
