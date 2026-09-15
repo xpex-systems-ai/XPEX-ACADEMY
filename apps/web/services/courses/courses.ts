@@ -40,6 +40,10 @@ export async function getOrgCourses(
  * upstream endpoint ever stops respecting pagination; reaching that ceiling
  * returns the accumulated safe visibility set instead of converting a very large
  * but valid catalog into a total outage.
+ *
+ * Page 1 establishes whether the catalog is available at all and remains fatal.
+ * Once at least one page has been verified, a later-page failure degrades to the
+ * accumulated verified set instead of blanking the whole catalog/Library.
  */
 export async function getAllVisibleOrgCourses(
   org_slug: string,
@@ -51,10 +55,21 @@ export async function getAllVisibleOrgCourses(
   const courses: any[] = []
 
   for (let page = 1; page <= maxPages; page += 1) {
-    const batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
-    if (!Array.isArray(batch)) {
-      throw new Error('Invalid course catalog response')
+    let batch: any
+    try {
+      batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
+    } catch (error) {
+      if (page === 1) throw error
+      return courses
     }
+
+    if (!Array.isArray(batch)) {
+      if (page === 1) {
+        throw new Error('Invalid course catalog response')
+      }
+      return courses
+    }
+
     courses.push(...batch)
     if (batch.length < pageSize) return courses
   }
