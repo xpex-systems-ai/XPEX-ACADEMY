@@ -3,14 +3,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { queryKeys } from '@lib/query/keys'
-import { getOrgCourses, getCourseMetadata } from '@services/courses/courses'
+import { getAllVisibleOrgCourses, getCourseMetadata } from '@services/courses/courses'
 
 export function useCourses(orgSlug: string) {
   const session = useLHSession() as any
   const accessToken = session?.data?.tokens?.access_token as string | undefined
   const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
   const authScope = session.status === 'authenticated'
-    ? session?.data?.user?.user_uuid || 'authenticated'
+    ? session?.data?.user?.user_uuid || session?.data?.user?.id || 'authenticated-unresolved'
     : 'anonymous'
 
   const query = useQuery({
@@ -18,7 +18,10 @@ export function useCourses(orgSlug: string) {
     // response fetched during hydration — or another signed-in user on a shared
     // browser — become the cached catalog truth for the current account.
     queryKey: [...queryKeys.courses.list(orgSlug), authScope],
-    queryFn: () => getOrgCourses(orgSlug, {}, accessToken),
+    // The canonical visibility set must include every visible course, not only
+    // page 1, because Library uses this same set to decide which course cards
+    // may be exposed to the learner.
+    queryFn: () => getAllVisibleOrgCourses(orgSlug, {}, accessToken),
     enabled: !!orgSlug && sessionResolved,
     staleTime: 60_000,
   })
