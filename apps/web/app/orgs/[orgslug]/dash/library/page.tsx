@@ -36,17 +36,16 @@ async function LibraryPage(props: { params: Promise<{ orgslug: string }> }) {
   const session = await getServerSession()
   const access_token = session?.tokens?.access_token
 
-  let folders: any[] = []
+  // Undefined means the server preload did not resolve. The client must then
+  // complete its authenticated revalidation before an empty state is trusted.
+  let folders: any[] | undefined
   try {
     folders = await getOrgFolders(org.id, access_token ?? undefined, { revalidate: 60, tags: ['folders'] })
-  } catch (error) {
-    // The client performs an authenticated revalidation and owns the final
-    // loading/error/empty state. Do not present this server fallback as a
-    // confirmed empty library.
-    console.warn('Initial library folder preload failed; client revalidation will retry:', error)
+  } catch {
+    folders = undefined
   }
 
-  return <LibraryHome orgslug={orgslug} org_id={org.id} initialFolders={folders || []} />
+  return <LibraryHome orgslug={orgslug} org_id={org.id} initialFolders={folders} />
 }
 
 export default LibraryPage
