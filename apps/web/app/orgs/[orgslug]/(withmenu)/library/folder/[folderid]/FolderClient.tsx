@@ -67,7 +67,6 @@ function FolderClient({
   const loading = !sessionResolved || folderLoading
   const error = folderError
   const learnerEmpty = subfolders.length === 0 && items.length === 0
-  const genuineEmpty = subfolders.length === 0 && rawItems.length === 0
   const analyticsReady = !loading && !error && !!folder && catalogReady
 
   useTrackView(
@@ -175,7 +174,7 @@ function FolderClient({
                 </div>
               )}
 
-              {genuineEmpty && (
+              {catalogReady && learnerEmpty && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
