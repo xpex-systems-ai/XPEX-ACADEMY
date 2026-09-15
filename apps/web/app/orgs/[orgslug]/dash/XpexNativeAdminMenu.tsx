@@ -35,12 +35,12 @@ export default function XpexNativeAdminMenu() {
       <Link href={poloHref} className="xpex-native-admin-brand" aria-label="Voltar para a visão geral do Polo">
         {isKelleDigitalLab ? (
           <span className="xpex-native-admin-logo" aria-hidden="true">
-            <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="" fill sizes="46px" />
+            <Image src="/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg" alt="" fill sizes="190px" />
           </span>
         ) : (
           <span className="xpex-native-admin-monogram" aria-hidden="true">{monogram(org?.name)}</span>
         )}
-        <span className="xpex-native-admin-brand-copy">
+        <span className={`xpex-native-admin-brand-copy${isKelleDigitalLab ? ' sr-only' : ''}`}>
           <strong>{org?.name || 'XpeX Academy'}</strong>
           <small>Operação acadêmica</small>
         </span>
