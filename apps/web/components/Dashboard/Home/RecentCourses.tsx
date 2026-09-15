@@ -12,7 +12,7 @@ import { SafeImage } from '@components/Objects/SafeImage'
 import { BookOpen, PlusCircle, Clock } from '@phosphor-icons/react'
 
 export default function RecentCourses() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const org = useOrg() as any
   const session = useLHSession() as any
   const token = session?.data?.tokens?.access_token
@@ -28,6 +28,7 @@ export default function RecentCourses() {
   const courses: any[] = coursesData ?? []
   const publishedCount = courses.filter((c: any) => c.published).length
   const draftCount = courses.filter((c: any) => !c.published).length
+  const dateLocale = i18n.language?.startsWith('pt') ? 'pt-BR' : i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US'
 
   return (
     <div className="bg-white rounded-xl nice-shadow overflow-hidden">
@@ -58,7 +59,8 @@ export default function RecentCourses() {
       </div>
 
       {isLoading ? (
-        <div className="px-5 pb-4 space-y-3">
+        <div className="px-5 pb-4 space-y-3" role="status" aria-live="polite">
+          <span className="sr-only">Carregando cursos recentes…</span>
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-3 animate-pulse">
               <div className="w-10 h-10 bg-gray-100 rounded-lg shrink-0" />
@@ -73,11 +75,7 @@ export default function RecentCourses() {
         <div className="px-5 pb-5">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="p-3 rounded-full bg-gray-100 mb-3">
-              <BookOpen
-                size={20}
-                weight="duotone"
-                className="text-gray-400"
-              />
+              <BookOpen size={20} weight="duotone" className="text-gray-400" />
             </div>
             <p className="text-xs text-gray-400 mb-3">{t('dashboard.home.no_courses_yet')}</p>
             <Link
@@ -94,18 +92,16 @@ export default function RecentCourses() {
           {courses.slice(0, 8).map((course: any) => {
             const courseId = course.course_uuid?.replace('course_', '')
             const thumbnail = course.thumbnail_image
-              ? getCourseThumbnailMediaDirectory(
-                  org.org_uuid,
-                  course.course_uuid,
-                  course.thumbnail_image
-                )
+              ? getCourseThumbnailMediaDirectory(org.org_uuid, course.course_uuid, course.thumbnail_image)
               : null
             const updatedAt = course.update_date
-              ? new Date(course.update_date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })
+              ? new Date(course.update_date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
               : null
+            const fallbackArtwork = (
+              <div className="grid h-full w-full place-items-center bg-[linear-gradient(145deg,#0b1220,#142238)] text-cyan-300" aria-hidden="true">
+                <BookOpen size={18} weight="duotone" />
+              </div>
+            )
 
             return (
               <Link
@@ -122,14 +118,9 @@ export default function RecentCourses() {
                       width={40}
                       height={40}
                       className="w-full h-full object-cover"
+                      fallback={fallbackArtwork}
                     />
-                  ) : (
-                    <BookOpen
-                      size={16}
-                      weight="duotone"
-                      className="text-gray-300"
-                    />
-                  )}
+                  ) : fallbackArtwork}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-700 truncate group-hover:text-gray-900">
@@ -151,9 +142,7 @@ export default function RecentCourses() {
                 </div>
                 <span
                   className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
-                    course.published
-                      ? 'bg-green-50 text-green-600'
-                      : 'bg-gray-100 text-gray-500'
+                    course.published ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
                   {course.published ? t('dashboard.home.published') : t('dashboard.home.draft')}
