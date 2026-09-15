@@ -70,9 +70,6 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
     enabled: !!org?.id,
   })
 
-  // Canonical catalog visibility is the source of truth for learner-facing
-  // course discovery. Library can organize that truth, but must never expose a
-  // draft/private course that /courses would not return to the same identity.
   const {
     data: catalogCoursesData,
     isLoading: catalogCoursesLoading,
@@ -82,24 +79,26 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
   const folders = Array.isArray(foldersData) ? foldersData : []
   const rootItems = Array.isArray(rootItemsData) ? rootItemsData : []
   const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
+  const catalogReady = !catalogCoursesLoading && !catalogCoursesError
 
   const visibleCourseUuids = useMemo(
     () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
     [catalogCourses],
   )
 
-  // Fail closed for COURSE cards if canonical visibility is unavailable, but do
-  // not punish unrelated folders/media/podcasts/etc. A transient catalog outage
-  // must not blank the rest of the Library.
+  // Course cards fail closed until canonical visibility is known. Independent
+  // folders/media/podcasts/etc. render as soon as their own data is ready.
   const visibleRootItems = useMemo(
     () => rootItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
+      item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rootItems, visibleCourseUuids, catalogCoursesError],
+    [rootItems, visibleCourseUuids, catalogReady],
   )
 
-  const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading
+  const libraryLoading = !org?.id || foldersLoading || rootItemsLoading
   const libraryError = rootItemsError
+  const analyticsReady = !libraryLoading && !libraryError && catalogReady
+  const genuineEmpty = folders.length === 0 && rootItems.length === 0
 
   useTrackView(
     AnalyticsEvent.LibraryViewed,
@@ -107,7 +106,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
       folder_count: folders.length,
       is_empty: folders.length === 0 && visibleRootItems.length === 0,
     },
-    !libraryLoading && !libraryError,
+    analyticsReady,
     'learner',
   )
 
@@ -122,6 +121,12 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
             <div className="flex items-center justify-between">
               <TypeOfContentTitle title={t('library.library')} type="cou" />
             </div>
+
+            {catalogCoursesLoading && (
+              <div className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600" role="status" aria-live="polite">
+                <span>Carregando cursos… Os demais conteúdos já estão disponíveis.</span>
+              </div>
+            )}
 
             {catalogCoursesError && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
@@ -147,7 +152,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
                 </div>
               )}
 
-              {folders.length === 0 && visibleRootItems.length === 0 && !catalogCoursesError && (
+              {genuineEmpty && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
