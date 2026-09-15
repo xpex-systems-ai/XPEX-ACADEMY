@@ -64,10 +64,8 @@
 .xpex-native-admin .text-gray-500,.xpex-native-admin .text-gray-400 { color:var(--xpex-native-muted) !important; }
 .xpex-native-admin .border-gray-100,.xpex-native-admin .border-gray-200,.xpex-native-admin .border-gray-300,.xpex-native-admin [class*="ring-neutral-200"],.xpex-native-admin [class*="shadow-neutral-300"] { border-color:var(--xpex-native-border) !important; --tw-ring-color:rgba(34,53,80,.65) !important; --tw-shadow-color:rgba(0,0,0,.24) !important; }
 
-/* Cards, panels and data regions share one visual grammar. */
-.xpex-native-admin-main [class*="nice-shadow"],
-.xpex-native-admin-main [class*="rounded-xl"],
-.xpex-native-admin-main [class*="rounded-2xl"] {
+/* Cards and panels share one visual grammar without overriding small rounded controls. */
+.xpex-native-admin-main [class*="nice-shadow"] {
   border-color:var(--xpex-native-border-soft);
   box-shadow:var(--xpex-native-shadow) !important;
 }
@@ -78,8 +76,10 @@
 .xpex-native-admin-main tbody tr { transition:background-color .16s ease; }
 .xpex-native-admin-main tbody tr:hover { background:rgba(0,212,255,.035); }
 
-/* Enterprise form controls: consistent density, focus and readability. */
-.xpex-native-admin input,.xpex-native-admin textarea,.xpex-native-admin select {
+/* Enterprise form controls: consistent density for text-like inputs only. */
+.xpex-native-admin input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+.xpex-native-admin textarea,
+.xpex-native-admin select {
   min-height:42px; color:#fff; background-color:#0a111c; border-color:var(--xpex-native-border);
   border-radius:10px; transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease;
 }
@@ -103,7 +103,14 @@ body:has(.xpex-native-admin) [role="dialog"] .text-gray-800,body:has(.xpex-nativ
 body:has(.xpex-native-admin) [role="dialog"] .border-gray-100,body:has(.xpex-native-admin) [role="dialog"] .border-gray-200,body:has(.xpex-native-admin) [role="dialog"] .border-gray-300 { border-color:#223550 !important; }
 body:has(.xpex-native-admin) [role="dialog"] input,body:has(.xpex-native-admin) [role="dialog"] textarea,body:has(.xpex-native-admin) [role="dialog"] select { color:#fff; background:#0a111c; border-color:#223550; border-radius:10px; }
 
-@media (prefers-reduced-motion: reduce) { .xpex-native-admin * { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; } }
+@media (prefers-reduced-motion: reduce) {
+  .xpex-native-admin * {
+    scroll-behavior:auto !important;
+    transition-duration:.01ms !important;
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+  }
+}
 @media (max-width:1024px) {
   .xpex-native-admin-main { margin-left:0; }
   .xpex-native-admin-menu { position:sticky; top:0; width:100%; height:auto; flex-direction:row; align-items:center; gap:10px; overflow-x:auto; padding:10px 12px; border-right:0; border-bottom:1px solid var(--xpex-native-border); box-shadow:0 18px 45px rgba(0,0,0,.22); }
