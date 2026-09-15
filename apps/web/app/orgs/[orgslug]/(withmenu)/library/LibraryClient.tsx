@@ -50,14 +50,18 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
   const org = useOrg() as any
   const session = useLHSession() as any
   const access_token = session?.data?.tokens?.access_token
+  const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
+  const authScope = session.status === 'authenticated'
+    ? session?.data?.user?.user_uuid || session?.data?.user?.id || 'authenticated-unresolved'
+    : 'anonymous'
 
   const {
     data: foldersData,
     isLoading: foldersLoading,
   } = useQuery({
-    queryKey: org?.id ? queryKeys.folders.list(org.id) : ['folders', 'pending'],
+    queryKey: org?.id ? [...queryKeys.folders.list(org.id), authScope] : ['folders', 'pending', authScope],
     queryFn: () => getOrgFolders(org.id, access_token),
-    enabled: !!org?.id,
+    enabled: !!org?.id && sessionResolved,
   })
 
   const {
@@ -65,9 +69,9 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
     isLoading: rootItemsLoading,
     isError: rootItemsError,
   } = useQuery({
-    queryKey: org?.id ? ['library-root-items', org.id] : ['library-root-items', 'pending'],
+    queryKey: org?.id ? ['library-root-items', org.id, authScope] : ['library-root-items', 'pending', authScope],
     queryFn: () => getOrgRootItems(org.id, access_token),
-    enabled: !!org?.id,
+    enabled: !!org?.id && sessionResolved,
   })
 
   const {
@@ -95,7 +99,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
     [rootItems, visibleCourseUuids, catalogReady],
   )
 
-  const libraryLoading = !org?.id || foldersLoading || rootItemsLoading
+  const libraryLoading = !org?.id || !sessionResolved || foldersLoading || rootItemsLoading
   const libraryError = rootItemsError
   const analyticsReady = !libraryLoading && !libraryError && catalogReady
   const learnerEmpty = folders.length === 0 && visibleRootItems.length === 0
