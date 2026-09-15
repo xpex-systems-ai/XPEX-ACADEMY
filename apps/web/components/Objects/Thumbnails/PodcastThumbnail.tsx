@@ -70,6 +70,7 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
   const displayedAuthors = activeAuthors.slice(0, 3)
   const hasMoreAuthors = activeAuthors.length > 3
   const remainingAuthorsCount = activeAuthors.length - 3
+  const dateLocale = i18n.language?.startsWith('pt') ? 'pt-BR' : i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US'
 
   const handleDeletePodcast = async () => {
     const toastId = toast.loading(t('podcasts.deleting_podcast'))
@@ -94,9 +95,13 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
       ? getUriWithOrg(orgslug, `/dash/podcasts/podcast/${removePodcastPrefix(podcast.podcast_uuid)}/general`)
       : getUriWithOrg(orgslug, `/podcast/${removePodcastPrefix(podcast.podcast_uuid)}`)
 
+  const episodeCount = podcast.episode_count
+  const episodeLabel = i18n.language?.startsWith('pt')
+    ? episodeCount === 1 ? 'episódio' : 'episódios'
+    : episodeCount === 1 ? 'episode' : 'episodes'
+
   return (
     <div className="group relative flex flex-col bg-white rounded-xl nice-shadow overflow-hidden w-full transition-all duration-300 hover:scale-[1.01]">
-      {/* Options menu */}
       <AdminEditOptions
         podcast={podcast}
         orgSlug={orgslug}
@@ -111,7 +116,7 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3 shadow-lg">
-            <Play className="w-6 h-6 text-gray-900 fill-current" />
+            {isDashboard ? <Settings2 className="w-6 h-6 text-gray-900" /> : <Play className="w-6 h-6 text-gray-900 fill-current" />}
           </div>
         </div>
         {isDashboard && (
@@ -127,10 +132,10 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
             )}
           </div>
         )}
-        {podcast.episode_count !== undefined && (
+        {episodeCount !== undefined && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 text-white px-2 py-0.5 rounded-full text-[10px] font-medium">
             <Headphones size={12} />
-            {podcast.episode_count} {podcast.episode_count === 1 ? 'episode' : 'episodes'}
+            {episodeCount} {episodeLabel}
           </div>
         )}
       </Link>
@@ -157,11 +162,7 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
             {displayedAuthors.length > 0 && (
               <div className="flex -space-x-2 items-center">
                 {displayedAuthors.map((author, index) => (
-                  <div
-                    key={author.user.user_uuid}
-                    className="relative"
-                    style={{ zIndex: displayedAuthors.length - index }}
-                  >
+                  <div key={author.user.user_uuid} className="relative" style={{ zIndex: displayedAuthors.length - index }}>
                     <UserAvatar
                       border="border-2"
                       rounded="rounded-full"
@@ -185,7 +186,7 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
 
             {podcast.update_date && (
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                {new Date(podcast.update_date).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })}
+                {new Date(podcast.update_date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
               </span>
             )}
           </div>
@@ -195,7 +196,7 @@ function PodcastThumbnail({ podcast, orgslug, customLink, isDashboard = false }:
             onClick={handleCardOpen}
             className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-wider"
           >
-            {t('podcasts.listen_now')}
+            {isDashboard ? 'Configurar podcast' : t('podcasts.listen_now')}
           </Link>
         </div>
       </div>
@@ -224,7 +225,7 @@ const AdminEditOptions = ({ podcast, orgSlug, deletePodcast, isDashboard = false
       }`}>
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
-            <button aria-label="Podcast actions" className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md">
+            <button aria-label="Ações do podcast" className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all shadow-md">
               <MoreVertical size={18} className="text-gray-700" />
             </button>
           </DropdownMenuTrigger>

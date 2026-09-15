@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useOrg } from '@components/Contexts/OrgContext'
 import { ChevronDown, ArrowDownAZ, ArrowUpAZ, Clock, History, GripVertical } from 'lucide-react'
 import {
   DropdownMenu,
@@ -23,26 +24,29 @@ interface FolderSortDropdownProps {
 
 export function FolderSortDropdown({ value, onChange }: FolderSortDropdownProps) {
   const { t } = useTranslation()
+  const org = useOrg() as any
+  const isKelleDigitalLab = /kelle/i.test(`${org?.slug || ''} ${org?.name || ''}`)
+
+  const copy = (key: string, portuguese: string, fallback: string) =>
+    isKelleDigitalLab ? portuguese : t(key, { defaultValue: fallback })
 
   const sortOptions = [
-    { value: 'name_asc' as FolderSortMode, label: t('library.sort.name_asc', { defaultValue: 'Name (A–Z)' }), icon: ArrowDownAZ },
-    { value: 'name_desc' as FolderSortMode, label: t('library.sort.name_desc', { defaultValue: 'Name (Z–A)' }), icon: ArrowUpAZ },
-    { value: 'newest' as FolderSortMode, label: t('library.sort.newest', { defaultValue: 'Newest first' }), icon: Clock },
-    { value: 'oldest' as FolderSortMode, label: t('library.sort.oldest', { defaultValue: 'Oldest first' }), icon: History },
-    { value: 'manual' as FolderSortMode, label: t('library.sort.manual', { defaultValue: 'Manual' }), icon: GripVertical },
+    { value: 'name_asc' as FolderSortMode, label: copy('library.sort.name_asc', 'Nome (A–Z)', 'Name (A–Z)'), icon: ArrowDownAZ },
+    { value: 'name_desc' as FolderSortMode, label: copy('library.sort.name_desc', 'Nome (Z–A)', 'Name (Z–A)'), icon: ArrowUpAZ },
+    { value: 'newest' as FolderSortMode, label: copy('library.sort.newest', 'Mais recentes', 'Newest first'), icon: Clock },
+    { value: 'oldest' as FolderSortMode, label: copy('library.sort.oldest', 'Mais antigos', 'Oldest first'), icon: History },
+    { value: 'manual' as FolderSortMode, label: copy('library.sort.manual', 'Manual', 'Manual'), icon: GripVertical },
   ]
 
   const currentOption = sortOptions.find((opt) => opt.value === value) || sortOptions[0]
   const CurrentIcon = currentOption.icon
 
   return (
-    // modal={false} avoids Radix's body scroll-lock, which otherwise removes the
-    // page scrollbar on open and shifts the whole layout sideways.
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-1.5 px-3 py-2 h-8 text-xs bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors">
           <CurrentIcon size={14} className="text-gray-400" />
-          <span className="text-gray-500">{t('library.sort.sort_by', { defaultValue: 'Sort by' })}</span>
+          <span className="text-gray-500">{copy('library.sort.sort_by', 'Ordenar por', 'Sort by')}</span>
           <span className="font-medium text-gray-700">{currentOption.label}</span>
           <ChevronDown size={12} className="text-gray-400" />
         </button>

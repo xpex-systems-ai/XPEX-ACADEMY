@@ -63,7 +63,7 @@ export function XpexQuickAction({ icon: Icon, title, disabled = true, href, deta
   const launchStudentHref = title === 'Novo aluno' ? '/xpex/polo/alunos' : undefined
   const resolvedHref = href ?? launchStudentHref
   const resolvedDisabled = launchStudentHref ? false : disabled
-  const content = <><Icon aria-hidden="true" size={20}/><strong>{title}</strong>{resolvedDisabled ? <small>Em breve</small> : detail ? <small>{detail}</small> : launchStudentHref ? <small>Convidar e matricular</small> : null}</>
+  const content = <><Icon aria-hidden="true" size={20}/><strong className="!text-white">{title}</strong>{resolvedDisabled ? <small className="!text-orange-400">Em breve</small> : detail ? <small className="!text-orange-400">{detail}</small> : launchStudentHref ? <small className="!text-orange-400">Convidar e matricular</small> : null}</>
   if (!resolvedDisabled && resolvedHref) return <Link href={resolvedHref} className="xpex-quick-action">{content}</Link>
   return <button type="button" disabled={resolvedDisabled} className="xpex-quick-action">{content}</button>
 }

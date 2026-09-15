@@ -29,6 +29,28 @@
   color: #e2e8f0;
 }
 
+/* Kelle is the deployment identity; XPeX stays visible as the technology layer. */
+.xpex-learning-shell nav[aria-label="Top navigation"] [aria-label*="KELLE DIGITAL LAB"] > span:first-child {
+  width: 1.8rem;
+  height: 1.8rem;
+  opacity: 0.72;
+  box-shadow: 0 0 16px rgba(255, 122, 0, 0.16);
+}
+
+.xpex-learning-shell nav[aria-label="Top navigation"] [aria-label*="KELLE DIGITAL LAB"] strong {
+  color: #7f91aa;
+  font-size: 0.5rem;
+  letter-spacing: 0.13em;
+}
+
+.xpex-learning-shell nav[aria-label="Top navigation"] [aria-label*="KELLE DIGITAL LAB"] small {
+  max-width: none;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
 .xpex-learning-shell .bg-white,
 .xpex-learning-shell .bg-white\/90,
 .xpex-learning-shell .bg-white\/80,
@@ -104,6 +126,11 @@
 .xpex-learning-shell .course_metadata_right > div,
 .xpex-learning-shell .activity-container {
   border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+.xpex-learning-shell .course_metadata_right > div {
+  background: linear-gradient(145deg, rgba(14, 30, 48, 0.96), rgba(8, 19, 33, 0.96)) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28) !important;
 }
 
 .xpex-learning-shell .activity-container:hover {

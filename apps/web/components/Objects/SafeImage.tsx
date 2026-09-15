@@ -1,17 +1,10 @@
 'use client'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
-// Allowlist of safe URL protocols
 const SAFE_PROTOCOLS = ['http:', 'https:', 'blob:'] as const
 
-/**
- * Validates that a URL uses a safe protocol.
- * Only allows http:, https:, and blob: protocols to prevent XSS via javascript: or malicious data: URLs.
- */
 export function isValidMediaUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false
-
-  // blob: URLs from createObjectURL are safe
   if (url.startsWith('blob:')) return true
 
   try {
@@ -22,48 +15,52 @@ export function isValidMediaUrl(url: string): boolean {
   }
 }
 
-/**
- * Sanitizes a URL by validating it and returning a safe version.
- * Returns undefined if the URL is invalid or uses an unsafe protocol.
- */
 export function sanitizeMediaUrl(url: string | null | undefined): string | undefined {
   if (!url || typeof url !== 'string') return undefined
   if (!isValidMediaUrl(url)) return undefined
-
-  // Additional safety: ensure no unexpected characters that could break out of attributes
-  // This is defense-in-depth; React already escapes attribute values
   if (url.includes('<') || url.includes('>')) return undefined
-
   return url
 }
 
 interface SafeImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string | null | undefined
+  fallback?: React.ReactNode
 }
 
 /**
- * A safe image component that validates URLs before rendering.
- * Only renders images with safe protocols (http:, https:, blob:).
+ * Validates media URLs and degrades deterministically when the remote object is
+ * missing. Enterprise surfaces must never leave a broken-image glyph or an
+ * invisible zero-width image in place of product content.
  */
-export function SafeImage({ src, alt, ...props }: SafeImageProps) {
+export function SafeImage({ src, alt, fallback = null, onError, ...props }: SafeImageProps) {
   const sanitizedSrc = useMemo(() => sanitizeMediaUrl(src), [src])
+  const [failed, setFailed] = useState(false)
 
-  if (!sanitizedSrc) {
-    return null
+  useEffect(() => {
+    setFailed(false)
+  }, [sanitizedSrc])
+
+  if (!sanitizedSrc || failed) {
+    return <>{fallback}</>
   }
 
-   
-  return <img src={sanitizedSrc} alt={alt} {...props} />
+  return (
+    <img
+      src={sanitizedSrc}
+      alt={alt}
+      {...props}
+      onError={(event) => {
+        setFailed(true)
+        onError?.(event)
+      }}
+    />
+  )
 }
 
 interface SafeVideoProps extends Omit<React.VideoHTMLAttributes<HTMLVideoElement>, 'src'> {
   src: string | null | undefined
 }
 
-/**
- * A safe video component that validates URLs before rendering.
- * Only renders videos with safe protocols (http:, https:, blob:).
- */
 export function SafeVideo({ src, ...props }: SafeVideoProps) {
   const sanitizedSrc = useMemo(() => sanitizeMediaUrl(src), [src])
 
