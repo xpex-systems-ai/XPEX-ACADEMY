@@ -3,6 +3,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import AuthenticatedClientElement from '@components/Security/AuthenticatedClientElement'
 import ConfirmationModal from '@components/Objects/StyledElements/ConfirmationModal/ConfirmationModal'
+import SafeImage from '@components/Objects/SafeImage'
 import { getUriWithOrg } from '@services/config/config'
 import { deleteCommunity, Community } from '@services/communities/communities'
 import { getCommunityThumbnailMediaDirectory } from '@services/media/media'
@@ -39,10 +40,27 @@ function CommunityCard(props: PropsType) {
   const communityId = removeCommunityPrefix(props.community.community_uuid)
   const variant = props.variant || 'dashboard'
 
-  // Different links based on variant
   const communityLink = variant === 'dashboard'
     ? getUriWithOrg(props.orgslug, `/dash/communities/${communityId}/general`)
     : getUriWithOrg(props.orgslug, `/community/${communityId}`)
+
+  const thumbnailImage = props.community.thumbnail_image && org?.org_uuid
+    ? getCommunityThumbnailMediaDirectory(
+        org.org_uuid,
+        props.community.community_uuid,
+        props.community.thumbnail_image
+      )
+    : undefined
+
+  const thumbnailFallback = (
+    <div
+      data-thumbnail-fallback="community"
+      className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-300"
+      aria-label={props.community.name}
+    >
+      <Users size={40} strokeWidth={1.5} aria-hidden="true" />
+    </div>
+  )
 
   return (
     <div
@@ -62,21 +80,13 @@ function CommunityCard(props: PropsType) {
         href={communityLink}
         className="block relative aspect-video overflow-hidden bg-gray-50"
       >
-        {props.community.thumbnail_image && org?.org_uuid ? (
-          <img
-            src={getCommunityThumbnailMediaDirectory(
-              org.org_uuid,
-              props.community.community_uuid,
-              props.community.thumbnail_image
-            )}
-            alt={props.community.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full w-full text-gray-300 gap-2">
-            <Users size={40} strokeWidth={1.5} />
-          </div>
-        )}
+        <SafeImage
+          src={thumbnailImage}
+          alt={props.community.name}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          fallback={thumbnailFallback}
+        />
       </Link>
 
       <div className="p-3 flex flex-col space-y-1.5">
