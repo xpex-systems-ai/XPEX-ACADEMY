@@ -26,10 +26,15 @@ export function useCourses(orgSlug: string) {
     staleTime: 60_000,
   })
 
+  const isIncomplete = Boolean((query.data as any)?.incomplete)
+
   // Existing catalog consumers use `isLoading`; include session hydration in
-  // that contract so they never flash a false "no courses" empty state.
+  // that contract so they never flash a false "no courses" empty state. Expose
+  // partial-catalog state separately so visibility/empty-state consumers can
+  // preserve verified pages without treating an incomplete catalog as final.
   return {
     ...query,
+    isIncomplete,
     isLoading: !sessionResolved || query.isLoading,
   }
 }
