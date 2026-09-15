@@ -155,7 +155,7 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
     <div
       data-thumbnail-fallback="course"
       className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-300"
-      aria-label={t('courses.course')}
+      aria-label={course.name}
     >
       <BookOpen className="h-10 w-10" strokeWidth={1.5} aria-hidden="true" />
     </div>
