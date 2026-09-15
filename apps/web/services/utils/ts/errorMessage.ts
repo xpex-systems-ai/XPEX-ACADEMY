@@ -13,6 +13,7 @@
 const USE_LOCALIZED_FALLBACK = [
   /^invite code not found$/i,
   /^invalid invite code$/i,
+  /^invite code is incorrect$/i,
   /^invite code (?:has )?expired$/i,
 ]
 
