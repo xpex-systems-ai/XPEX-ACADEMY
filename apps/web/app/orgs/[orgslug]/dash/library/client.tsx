@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next'
 type Props = {
   orgslug: string
   org_id: number
-  initialFolders: any[]
+  initialFolders?: any[]
 }
 
 function LibraryState({ kind }: { kind: 'loading' | 'error' }) {
@@ -106,7 +106,9 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
     ? filterLibrary(searchData.folders || [], searchData.items || [], '', filter)
     : null
 
-  const libraryLoading = !access_token || rootItemsLoading || (foldersLoading && folders === undefined)
+  // An unresolved server preload stays loading until the authenticated client
+  // request settles. Only resolved [] values are treated as a true empty state.
+  const libraryLoading = !access_token || rootItemsLoading || foldersLoading || rootItems === undefined || folders === undefined
   const libraryError = Boolean(foldersError || rootItemsError)
 
   const handleRemove = async (resourceUuid: string) => {
