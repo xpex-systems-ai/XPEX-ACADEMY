@@ -30,6 +30,15 @@ export async function getOrgCourses(
   return res
 }
 
+function markCatalogIncomplete(courses: any[]) {
+  Object.defineProperty(courses, 'incomplete', {
+    value: true,
+    enumerable: false,
+    configurable: true,
+  })
+  return courses
+}
+
 /**
  * Return the canonical learner-visible course set for an organization.
  *
@@ -37,13 +46,9 @@ export async function getOrgCourses(
  * only page 1 as an authorization surrogate, otherwise legitimate courses after
  * item 100 disappear from learner-facing organization surfaces. Fetch pages until
  * the backend returns a short page. A defensive page ceiling bounds work if an
- * upstream endpoint ever stops respecting pagination; reaching that ceiling
- * returns the accumulated safe visibility set instead of converting a very large
- * but valid catalog into a total outage.
- *
- * Page 1 establishes whether the catalog is available at all and remains fatal.
- * Once at least one page has been verified, a later-page failure degrades to the
- * accumulated verified set instead of blanking the whole catalog/Library.
+ * upstream endpoint ever stops respecting pagination. If page 2+ fails, preserve
+ * the verified pages but mark the result incomplete so visibility-dependent
+ * empty states and analytics do not treat a partial catalog as authoritative.
  */
 export async function getAllVisibleOrgCourses(
   org_slug: string,
@@ -60,14 +65,12 @@ export async function getAllVisibleOrgCourses(
       batch = await getOrgCourses(org_slug, next, access_token, false, page, pageSize)
     } catch (error) {
       if (page === 1) throw error
-      return courses
+      return markCatalogIncomplete(courses)
     }
 
     if (!Array.isArray(batch)) {
-      if (page === 1) {
-        throw new Error('Invalid course catalog response')
-      }
-      return courses
+      if (page === 1) throw new Error('Invalid course catalog response')
+      return markCatalogIncomplete(courses)
     }
 
     courses.push(...batch)
@@ -75,11 +78,9 @@ export async function getAllVisibleOrgCourses(
   }
 
   // Bounded graceful degradation: if every permitted page is full, keep the
-  // verified visible set collected so far. Throwing here would blank /courses
-  // and make Library suppress every course solely because the safety ceiling was
-  // reached. A dedicated count/ID endpoint can replace this bounded strategy in
-  // a future scale-focused change without widening the current V7.2.1 scope.
-  return courses
+  // verified visible set collected so far and expose that it is incomplete.
+  // This avoids blanking /courses while keeping Library readiness gates honest.
+  return markCatalogIncomplete(courses)
 }
 
 export async function searchOrgCourses(
@@ -160,7 +161,6 @@ export async function createNewCourse(
   thumbnail: any,
   access_token: any
 ) {
-  // Send file thumbnail as form data
   const formData = new FormData()
   formData.append('name', course_body.name || '')
   formData.append('description', course_body.description || '')
