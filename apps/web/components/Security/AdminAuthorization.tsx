@@ -35,13 +35,21 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
 
   const checkPathname = useCallback((pattern: string, currentPathname: string) => {
     if (typeof pattern !== 'string' || typeof currentPathname !== 'string') return false;
-    const regexPattern = new RegExp(`^${pattern.replace(/[\/.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`);
+    const regexPattern = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`);
     return regexPattern.test(currentPathname);
   }, []);
 
+  // Next.js exposes organization-scoped routes as /orgs/:slug/dash/....
+  // Normalize only the organization prefix before matching the existing admin
+  // policy so nested admin pages cannot fall through as public dashboard routes.
+  const normalizedPathname = useMemo(
+    () => pathname.replace(/^\/orgs\/[^/]+(?=\/|$)/, ''),
+    [pathname],
+  );
+
   const isAdminPath = useMemo(
-    () => ADMIN_PATHS.some(path => checkPathname(path, pathname)),
-    [pathname, checkPathname],
+    () => ADMIN_PATHS.some(path => checkPathname(path, normalizedPathname)),
+    [normalizedPathname, checkPathname],
   );
 
   const isAuthorized = useMemo(() => {
@@ -59,7 +67,7 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
     }
 
     if (authorizationMode === 'page' && isAdminPath && !isAdmin) {
-      router.replace('/dash');
+      router.replace(org?.slug ? getUriWithOrg(org.slug, '/dash') : '/dash');
     }
   }, [authorizationMode, isAdmin, isAdminPath, isUserAuthenticated, loading, org?.slug, orgPending, router, sessionPending]);
 
