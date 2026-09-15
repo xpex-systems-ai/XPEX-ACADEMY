@@ -76,12 +76,16 @@
 .xpex-native-admin-main tbody tr { transition:background-color .16s ease; }
 .xpex-native-admin-main tbody tr:hover { background:rgba(0,212,255,.035); }
 
-/* Enterprise form controls: consistent density for text-like inputs only. */
+/* Enterprise form controls: consistent density for text-like inputs only. Important declarations intentionally beat legacy inline light-theme styles. */
 .xpex-native-admin input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
 .xpex-native-admin textarea,
 .xpex-native-admin select {
-  min-height:42px; color:#fff; background-color:#0a111c; border-color:var(--xpex-native-border);
-  border-radius:10px; transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease;
+  min-height:42px;
+  color:#fff !important;
+  background-color:#0a111c !important;
+  border-color:var(--xpex-native-border) !important;
+  border-radius:10px;
+  transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease;
 }
 .xpex-native-admin textarea { min-height:96px; }
 .xpex-native-admin input::placeholder,.xpex-native-admin textarea::placeholder { color:#70839d; }
