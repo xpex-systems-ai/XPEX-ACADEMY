@@ -7,6 +7,7 @@ import UploadMediaModal from '@components/Dashboard/Library/UploadMediaModal'
 import AddContentModal from '@components/Dashboard/Library/AddContentModal'
 import { FilterPill, PRIMARY_BTN, SECONDARY_BTN } from '@components/Dashboard/Library/LibraryToolbar'
 import FolderSortDropdown, { type FolderSortMode } from '@components/Dashboard/Library/FolderSortDropdown'
+import { useOrg } from '@components/Contexts/OrgContext'
 import {
   FolderSimple,
   MagnifyingGlass,
@@ -23,7 +24,6 @@ export type FilterKey = 'all' | 'folders' | 'courses' | 'media'
 type Props = {
   orgslug: string
   org_id: number
-  /** Current folder uuid; undefined = library root. New content targets this. */
   folderUuid?: string
   query: string
   setQuery: (_v: string) => void
@@ -47,15 +47,25 @@ export default function LibraryHeader({
   onChanged,
 }: Props) {
   const { t } = useTranslation()
+  const org = useOrg() as any
+  const isKelleDigitalLab = /kelle/i.test(`${org?.slug || ''} ${org?.name || ''}`)
+  const copy = (key: string, portuguese: string) => isKelleDigitalLab ? portuguese : t(key)
+
   const [newFolderOpen, setNewFolderOpen] = React.useState(false)
   const [uploadOpen, setUploadOpen] = React.useState(false)
   const [addContentOpen, setAddContentOpen] = React.useState(false)
 
+  const libraryLabel = copy('library.library', 'Biblioteca')
+  const addContentLabel = copy('library.add_content', 'Adicionar conteúdo')
+  const uploadMediaLabel = copy('media.upload_media', 'Enviar mídia')
+  const createFolderLabel = copy('library.create_folder', 'Criar pasta')
+  const newFolderLabel = copy('library.new_folder', 'Nova pasta')
+
   return (
     <div className="flex flex-col space-y-2 pt-6">
-      <Breadcrumbs items={[{ label: t('library.library'), href: '/dash/library', icon: <FolderSimple size={14} /> }]} />
+      <Breadcrumbs items={[{ label: libraryLabel, href: '/dash/library', icon: <FolderSimple size={14} /> }]} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h1 className="pt-3 font-bold text-4xl">{t('library.library')}</h1>
+        <h1 className="pt-3 font-bold text-4xl">{libraryLabel}</h1>
         <AuthenticatedClientElement checkMethod="roles" action="create" ressourceType={'folders' as any} orgId={org_id}>
           <div className="flex items-center gap-2">
             <Modal
@@ -63,33 +73,32 @@ export default function LibraryHeader({
               onOpenChange={setAddContentOpen}
               minHeight="no-min"
               minWidth="lg"
-              dialogTitle={t('library.add_content')}
+              dialogTitle={addContentLabel}
               dialogContent={<AddContentModal folderUuid={folderUuid} orgslug={orgslug} closeModal={() => setAddContentOpen(false)} onChanged={onChanged} />}
-              dialogTrigger={<button className={SECONDARY_BTN}><Plus size={16} /><span>{t('library.add_content')}</span></button>}
+              dialogTrigger={<button className={SECONDARY_BTN}><Plus size={16} /><span>{addContentLabel}</span></button>}
             />
             <Modal
               isDialogOpen={uploadOpen}
               onOpenChange={setUploadOpen}
               minHeight="no-min"
               minWidth="lg"
-              dialogTitle={t('media.upload_media')}
+              dialogTitle={uploadMediaLabel}
               dialogContent={<UploadMediaModal orgslug={orgslug} folderUuid={folderUuid} closeModal={() => setUploadOpen(false)} onChanged={onChanged} />}
-              dialogTrigger={<button className={SECONDARY_BTN}><UploadSimple size={16} /><span>{t('media.upload_media')}</span></button>}
+              dialogTrigger={<button className={SECONDARY_BTN}><UploadSimple size={16} /><span>{uploadMediaLabel}</span></button>}
             />
             <Modal
               isDialogOpen={newFolderOpen}
               onOpenChange={setNewFolderOpen}
               minHeight="no-min"
               minWidth="md"
-              dialogTitle={t('library.create_folder')}
+              dialogTitle={createFolderLabel}
               dialogContent={<CreateFolderModal orgslug={orgslug} parentFolderUuid={folderUuid} closeModal={() => setNewFolderOpen(false)} onChanged={onChanged} />}
-              dialogTrigger={<button className={PRIMARY_BTN}><FolderSimplePlus size={16} weight="bold" /><span>{t('library.new_folder')}</span></button>}
+              dialogTrigger={<button className={PRIMARY_BTN}><FolderSimplePlus size={16} weight="bold" /><span>{newFolderLabel}</span></button>}
             />
           </div>
         </AuthenticatedClientElement>
       </div>
 
-      {/* Search + filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center pt-1">
         <div className="relative flex-1 max-w-md">
           <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -97,20 +106,20 @@ export default function LibraryHeader({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('library.search')}
+            placeholder={copy('library.search', 'Pesquisar')}
             className="w-full pl-9 pr-8 py-2 text-sm bg-white nice-shadow rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 placeholder:text-gray-400"
           />
           {query && (
-            <button onClick={() => setQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search">
+            <button onClick={() => setQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label={isKelleDigitalLab ? 'Limpar pesquisa' : 'Clear search'}>
               <X size={14} />
             </button>
           )}
         </div>
         <div className="flex gap-1.5 flex-wrap">
-          <FilterPill label={t('library.filters.all')} active={filter === 'all'} activeClass="bg-neutral-700 text-white" onClick={() => setFilter('all')} />
-          <FilterPill label={t('library.folders')} active={filter === 'folders'} activeClass="bg-violet-600 text-white" onClick={() => setFilter('folders')} />
-          <FilterPill label={t('library.tabs.courses')} active={filter === 'courses'} activeClass="bg-blue-600 text-white" onClick={() => setFilter('courses')} />
-          <FilterPill label={t('media.media')} active={filter === 'media'} activeClass="bg-amber-500 text-white" onClick={() => setFilter('media')} />
+          <FilterPill label={copy('library.filters.all', 'Todos')} active={filter === 'all'} activeClass="bg-neutral-700 text-white" onClick={() => setFilter('all')} />
+          <FilterPill label={copy('library.folders', 'Pastas')} active={filter === 'folders'} activeClass="bg-violet-600 text-white" onClick={() => setFilter('folders')} />
+          <FilterPill label={copy('library.tabs.courses', 'Cursos')} active={filter === 'courses'} activeClass="bg-blue-600 text-white" onClick={() => setFilter('courses')} />
+          <FilterPill label={copy('media.media', 'Mídia')} active={filter === 'media'} activeClass="bg-amber-500 text-white" onClick={() => setFilter('media')} />
         </div>
         <AuthenticatedClientElement checkMethod="roles" action="update" ressourceType={'folders' as any} orgId={org_id}>
           <div className="sm:ml-auto">
@@ -122,27 +131,16 @@ export default function LibraryHeader({
   )
 }
 
-// Name/date accessors that work for both folders and content items (courses,
-// media, …). Items carry their display fields under `.resource`.
 const _nameOf = (x: any) =>
   (x?.name ?? x?.resource?.name ?? x?.resource?.title ?? x?.title ?? '').toString().toLowerCase()
 const _dateOf = (x: any) => {
   const raw =
     x?.creation_date ?? x?.created_at ?? x?.update_date ??
     x?.resource?.update_date ?? x?.resource?.creation_date ?? x?.resource?.created_at ?? ''
-  const t = raw ? Date.parse(raw) : NaN
-  return Number.isNaN(t) ? 0 : t
+  const parsed = raw ? Date.parse(raw) : NaN
+  return Number.isNaN(parsed) ? 0 : parsed
 }
 
-/**
- * Apply the selected sort mode to the visible library content, CLIENT-SIDE, so
- * it reorders folders AND items (courses/media) instantly and consistently.
- *
- * 'manual' is intentionally a no-op here: folders already arrive ordered by their
- * persisted `order` from the server, and drag-reordering mutates the array in
- * place — re-sorting by the (optimistically stale) `order` field would fight the
- * drag. So manual mode trusts the incoming order.
- */
 export function sortLibrary(folders: any[], items: any[], mode: FolderSortMode) {
   if (mode === 'manual') return { folders, items }
   const byName = (a: any, b: any) => _nameOf(a).localeCompare(_nameOf(b))
@@ -158,8 +156,6 @@ export function sortLibrary(folders: any[], items: any[], mode: FolderSortMode) 
   return { folders: [...folders].sort(cmp), items: [...items].sort(cmp) }
 }
 
-// Shared client-side filtering used by both root and folder views.
-const _RESOURCE_TYPES = ['podcasts', 'communities', 'boards', 'playgrounds']
 export function filterLibrary(folders: any[], items: any[], query: string, filter: FilterKey) {
   const q = query.trim().toLowerCase()
   const showFolders = filter === 'all' || filter === 'folders'
