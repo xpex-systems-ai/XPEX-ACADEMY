@@ -17,8 +17,8 @@
 .heroCompact :global(.xpex-polo-hero-official) {
   width: 100% !important;
   max-width: none !important;
-  min-height: 12.5rem;
-  max-height: 12.5rem;
+  min-height: 13.75rem;
+  max-height: 13.75rem;
   margin: 0 !important;
   border: 0 !important;
   border-radius: inherit !important;
@@ -26,7 +26,7 @@
 
 .heroCompact :global(.xpex-polo-hero-official-image) {
   object-fit: cover;
-  object-position: center 46%;
+  object-position: center 36%;
 }
 
 .consoleHeader {
@@ -39,13 +39,15 @@
 
 .headerRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem 1.4rem;
 }
 
 .headingBlock {
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 52rem;
 }
 
@@ -77,6 +79,7 @@
 
 .actions {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: .65rem;
 }
@@ -404,8 +407,8 @@
 @media (max-width: 1100px) {
   .heroCompact :global(.xpex-polo-hero),
   .heroCompact :global(.xpex-polo-hero-official) {
-    min-height: 11.5rem;
-    max-height: 11.5rem;
+    min-height: 12.75rem;
+    max-height: 12.75rem;
   }
 
   .metricsGrid {
@@ -443,6 +446,10 @@
 
   .consoleHeader {
     padding: 1rem !important;
+  }
+
+  .headerRow {
+    flex-wrap: wrap;
   }
 
   .headerRow,
