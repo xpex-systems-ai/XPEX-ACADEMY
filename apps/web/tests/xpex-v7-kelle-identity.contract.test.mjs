@@ -17,6 +17,7 @@ const legacyPole = read('components/Xpex/experiences/PoleExperience.tsx')
 const authPanel = read('components/Auth/AuthBrandingPanel.tsx')
 const authMobile = read('components/Auth/AuthMobileHeader.tsx')
 const login = read('app/auth/login/login.tsx')
+const legalFooter = read('components/Footers/LegalFooters.tsx')
 
 describe('Kelle Digital Lab identity rollout', () => {
   test('pins the approved logo and hero to repository-backed assets', () => {
@@ -68,5 +69,15 @@ describe('Kelle Digital Lab identity rollout', () => {
     expect(authMobile).toContain('sizes="100vw"')
     expect(login).toContain('rounded-[28px]')
     expect(login).toContain('-webkit-text-fill-color:white')
+  })
+
+  test('makes Kelle the primary login identity and moves XPeX to the footer', () => {
+    expect(authPanel).toContain("'Bem-vindo à Kelle Digital Lab'")
+    expect(authPanel).toContain('/xpex/polos/kelle-digital-lab/logo-official.png')
+    expect(authMobile).toContain('/xpex/polos/kelle-digital-lab/logo-official.png')
+    expect(login).toContain("title={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}")
+    expect(login).toContain('alt="Kelle Digital Lab"')
+    expect(legalFooter).toContain('Tecnologia por')
+    expect(legalFooter).toContain('XPeX Academy AI')
   })
 })
