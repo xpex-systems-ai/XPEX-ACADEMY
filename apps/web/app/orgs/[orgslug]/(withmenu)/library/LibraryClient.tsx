@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
@@ -10,9 +10,40 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { queryKeys } from '@/lib/query/keys'
 import { getOrgFolders, getOrgRootItems } from '@services/folders/folders'
+import { useCourses } from '@/hooks/queries/useCourses'
 import { FolderSimple } from '@phosphor-icons/react'
 import { FolderCard, LibraryItemCard } from './library-cards'
 import { useTrackView, AnalyticsEvent } from '@services/analytics'
+
+function LibraryState({ kind }: { kind: 'loading' | 'error' }) {
+  const { t } = useTranslation()
+
+  if (kind === 'loading') {
+    return (
+      <div className="w-full animate-pulse" role="status" aria-live="polite">
+        <GeneralWrapperStyled>
+          <span className="sr-only">Carregando biblioteca…</span>
+          <div className="h-7 bg-gray-200 rounded w-28 mb-4" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl nice-shadow p-3 h-20" />
+            ))}
+          </div>
+        </GeneralWrapperStyled>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full" role="alert">
+      <GeneralWrapperStyled>
+        <div className="flex min-h-40 items-center justify-center rounded-2xl border border-gray-100 bg-gray-50/30 px-6 text-center">
+          <p className="text-sm font-semibold text-gray-600">{t('library.error_loading')}</p>
+        </div>
+      </GeneralWrapperStyled>
+    </div>
+  )
+}
 
 function LibraryClient({ orgslug }: { orgslug: string }) {
   const { t } = useTranslation()
@@ -20,44 +51,65 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
   const session = useLHSession() as any
   const access_token = session?.data?.tokens?.access_token
 
-  const { data, isLoading, isError } = useQuery({
+  const {
+    data: foldersData,
+    isLoading: foldersLoading,
+  } = useQuery({
     queryKey: org?.id ? queryKeys.folders.list(org.id) : ['folders', 'pending'],
     queryFn: () => getOrgFolders(org.id, access_token),
     enabled: !!org?.id,
   })
 
-  const { data: rootItemsData } = useQuery({
+  const {
+    data: rootItemsData,
+    isLoading: rootItemsLoading,
+    isError: rootItemsError,
+  } = useQuery({
     queryKey: org?.id ? ['library-root-items', org.id] : ['library-root-items', 'pending'],
     queryFn: () => getOrgRootItems(org.id, access_token),
     enabled: !!org?.id,
   })
 
-  // Folders are a transparent, optional layer: a fetch failure must degrade to
-  // an empty state rather than blanking the page or blocking course discovery.
-  const folders = Array.isArray(data) ? data : []
+  // Canonical catalog visibility is the source of truth for learner-facing
+  // course discovery. Library can organize that truth, but must never expose a
+  // draft/private course that /courses would not return to the same session.
+  const {
+    data: catalogCoursesData,
+    isLoading: catalogCoursesLoading,
+    isError: catalogCoursesError,
+  } = useCourses(orgslug)
+
+  const folders = Array.isArray(foldersData) ? foldersData : []
   const rootItems = Array.isArray(rootItemsData) ? rootItemsData : []
+  const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
+
+  const visibleCourseUuids = useMemo(
+    () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
+    [catalogCourses],
+  )
+
+  const visibleRootItems = useMemo(
+    () => rootItems.filter((item: any) => (
+      item?.resource_type !== 'courses' || visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid)
+    )),
+    [rootItems, visibleCourseUuids],
+  )
+
+  const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading
+  const libraryError = rootItemsError || catalogCoursesError
 
   useTrackView(
     AnalyticsEvent.LibraryViewed,
-    { folder_count: folders.length, is_empty: folders.length === 0 && rootItems.length === 0 },
-    !isLoading,
+    {
+      folder_count: folders.length,
+      is_empty: folders.length === 0 && visibleRootItems.length === 0,
+    },
+    !libraryLoading && !libraryError,
     'learner',
   )
 
-  if (isLoading && !data) {
-    return (
-      <div className="w-full animate-pulse">
-        <GeneralWrapperStyled>
-          <div className="h-7 bg-gray-200 rounded w-28 mb-4" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl nice-shadow p-3 h-16" />
-            ))}
-          </div>
-        </GeneralWrapperStyled>
-      </div>
-    )
-  }
+  if (libraryLoading) return <LibraryState kind="loading" />
+  if (libraryError) return <LibraryState kind="error" />
 
   return (
     <FeatureGate feature="folders" orgslug={orgslug} context="public">
@@ -77,21 +129,21 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
                 </div>
               )}
 
-              {rootItems.length > 0 && (
+              {visibleRootItems.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start">
-                  {rootItems.map((item: any) => (
+                  {visibleRootItems.map((item: any) => (
                     <LibraryItemCard key={item.resource_uuid} item={item} orgslug={orgslug} />
                   ))}
                 </div>
               )}
 
-              {folders.length === 0 && rootItems.length === 0 && (
+              {folders.length === 0 && visibleRootItems.length === 0 && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-600 mb-1">
-                    {isError ? t('library.error_loading') : t('library.empty_folder')}
+                    {t('library.empty_folder')}
                   </h3>
                 </div>
               )}
