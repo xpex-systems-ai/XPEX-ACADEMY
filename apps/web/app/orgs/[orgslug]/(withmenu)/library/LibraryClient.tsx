@@ -11,7 +11,7 @@ import { useLHSession } from '@components/Contexts/LHSessionContext'
 import { queryKeys } from '@/lib/query/keys'
 import { getOrgFolders, getOrgRootItems } from '@services/folders/folders'
 import { useCourses } from '@/hooks/queries/useCourses'
-import { FolderSimple } from '@phosphor-icons/react'
+import { FolderSimple, WarningCircle } from '@phosphor-icons/react'
 import { FolderCard, LibraryItemCard } from './library-cards'
 import { useTrackView, AnalyticsEvent } from '@services/analytics'
 
@@ -72,7 +72,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
 
   // Canonical catalog visibility is the source of truth for learner-facing
   // course discovery. Library can organize that truth, but must never expose a
-  // draft/private course that /courses would not return to the same session.
+  // draft/private course that /courses would not return to the same identity.
   const {
     data: catalogCoursesData,
     isLoading: catalogCoursesLoading,
@@ -88,15 +88,18 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
     [catalogCourses],
   )
 
+  // Fail closed for COURSE cards if canonical visibility is unavailable, but do
+  // not punish unrelated folders/media/podcasts/etc. A transient catalog outage
+  // must not blank the rest of the Library.
   const visibleRootItems = useMemo(
     () => rootItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid)
+      item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rootItems, visibleCourseUuids],
+    [rootItems, visibleCourseUuids, catalogCoursesError],
   )
 
   const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading
-  const libraryError = rootItemsError || catalogCoursesError
+  const libraryError = rootItemsError
 
   useTrackView(
     AnalyticsEvent.LibraryViewed,
@@ -120,6 +123,13 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
               <TypeOfContentTitle title={t('library.library')} type="cou" />
             </div>
 
+            {catalogCoursesError && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
+                <WarningCircle size={18} className="mt-0.5 shrink-0" />
+                <span>Os cursos estão temporariamente indisponíveis. Os demais conteúdos da biblioteca continuam acessíveis.</span>
+              </div>
+            )}
+
             <div className="flex flex-col gap-7">
               {folders.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -137,7 +147,7 @@ function LibraryClient({ orgslug }: { orgslug: string }) {
                 </div>
               )}
 
-              {folders.length === 0 && visibleRootItems.length === 0 && (
+              {folders.length === 0 && visibleRootItems.length === 0 && !catalogCoursesError && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
