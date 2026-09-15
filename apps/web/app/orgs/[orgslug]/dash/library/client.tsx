@@ -8,6 +8,7 @@ import { useOrg } from '@components/Contexts/OrgContext'
 import useAdminStatus from '@components/Hooks/useAdminStatus'
 import { getOrgFolders, getOrgRootItems, removeOrgRootContent, reorderFolders, searchLibrary } from '@services/folders/folders'
 import { updateOrgFoldersSort } from '@services/organizations/orgs'
+import { AlertTriangle, LoaderCircle } from 'lucide-react'
 import React from 'react'
 import toast from 'react-hot-toast'
 import useSWR from 'swr'
@@ -17,6 +18,25 @@ type Props = {
   orgslug: string
   org_id: number
   initialFolders: any[]
+}
+
+function LibraryState({ kind }: { kind: 'loading' | 'error' }) {
+  const loading = kind === 'loading'
+  return (
+    <div
+      className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white/5 px-6 text-center"
+      role={loading ? 'status' : 'alert'}
+      aria-live={loading ? 'polite' : 'assertive'}
+    >
+      {loading ? <LoaderCircle className="animate-spin text-cyan-300" size={30} /> : <AlertTriangle className="text-orange-400" size={30} />}
+      <p className="text-sm font-bold text-gray-200">
+        {loading ? 'Carregando biblioteca…' : 'Não foi possível carregar a biblioteca'}
+      </p>
+      <p className="max-w-md text-xs text-gray-400">
+        {loading ? 'Estamos sincronizando pastas e conteúdos da organização.' : 'Tente novamente em instantes. Nenhum conteúdo foi removido.'}
+      </p>
+    </div>
+  )
 }
 
 function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
@@ -29,8 +49,6 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
   const [filter, setFilter] = React.useState<FilterKey>('all')
   const searching = query.trim().length > 0
 
-  // Sort mode is persisted server-side in the org config; seed local state from
-  // it and keep it in sync as the org config loads.
   const configSortMode: FolderSortMode =
     org?.config?.config?.general?.folders?.sort_mode ?? 'name_asc'
   const [sortMode, setSortMode] = React.useState<FolderSortMode>(configSortMode)
@@ -38,23 +56,36 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
     setSortMode(configSortMode)
   }, [configSortMode])
 
-  // Only admins (folders:update) can rearrange; everyone else sees the
-  // resulting server-side order read-only.
   const { rights } = useAdminStatus()
   const canReorder = rights?.folders?.action_update === true
   const isManual = sortMode === 'manual' && canReorder
 
-  const { data: folders, mutate: mutateFolders } = useSWR(
-    org_id ? ['folders', org_id, 'root'] : null,
+  const {
+    data: folders,
+    error: foldersError,
+    isLoading: foldersLoading,
+    mutate: mutateFolders,
+  } = useSWR(
+    org_id && access_token ? ['folders', org_id, 'root'] : null,
     () => getOrgFolders(org_id, access_token, { revalidate: 60, tags: ['folders'] }),
     { fallbackData: initialFolders }
   )
-  const { data: rootItems, mutate: mutateItems } = useSWR(
+  const {
+    data: rootItems,
+    error: rootItemsError,
+    isLoading: rootItemsLoading,
+    mutate: mutateItems,
+  } = useSWR(
     org_id && access_token ? ['library-root-items', org_id] : null,
     () => getOrgRootItems(org_id, access_token)
   )
-  const { data: searchData, isLoading: searchLoading, mutate: mutateSearch } = useSWR(
-    searching && org_id ? ['library-search', org_id, query.trim()] : null,
+  const {
+    data: searchData,
+    error: searchError,
+    isLoading: searchLoading,
+    mutate: mutateSearch,
+  } = useSWR(
+    searching && org_id && access_token ? ['library-search', org_id, query.trim()] : null,
     () => searchLibrary(org_id, query.trim(), access_token)
   )
 
@@ -67,16 +98,16 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
   const folderList: any[] = Array.isArray(folders) ? folders : folders?.data ?? []
   const itemList: any[] = Array.isArray(rootItems) ? rootItems : rootItems?.data ?? []
   const filtered = filterLibrary(folderList, itemList, '', filter)
-  // Sort the visible content (folders + courses + media) client-side so the
-  // chosen mode reorders everything instantly, not just server-side folders.
   const { folders: visibleFolders, items: visibleItems } = sortLibrary(
     filtered.visibleFolders, filtered.visibleItems, sortMode
   )
 
-  // Apply the active filter pill to search results too.
   const filteredSearch = searchData
     ? filterLibrary(searchData.folders || [], searchData.items || [], '', filter)
     : null
+
+  const libraryLoading = !access_token || rootItemsLoading || (foldersLoading && folders === undefined)
+  const libraryError = Boolean(foldersError || rootItemsError)
 
   const handleRemove = async (resourceUuid: string) => {
     try {
@@ -88,8 +119,6 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
     }
   }
 
-  // Persist the chosen sort mode server-side (admin-only; API also rejects
-  // non-admins). Optimistically flip the control, revert on failure.
   const handleSortChange = async (mode: FolderSortMode) => {
     const previous = sortMode
     setSortMode(mode)
@@ -98,12 +127,10 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
       mutateFolders()
     } catch (error: any) {
       setSortMode(previous)
-      toast.error(error?.message || t('library.sort.sort_error', { defaultValue: 'Could not update sort order' }))
+      toast.error(error?.message || t('library.sort.sort_error', { defaultValue: 'Não foi possível atualizar a ordenação' }))
     }
   }
 
-  // Persist a manual drag reorder on drop (the library has no Save button).
-  // Optimistically show the new order, then re-mutate to revert on failure.
   const handleReorderFolders = async (newFolders: any[]) => {
     mutateFolders(newFolders, false)
     try {
@@ -115,7 +142,7 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
       mutateFolders()
     } catch (error: any) {
       mutateFolders()
-      toast.error(error?.message || t('library.sort.reorder_error', { defaultValue: 'Could not save the new order' }))
+      toast.error(error?.message || t('library.sort.reorder_error', { defaultValue: 'Não foi possível salvar a nova ordem' }))
     }
   }
 
@@ -135,13 +162,19 @@ function LibraryHome({ orgslug, org_id, initialFolders }: Props) {
         />
 
         {searching ? (
-          <LibrarySearchResults
-            results={filteredSearch ? { folders: filteredSearch.visibleFolders, items: filteredSearch.visibleItems } : null}
-            isLoading={searchLoading}
-            orgslug={orgslug}
-            org_id={org_id}
-            onChanged={refresh}
-          />
+          searchError ? <LibraryState kind="error" /> : (
+            <LibrarySearchResults
+              results={filteredSearch ? { folders: filteredSearch.visibleFolders, items: filteredSearch.visibleItems } : null}
+              isLoading={searchLoading}
+              orgslug={orgslug}
+              org_id={org_id}
+              onChanged={refresh}
+            />
+          )
+        ) : libraryError ? (
+          <LibraryState kind="error" />
+        ) : libraryLoading ? (
+          <LibraryState kind="loading" />
         ) : (
           <LibraryGrid
             folders={visibleFolders}
