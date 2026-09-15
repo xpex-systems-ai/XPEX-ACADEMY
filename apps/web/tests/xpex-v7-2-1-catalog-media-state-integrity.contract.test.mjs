@@ -30,6 +30,15 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(useCourses).toContain('isLoading: !sessionResolved || query.isLoading')
   })
 
+  test('waits for session hydration and identity-scopes root Library data', () => {
+    expect(publicLibrary).toContain("const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'")
+    expect(publicLibrary).toContain('session?.data?.user?.user_uuid || session?.data?.user?.id')
+    expect(publicLibrary).toContain('queryKey: org?.id ? [...queryKeys.folders.list(org.id), authScope]')
+    expect(publicLibrary).toContain("['library-root-items', org.id, authScope]")
+    expect(publicLibrary).toContain('enabled: !!org?.id && sessionResolved')
+    expect(publicLibrary).toContain('const libraryLoading = !org?.id || !sessionResolved || foldersLoading || rootItemsLoading')
+  })
+
   test('paginates the canonical learner-visible catalog instead of trusting page 1', () => {
     expect(courseService).toContain('export async function getAllVisibleOrgCourses')
     expect(courseService).toContain('for (let page = 1; page <= maxPages; page += 1)')
@@ -48,7 +57,6 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(publicLibrary).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
     expect(publicLibrary).toContain('const visibleCourseUuids = useMemo')
     expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has")
-    expect(publicLibrary).toContain('const libraryLoading = !org?.id || foldersLoading || rootItemsLoading')
     expect(publicLibrary).toContain('const analyticsReady = !libraryLoading && !libraryError && catalogReady')
     expect(publicLibrary).toContain('catalogCoursesError && (')
     expect(publicLibrary).toContain('<LibraryState kind="loading" />')
@@ -116,8 +124,13 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(analytics).toContain('analyticsUnavailable')
   })
 
-  test('provides an explicit accessible loading shell for /dash transitions', () => {
-    expect(dashLoading).toContain('Carregando painel de gestão')
+  test('localizes accessible dashboard loading announcements', () => {
+    expect(analytics).toContain("<span className=\"sr-only\">{t('common.loading')}</span>")
+    expect(analytics).not.toContain('Carregando disponibilidade das análises')
+    expect(dashLoading).toContain("'use client'")
+    expect(dashLoading).toContain("useTranslation")
+    expect(dashLoading).toContain("{t('common.loading')}")
+    expect(dashLoading).not.toContain('Carregando painel de gestão')
     expect(dashLoading).toContain('role="status"')
     expect(dashLoading).toContain('animate-pulse')
   })
