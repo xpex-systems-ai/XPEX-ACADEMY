@@ -11,7 +11,7 @@ export function useCourses(orgSlug: string) {
   const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
   const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'
 
-  return useQuery({
+  const query = useQuery({
     // Course visibility depends on the acting identity. Never let an anonymous
     // catalog response fetched during session hydration become the cached truth
     // for the authenticated learner/admin that appears a moment later.
@@ -20,6 +20,13 @@ export function useCourses(orgSlug: string) {
     enabled: !!orgSlug && sessionResolved,
     staleTime: 60_000,
   })
+
+  // Existing catalog consumers use `isLoading`; include session hydration in
+  // that contract so they never flash a false "no courses" empty state.
+  return {
+    ...query,
+    isLoading: !sessionResolved || query.isLoading,
+  }
 }
 
 export function useCourseMeta(courseUuid: string) {
