@@ -276,7 +276,7 @@ function CourseThumbnail({ course, orgslug, customLink, isDashboard = false, isS
             onClick={handleCardOpen}
             className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-wider"
           >
-            {t('courses.start_learning')}
+            {isDashboard ? t('courses.edit_content') : t('courses.start_learning')}
           </Link>
         </div>
       </div>
