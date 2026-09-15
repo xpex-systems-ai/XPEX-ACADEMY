@@ -18,8 +18,8 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
   })
 
   return {
-    title: 'Library — ' + org.name,
-    description: `Manage the library for ${org.name}`,
+    title: `Biblioteca — ${org.name}`,
+    description: `Gerencie a biblioteca de conteúdos de ${org.name}`,
     robots: {
       index: false,
       follow: false,
@@ -40,10 +40,10 @@ async function LibraryPage(props: { params: Promise<{ orgslug: string }> }) {
   try {
     folders = await getOrgFolders(org.id, access_token ?? undefined, { revalidate: 60, tags: ['folders'] })
   } catch (error) {
-    // Folders are a transparent, optional layer: degrade to an empty state
-    // instead of blanking the page if the API call fails.
-    console.warn('Failed to fetch folders, falling back to empty state:', error)
-    folders = []
+    // The client performs an authenticated revalidation and owns the final
+    // loading/error/empty state. Do not present this server fallback as a
+    // confirmed empty library.
+    console.warn('Initial library folder preload failed; client revalidation will retry:', error)
   }
 
   return <LibraryHome orgslug={orgslug} org_id={org.id} initialFolders={folders || []} />
