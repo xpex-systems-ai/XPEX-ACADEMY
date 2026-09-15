@@ -17,6 +17,7 @@ function BrandMark({ branding }: { branding: PoloBranding }) {
 export function PoloIdentityHero({ branding }: { branding: PoloBranding }) {
   if (branding.hero_image) {
     return <section className="xpex-polo-hero xpex-polo-hero-official" aria-label={`Identidade do polo ${branding.organization_name}`}>
+      <h1 className="sr-only">{branding.organization_name}</h1>
       <Image src={branding.hero_image} alt={`Faixa oficial ${branding.organization_name}, coordenada por ${branding.coordinator_name ?? 'Responsável pelo polo'}`} fill priority unoptimized sizes="(min-width: 1024px) calc(100vw - 19rem), 100vw" className="xpex-polo-hero-official-image"/>
     </section>
   }
