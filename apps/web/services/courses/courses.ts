@@ -214,7 +214,7 @@ export async function applyForContributor(course_uuid: string, data: any, access
 export async function bulkAddContributors(course_uuid: string, data: any, access_token:string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/bulk-add-contributors`,
-    RequestBodyWithAuthHeader('POST', data, null,access_token)
+    RequestBodyWithAuthHeader('POST', data, null, access_token || undefined)
   )
   const res = await getResponseMetadata(result)
   return res
@@ -223,7 +223,7 @@ export async function bulkAddContributors(course_uuid: string, data: any, access
 export async function bulkRemoveContributors(course_uuid: string, data: any, access_token: string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/bulk-remove-contributors`,
-    RequestBodyWithAuthHeader('PUT', data, null,access_token)
+    RequestBodyWithAuthHeader('PUT', data, null, access_token || undefined)
   )
   const res = await errorHandling(result)
   return res
@@ -232,7 +232,7 @@ export async function bulkRemoveContributors(course_uuid: string, data: any, acc
 export async function getCourseRights(course_uuid: string, access_token: string | null | undefined) {
   const result: any = await fetch(
     `${getAPIUrl()}courses/${course_uuid}/rights`,
-    RequestBodyWithAuthHeader('GET', null, null,access_token)
+    RequestBodyWithAuthHeader('GET', null, null, access_token || undefined)
   )
   const res = await errorHandling(result)
   return res
