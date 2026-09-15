@@ -5,8 +5,23 @@
 // Passing a non-string into React state that later renders as a child throws
 // "Objects are not valid as a React child" and crashes the page. Always funnel
 // backend `detail` through this to get a safe display string.
+
+// These backend details describe a product state already represented by the
+// caller's localized fallback. Returning the fallback prevents a known English
+// transport message from leaking into a Portuguese UI while preserving useful
+// backend details for every other error.
+const USE_LOCALIZED_FALLBACK = [
+  /^invite code not found$/i,
+  /^invalid invite code$/i,
+  /^invite code (?:has )?expired$/i,
+]
+
 export function getErrorMessage(detail: unknown, fallback: string): string {
-  if (typeof detail === 'string' && detail.trim()) return detail
+  if (typeof detail === 'string' && detail.trim()) {
+    const message = detail.trim()
+    if (USE_LOCALIZED_FALLBACK.some((pattern) => pattern.test(message))) return fallback
+    return message
+  }
   if (Array.isArray(detail)) {
     const msgs = detail
       .map((e) => (e && typeof e === 'object' && 'msg' in e ? (e as any).msg : typeof e === 'string' ? e : null))
@@ -15,7 +30,11 @@ export function getErrorMessage(detail: unknown, fallback: string): string {
   }
   if (detail && typeof detail === 'object') {
     const m = (detail as any).message ?? (detail as any).msg
-    if (typeof m === 'string' && m.trim()) return m
+    if (typeof m === 'string' && m.trim()) {
+      const message = m.trim()
+      if (USE_LOCALIZED_FALLBACK.some((pattern) => pattern.test(message))) return fallback
+      return message
+    }
   }
   return fallback
 }
