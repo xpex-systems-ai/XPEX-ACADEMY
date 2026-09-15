@@ -1,0 +1,27 @@
+/* XPeX Polo Enterprise V7.2 — narrow stabilization overrides.
+   Keep this layer scoped to the native admin so shared/light-theme components
+   are not globally restyled. */
+.xpex-native-admin .bg-background {
+  background-color: #0a111c !important;
+  color: #fff !important;
+}
+
+.xpex-native-admin .border-input {
+  border-color: var(--xpex-native-border) !important;
+}
+
+.xpex-native-admin .text-muted-foreground,
+.xpex-native-admin [class*="text-muted-foreground"] {
+  color: var(--xpex-native-muted) !important;
+}
+
+/* Emblor tags inherit the legacy design-system background token; force the
+   visible tag surface into the same enterprise form grammar as text inputs. */
+.xpex-native-admin .bg-background.border-input {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.xpex-native-admin .bg-background.border-input:focus-within {
+  border-color: rgba(0,212,255,.62) !important;
+  box-shadow: var(--xpex-native-focus) !important;
+}
