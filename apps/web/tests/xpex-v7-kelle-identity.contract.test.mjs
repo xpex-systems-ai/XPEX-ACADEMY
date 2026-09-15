@@ -22,7 +22,7 @@ const legalFooter = read('components/Footers/LegalFooters.tsx')
 describe('Kelle Digital Lab identity rollout', () => {
   test('pins the approved logo and hero to repository-backed assets', () => {
     expect(presets).toContain("logo: '/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg'")
-    expect(presets).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-background-v2.png'")
+    expect(presets).toContain("hero_image: '/xpex/polos/kelle-digital-lab/hero-official-presentation.png'")
     expect(presets).toContain("footer_credit: 'Tecnologia XPeX'")
   })
 
@@ -32,6 +32,8 @@ describe('Kelle Digital Lab identity rollout', () => {
     expect(hero).toContain('sizes="(min-width: 1024px) calc(100vw - 19rem), 100vw"')
     expect(css).toContain('aspect-ratio:1536/614')
     expect(css).toContain('object-fit:contain')
+    expect(hero).not.toContain('xpex-polo-hero-official-copy')
+    expect(hero).not.toContain('xpex-polo-hero-official-shade')
   })
 
   test('opens every polo section with the shared official identity', () => {
@@ -62,7 +64,7 @@ describe('Kelle Digital Lab identity rollout', () => {
   test('uses the official Kelle hero across desktop and mobile login', () => {
     for (const surface of [authPanel, authMobile]) {
       expect(surface).toContain("identityKey.includes('kelle')")
-      expect(surface).toContain('/xpex/polos/kelle-digital-lab/hero-background-v2.png')
+      expect(surface).toContain('/xpex/polos/kelle-digital-lab/hero-official-presentation.png')
       expect(surface).toContain("import Image from 'next/image'")
     }
     expect(authPanel).toContain('sizes="48vw"')
@@ -71,10 +73,11 @@ describe('Kelle Digital Lab identity rollout', () => {
     expect(login).toContain('-webkit-text-fill-color:white')
   })
 
-  test('makes Kelle the primary login identity and moves XPeX to the footer', () => {
-    expect(authPanel).toContain("'Bem-vindo à Kelle Digital Lab'")
-    expect(authPanel).toContain('/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg')
-    expect(authMobile).toContain('/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg')
+  test('keeps the approved artwork as the only visible login hero and moves XPeX to the footer', () => {
+    expect(authPanel).toContain('Apresentação oficial Kelle Digital Lab')
+    expect(authPanel).toContain('object-contain object-center')
+    expect(authMobile).toContain('aspect-[1536/614]')
+    expect(authMobile).toContain('object-contain object-center')
     expect(login).toContain("title={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}")
     expect(login).toContain('alt="Kelle Digital Lab"')
     expect(legalFooter).toContain('Tecnologia por')

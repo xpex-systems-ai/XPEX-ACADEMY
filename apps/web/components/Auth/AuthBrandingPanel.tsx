@@ -48,6 +48,24 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
     && Boolean(backgroundImage)
     && Boolean(branding.unsplash_photographer_name)
 
+  if (isKelleDigitalLab) {
+    return (
+      <aside
+        className="relative h-full overflow-hidden bg-[#030914]"
+        aria-label="Apresentação oficial Kelle Digital Lab"
+      >
+        <Image
+          src="/xpex/polos/kelle-digital-lab/hero-official-presentation.png"
+          alt="Bem-vindo ao Polo Kelle Digital Lab, Campos Lindos e Marajó, Goiás"
+          fill
+          priority
+          sizes="48vw"
+          className="object-contain object-center"
+        />
+      </aside>
+    )
+  }
+
   return (
     <aside
       className={cn(
@@ -56,16 +74,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       )}
       aria-label={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}
     >
-      {isKelleDigitalLab ? (
-        <Image
-          src="/xpex/polos/kelle-digital-lab/hero-background-v2.png"
-          alt="Polo Kelle Digital Lab"
-          fill
-          priority
-          sizes="48vw"
-          className="object-cover object-center"
-        />
-      ) : hasCustomBackground ? (
+      {hasCustomBackground ? (
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backgroundImage})` }}
@@ -81,24 +90,18 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-transparent' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 
       <div className="relative z-10 flex h-full flex-col p-10 xl:p-16">
-        {isKelleDigitalLab ? (
-          <div className="relative h-20 w-64" aria-label="Kelle Digital Lab">
-            <Image src="/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg" alt="Kelle Digital Lab" fill sizes="256px" className="object-contain object-left" />
-          </div>
-        ) : (
-          <div className="inline-flex w-fit items-center gap-3 rounded-2xl">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_36px_rgba(255,122,0,.32)]">XP</span>
-            <span>
-              <strong className="block tracking-[.2em]">XpeX</strong>
-              <small className={cn('text-[10px] font-bold uppercase tracking-[.24em]', isDarkText ? 'text-slate-700' : 'text-white/55')}>Academy</small>
-            </span>
-          </div>
-        )}
+        <div className="inline-flex w-fit items-center gap-3 rounded-2xl">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FF7A00] text-lg font-black text-[#0B1220] shadow-[0_0_36px_rgba(255,122,0,.32)]">XP</span>
+          <span>
+            <strong className="block tracking-[.2em]">XpeX</strong>
+            <small className={cn('text-[10px] font-bold uppercase tracking-[.24em]', isDarkText ? 'text-slate-700' : 'text-white/55')}>Academy</small>
+          </span>
+        </div>
 
         <div className={cn('my-auto max-w-lg', isKelleDigitalLab && 'rounded-3xl border border-white/10 bg-[#020814]/70 p-8 shadow-[0_28px_90px_rgba(0,0,0,.42)] backdrop-blur-md')}>
           {organizationName && !isKelleDigitalLab && (
