@@ -63,7 +63,7 @@ export default function AuthMobileHeader({ org }: { org: any }) {
       <div
         className={cn(
           'absolute inset-0',
-          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-gradient-to-t from-[#020814]/95 via-[#020814]/45 to-[#020814]/10' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
+          isDarkText ? 'bg-white/80' : isKelleDigitalLab ? 'bg-gradient-to-t from-[#020814]/70 via-transparent to-transparent' : hasCustomBackground ? 'bg-[#0B1220]/90' : 'bg-transparent',
         )}
       />
 
