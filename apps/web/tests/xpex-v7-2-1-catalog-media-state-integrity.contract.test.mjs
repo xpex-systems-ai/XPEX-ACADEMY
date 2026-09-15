@@ -48,34 +48,42 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
   })
 
   test('degrades gracefully instead of blanking the catalog at the pagination safety ceiling', () => {
-    expect(courseService).toContain('return courses')
+    expect(courseService).toContain('return markCatalogIncomplete(courses)')
     expect(courseService).not.toContain("throw new Error('Course catalog pagination exceeded the safety limit')")
   })
 
   test('retains verified catalog pages if a later page fails while keeping page 1 fatal', () => {
     expect(courseService).toContain('if (page === 1) throw error')
-    expect(courseService).toContain('if (page === 1) {')
-    expect(courseService).toContain("throw new Error('Invalid course catalog response')")
-    expect(courseService).toContain('return courses')
+    expect(courseService).toContain("if (page === 1) throw new Error('Invalid course catalog response')")
+    expect(courseService).toContain('return markCatalogIncomplete(courses)')
+    expect(courseService).toContain("Object.defineProperty(courses, 'incomplete'")
+    expect(useCourses).toContain("const isIncomplete = Boolean((query.data as any)?.incomplete)")
+  })
+
+  test('keeps degraded catalogs visible but not authoritative for Library readiness', () => {
+    expect(publicLibrary).toContain('isIncomplete: catalogCoursesIncomplete')
+    expect(publicLibrary).toContain('const catalogUsable = !catalogCoursesLoading && !catalogCoursesError')
+    expect(publicLibrary).toContain('const catalogReady = catalogUsable && !catalogCoursesIncomplete')
+    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (catalogUsable && visibleCourseUuids.has")
+    expect(publicLibrary).toContain('(catalogCoursesError || catalogCoursesIncomplete) && (')
+    expect(publicLibraryFolder).toContain('isIncomplete: catalogCoursesIncomplete')
+    expect(publicLibraryFolder).toContain('const catalogUsable = !catalogCoursesLoading && !catalogCoursesError')
+    expect(publicLibraryFolder).toContain('const catalogReady = catalogUsable && !catalogCoursesIncomplete')
+    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || (catalogUsable && visibleCourseUuids.has")
+    expect(publicLibraryFolder).toContain('(catalogCoursesError || catalogCoursesIncomplete) && (')
   })
 
   test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
     expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
-    expect(publicLibrary).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
     expect(publicLibrary).toContain('const visibleCourseUuids = useMemo')
-    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has")
     expect(publicLibrary).toContain('const analyticsReady = !libraryLoading && !libraryError && catalogReady')
-    expect(publicLibrary).toContain('catalogCoursesError && (')
     expect(publicLibrary).toContain('<LibraryState kind="loading" />')
     expect(publicLibrary).toContain('<LibraryState kind="error" />')
 
     expect(publicLibraryFolder).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibraryFolder).toContain('queryKey: [...queryKeys.folders.detail(folderUuid), authScope]')
-    expect(publicLibraryFolder).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
-    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has")
     expect(publicLibraryFolder).toContain('const loading = !sessionResolved || folderLoading')
     expect(publicLibraryFolder).toContain('const analyticsReady = !loading && !error && !!folder && catalogReady')
-    expect(publicLibraryFolder).toContain('catalogCoursesError && (')
   })
 
   test('renders independent Library content while course visibility is pending or unavailable', () => {
@@ -118,6 +126,8 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(safeImage).toContain('setFailed(true)')
     expect(courseThumbnail).toContain("import SafeImage from '@components/Objects/SafeImage'")
     expect(courseThumbnail).toContain('data-thumbnail-fallback="course"')
+    expect(courseThumbnail).toContain('aria-label={course.name}')
+    expect(courseThumbnail).not.toContain("aria-label={t('courses.course')}")
     expect(courseThumbnail).not.toContain('style={{ backgroundImage:')
     expect(communityCard).toContain("import SafeImage from '@components/Objects/SafeImage'")
     expect(communityCard).toContain('data-thumbnail-fallback="community"')
