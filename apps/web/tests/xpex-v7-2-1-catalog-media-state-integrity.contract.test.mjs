@@ -52,6 +52,13 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
     expect(courseService).not.toContain("throw new Error('Course catalog pagination exceeded the safety limit')")
   })
 
+  test('retains verified catalog pages if a later page fails while keeping page 1 fatal', () => {
+    expect(courseService).toContain('if (page === 1) throw error')
+    expect(courseService).toContain('if (page === 1) {')
+    expect(courseService).toContain("throw new Error('Invalid course catalog response')")
+    expect(courseService).toContain('return courses')
+  })
+
   test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
     expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibrary).toContain('const catalogReady = !catalogCoursesLoading && !catalogCoursesError')
