@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import GeneralWrapperStyled from '@components/Objects/StyledElements/Wrappers/GeneralWrapper'
@@ -11,6 +11,7 @@ import { queryKeys } from '@/lib/query/keys'
 import { getFolderById, removeFolderPrefix } from '@services/folders/folders'
 import { getUriWithOrg } from '@services/config/config'
 import { shareFolderLink } from '@components/Dashboard/Library/shareFolder'
+import { useCourses } from '@/hooks/queries/useCourses'
 import { FolderSimple, LinkSimple } from '@phosphor-icons/react'
 import { FolderCard, LibraryItemCard } from '../../library-cards'
 import { useTrackView, AnalyticsEvent } from '@services/analytics'
@@ -25,32 +26,64 @@ function FolderClient({
   const { t } = useTranslation()
   const session = useLHSession() as any
   const access_token = session?.data?.tokens?.access_token
+  const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'
+  const authScope = session.status === 'authenticated' ? 'authenticated' : 'anonymous'
   const folderUuid = `folder_${folderid}`
 
-  const { data: folder, isLoading } = useQuery({
-    queryKey: queryKeys.folders.detail(folderUuid),
+  const {
+    data: folder,
+    isLoading: folderLoading,
+    isError: folderError,
+  } = useQuery({
+    queryKey: [...queryKeys.folders.detail(folderUuid), authScope],
     queryFn: () => getFolderById(folderUuid, access_token),
-    enabled: !!folderid,
+    enabled: !!folderid && sessionResolved,
   })
+
+  const {
+    data: catalogCoursesData,
+    isLoading: catalogCoursesLoading,
+    isError: catalogCoursesError,
+  } = useCourses(orgslug)
+
+  const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
+  const visibleCourseUuids = useMemo(
+    () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
+    [catalogCourses],
+  )
+
+  const subfolders = folder?.subfolders || []
+  const rawItems = folder?.items || []
+  const items = useMemo(
+    () => rawItems.filter((item: any) => (
+      item?.resource_type !== 'courses' || visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid)
+    )),
+    [rawItems, visibleCourseUuids],
+  )
+  const breadcrumbs = folder?.breadcrumbs || []
+  const loading = !sessionResolved || folderLoading || catalogCoursesLoading
+  const error = folderError || catalogCoursesError
+  const isEmpty = subfolders.length === 0 && items.length === 0
 
   useTrackView(
     AnalyticsEvent.FolderViewed,
     {
-      folder_count: (folder?.subfolders || []).length,
-      is_empty: (folder?.subfolders || []).length === 0 && (folder?.items || []).length === 0,
+      folder_count: subfolders.length,
+      is_empty: isEmpty,
     },
-    !isLoading && !!folder,
+    !loading && !error && !!folder,
     'learner',
   )
 
-  if (isLoading && !folder) {
+  if (loading) {
     return (
-      <div className="w-full animate-pulse">
+      <div className="w-full animate-pulse" role="status" aria-live="polite">
         <GeneralWrapperStyled>
+          <span className="sr-only">Carregando pasta da biblioteca…</span>
           <div className="h-7 bg-gray-200 rounded w-40 mb-4" />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl nice-shadow p-3 h-16" />
+              <div key={i} className="bg-white rounded-xl nice-shadow p-3 h-20" />
             ))}
           </div>
         </GeneralWrapperStyled>
@@ -58,10 +91,17 @@ function FolderClient({
     )
   }
 
-  const subfolders = folder?.subfolders || []
-  const items = folder?.items || []
-  const breadcrumbs = folder?.breadcrumbs || []
-  const isEmpty = subfolders.length === 0 && items.length === 0
+  if (error || !folder) {
+    return (
+      <div className="w-full" role="alert">
+        <GeneralWrapperStyled>
+          <div className="flex min-h-40 items-center justify-center rounded-2xl border border-gray-100 bg-gray-50/30 px-6 text-center">
+            <p className="text-sm font-semibold text-gray-600">{t('library.error_loading')}</p>
+          </div>
+        </GeneralWrapperStyled>
+      </div>
+    )
+  }
 
   return (
     <FeatureGate feature="folders" orgslug={orgslug} context="public">
@@ -86,19 +126,17 @@ function FolderClient({
             />
 
             <div className="flex items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold text-gray-800">{folder?.name}</h1>
-              {folder && (
-                <button
-                  onClick={() => shareFolderLink(orgslug, folderUuid, folder.name, t('library.link_copied'), t('library.link_copy_error'))}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 nice-shadow hover:bg-gray-50 transition-colors flex-none"
-                >
-                  <LinkSimple size={16} />
-                  <span>{t('library.share')}</span>
-                </button>
-              )}
+              <h1 className="text-2xl font-bold text-gray-800">{folder.name}</h1>
+              <button
+                onClick={() => shareFolderLink(orgslug, folderUuid, folder.name, t('library.link_copied'), t('library.link_copy_error'))}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 nice-shadow hover:bg-gray-50 transition-colors flex-none"
+              >
+                <LinkSimple size={16} />
+                <span>{t('library.share')}</span>
+              </button>
             </div>
 
-            {folder?.description && (
+            {folder.description && (
               <p className="text-sm text-gray-500">{folder.description}</p>
             )}
 
