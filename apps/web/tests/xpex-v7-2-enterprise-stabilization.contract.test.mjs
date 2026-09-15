@@ -9,9 +9,11 @@ const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
 const adminStatus = read('components/Hooks/useAdminStatus.tsx')
 const adminAuthorization = read('components/Security/AdminAuthorization.tsx')
 const libraryClient = read('app/orgs/[orgslug]/dash/library/client.tsx')
+const libraryPage = read('app/orgs/[orgslug]/dash/library/page.tsx')
 const analytics = read('app/orgs/[orgslug]/dash/analytics/page.tsx')
 const safeImage = read('components/Objects/SafeImage.tsx')
 const recentCourses = read('components/Dashboard/Home/RecentCourses.tsx')
+const courseThumbnail = read('components/Objects/Thumbnails/CourseThumbnail.tsx')
 const primitives = read('components/Xpex/XpexPrimitives.tsx')
 const podcast = read('components/Objects/Thumbnails/PodcastThumbnail.tsx')
 const nativeCss = read('app/orgs/[orgslug]/dash/xpex-native-v7-2.css')
@@ -20,23 +22,29 @@ const poloPage = read('app/xpex/polo/page.tsx')
 const learningCss = read('app/orgs/[orgslug]/(withmenu)/xpex-learning-shell.css')
 
 describe('XPeX Polo Enterprise V7.2 stabilization contract', () => {
-  test('treats unresolved organization context as loading instead of unauthorized', () => {
+  test('treats unresolved organization context as loading and normalizes organization-scoped admin routes', () => {
     expect(adminStatus).toContain("isAuthenticated && !orgId")
     expect(adminAuthorization).toContain('const orgPending = isUserAuthenticated && !org?.slug')
     expect(adminAuthorization).toContain("org?.slug ? getUriWithOrg(org.slug, '/login') : '/login'")
+    expect(adminAuthorization).toContain("pathname.replace(/^\\/orgs\\/[^/]+(?=\\/|$)/, '')")
+    expect(adminAuthorization).toContain("getUriWithOrg(org.slug, '/dash')")
     expect(adminAuthorization).toContain('Carregando acesso administrativo')
   })
 
   test('separates library loading, error and true empty states', () => {
+    expect(libraryPage).toContain('let folders: any[] | undefined')
+    expect(libraryPage).toContain('initialFolders={folders}')
+    expect(libraryClient).toContain('initialFolders?: any[]')
     expect(libraryClient).toContain("function LibraryState({ kind }: { kind: 'loading' | 'error' })")
-    expect(libraryClient).toContain('const libraryLoading')
+    expect(libraryClient).toContain('folders === undefined')
     expect(libraryClient).toContain('const libraryError')
     expect(libraryClient).toContain('<LibraryState kind="loading" />')
     expect(libraryClient).toContain('<LibraryState kind="error" />')
   })
 
-  test('does not expose analytics provider secrets or environment variable instructions', () => {
-    expect(analytics).toContain('Análises indisponíveis no momento')
+  test('uses localized product-safe analytics unavailable copy without exposing provider secrets', () => {
+    expect(analytics).toContain("t('common.features.disabled.public.title'")
+    expect(analytics).toContain("t('common.features.disabled.public.description')")
     expect(analytics).not.toContain('LEARNHOUSE_TINYBIRD')
     expect(analytics).not.toContain('INGEST_TOKEN')
     expect(analytics).not.toContain('READ_TOKEN')
@@ -57,8 +65,10 @@ describe('XPeX Polo Enterprise V7.2 stabilization contract', () => {
     expect(nativeCss).toContain('focus-within')
   })
 
-  test('uses destination-accurate administrative CTAs and Portuguese podcast plurality', () => {
-    expect(nativeCss).toContain('content: "Editar curso"')
+  test('uses destination-accurate accessible administrative CTAs and Portuguese podcast plurality', () => {
+    expect(courseThumbnail).toContain("isDashboard ? t('courses.edit_content') : t('courses.start_learning')")
+    expect(nativeCss).not.toContain('content: "Editar curso"')
+    expect(nativeCss).not.toContain('font-size: 0 !important')
     expect(podcast).toContain("isDashboard ? 'Configurar podcast'")
     expect(podcast).toContain("episodeCount === 1 ? 'episódio' : 'episódios'")
   })
