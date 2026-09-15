@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useLHSession } from '@components/Contexts/LHSessionContext';
 import useAdminStatus from '@components/Hooks/useAdminStatus';
 import { usePathname, useRouter } from 'next/navigation';
@@ -28,25 +28,29 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
   const pathname = usePathname();
   const router = useRouter();
   const { isAdmin, loading } = useAdminStatus() as any;
-  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isUserAuthenticated = useMemo(() => session.status === 'authenticated', [session.status]);
   const sessionPending = session.status !== 'authenticated' && session.status !== 'unauthenticated';
   const orgPending = isUserAuthenticated && !org?.slug;
 
-  const checkPathname = useCallback((pattern: string, pathname: string) => {
-    if (typeof pattern !== 'string' || typeof pathname !== 'string') {
-      return false;
-    }
-
+  const checkPathname = useCallback((pattern: string, currentPathname: string) => {
+    if (typeof pattern !== 'string' || typeof currentPathname !== 'string') return false;
     const regexPattern = new RegExp(`^${pattern.replace(/[\/.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`);
-    return regexPattern.test(pathname);
+    return regexPattern.test(currentPathname);
   }, []);
 
-  const isAdminPath = useMemo(() => ADMIN_PATHS.some(path => checkPathname(path, pathname)), [pathname, checkPathname]);
+  const isAdminPath = useMemo(
+    () => ADMIN_PATHS.some(path => checkPathname(path, pathname)),
+    [pathname, checkPathname],
+  );
 
-  const authorizeUser = useCallback(() => {
-    // Never classify a session/org hydration state as an authorization failure.
+  const isAuthorized = useMemo(() => {
+    if (loading || sessionPending || orgPending || !isUserAuthenticated) return false;
+    if (authorizationMode === 'component') return Boolean(isAdmin);
+    return !isAdminPath || Boolean(isAdmin);
+  }, [authorizationMode, isAdmin, isAdminPath, isUserAuthenticated, loading, orgPending, sessionPending]);
+
+  useEffect(() => {
     if (loading || sessionPending || orgPending) return;
 
     if (!isUserAuthenticated) {
@@ -54,27 +58,14 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
       return;
     }
 
-    if (authorizationMode === 'page') {
-      if (isAdminPath) {
-        if (isAdmin) {
-          setIsAuthorized(true);
-        } else {
-          setIsAuthorized(false);
-          router.replace('/dash');
-        }
-      } else {
-        setIsAuthorized(true);
-      }
-    } else if (authorizationMode === 'component') {
-      setIsAuthorized(Boolean(isAdmin));
+    if (authorizationMode === 'page' && isAdminPath && !isAdmin) {
+      router.replace('/dash');
     }
-  }, [loading, sessionPending, orgPending, isUserAuthenticated, isAdmin, isAdminPath, authorizationMode, router, org?.slug]);
+  }, [authorizationMode, isAdmin, isAdminPath, isUserAuthenticated, loading, org?.slug, orgPending, router, sessionPending]);
 
-  useEffect(() => {
-    authorizeUser();
-  }, [authorizeUser]);
-
-  if (loading || sessionPending || orgPending) {
+  // Pending session/org resolution and redirect transitions are loading states,
+  // never temporary authorization failures.
+  if (loading || sessionPending || orgPending || !isUserAuthenticated) {
     return (
       <div className="flex justify-center items-center h-screen" role="status" aria-live="polite">
         <PageLoading />
@@ -91,7 +82,7 @@ const AdminAuthorization: React.FC<AuthorizationProps> = ({ children, authorizat
     );
   }
 
-  return <>{isAuthorized && children}</>;
+  return <>{isAuthorized ? children : null}</>;
 };
 
 export default AdminAuthorization;
