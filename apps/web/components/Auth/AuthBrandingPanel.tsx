@@ -58,7 +58,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
     >
       {isKelleDigitalLab ? (
         <Image
-          src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+          src="/xpex/polos/kelle-digital-lab/hero-background-v2.png"
           alt="Polo Kelle Digital Lab"
           fill
           priority
@@ -88,7 +88,7 @@ export default function AuthBrandingPanel({ org, welcomeText, title, subtitle }:
       <div className="relative z-10 flex h-full flex-col p-10 xl:p-16">
         {isKelleDigitalLab ? (
           <div className="relative h-20 w-64" aria-label="Kelle Digital Lab">
-            <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="256px" className="object-contain object-left" />
+            <Image src="/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg" alt="Kelle Digital Lab" fill sizes="256px" className="object-contain object-left" />
           </div>
         ) : (
           <div className="inline-flex w-fit items-center gap-3 rounded-2xl">
