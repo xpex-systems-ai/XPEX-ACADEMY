@@ -49,6 +49,7 @@ function FolderClient({
   } = useCourses(orgslug)
 
   const catalogCourses = Array.isArray(catalogCoursesData) ? catalogCoursesData : []
+  const catalogReady = !catalogCoursesLoading && !catalogCoursesError
   const visibleCourseUuids = useMemo(
     () => new Set(catalogCourses.map((course: any) => course.course_uuid)),
     [catalogCourses],
@@ -58,22 +59,24 @@ function FolderClient({
   const rawItems = folder?.items || []
   const items = useMemo(
     () => rawItems.filter((item: any) => (
-      item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
+      item?.resource_type !== 'courses' || (catalogReady && visibleCourseUuids.has(item?.resource?.course_uuid || item?.resource_uuid))
     )),
-    [rawItems, visibleCourseUuids, catalogCoursesError],
+    [rawItems, visibleCourseUuids, catalogReady],
   )
   const breadcrumbs = folder?.breadcrumbs || []
-  const loading = !sessionResolved || folderLoading || catalogCoursesLoading
+  const loading = !sessionResolved || folderLoading
   const error = folderError
-  const isEmpty = subfolders.length === 0 && items.length === 0
+  const learnerEmpty = subfolders.length === 0 && items.length === 0
+  const genuineEmpty = subfolders.length === 0 && rawItems.length === 0
+  const analyticsReady = !loading && !error && !!folder && catalogReady
 
   useTrackView(
     AnalyticsEvent.FolderViewed,
     {
       folder_count: subfolders.length,
-      is_empty: isEmpty,
+      is_empty: learnerEmpty,
     },
-    !loading && !error && !!folder,
+    analyticsReady,
     'learner',
   )
 
@@ -142,6 +145,12 @@ function FolderClient({
               <p className="text-sm text-gray-500">{folder.description}</p>
             )}
 
+            {catalogCoursesLoading && (
+              <div className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600" role="status" aria-live="polite">
+                <span>Carregando cursos desta pasta… Os demais conteúdos já estão disponíveis.</span>
+              </div>
+            )}
+
             {catalogCoursesError && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200/60 bg-amber-50/60 px-3 py-2 text-sm text-amber-800" role="status">
                 <WarningCircle size={18} className="mt-0.5 shrink-0" />
@@ -166,7 +175,7 @@ function FolderClient({
                 </div>
               )}
 
-              {isEmpty && !catalogCoursesError && (
+              {genuineEmpty && (
                 <div className="col-span-full flex flex-col justify-center items-center py-12 px-4 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/30">
                   <div className="p-4 bg-white rounded-full nice-shadow mb-4">
                     <FolderSimple className="w-8 h-8 text-gray-300" weight="duotone" />
