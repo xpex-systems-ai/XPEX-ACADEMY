@@ -8,8 +8,8 @@ import type { PoloBranding } from './polo-branding'
  */
 export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
   default: {
-    logo: '/xpex/polos/kelle-digital-lab/logo-official.png',
-    hero_image: '/xpex/polos/kelle-digital-lab/hero-official-clean.jpg',
+    logo: '/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg',
+    hero_image: '/xpex/polos/kelle-digital-lab/hero-background-v2.png',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
     background: '#07111F',
@@ -20,8 +20,8 @@ export const poloBrandingPresets: Record<string, Partial<PoloBranding>> = {
   },
   'kelle-digital-lab': {
     organization_name: 'KELLE DIGITAL LAB',
-    logo: '/xpex/polos/kelle-digital-lab/logo-official.png',
-    hero_image: '/xpex/polos/kelle-digital-lab/hero-official-clean.jpg',
+    logo: '/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg',
+    hero_image: '/xpex/polos/kelle-digital-lab/hero-background-v2.png',
     primary_color: '#FF7A00',
     accent_color: '#00D4FF',
     background: '#07111F',
