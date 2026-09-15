@@ -1,59 +1,78 @@
 .page {
   display: grid;
-  gap: 1rem;
+  gap: .82rem;
 }
 
 .heroCompact {
+  width: 100%;
+  max-width: none;
   overflow: hidden;
-  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 212, 255, .22);
+  border-radius: 1.2rem;
+  background: #07111f;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .03);
 }
 
 .heroCompact :global(.xpex-polo-hero),
 .heroCompact :global(.xpex-polo-hero-official) {
-  min-height: 13.5rem;
-  max-height: 13.5rem;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 12.5rem;
+  max-height: 12.5rem;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: inherit !important;
 }
 
 .heroCompact :global(.xpex-polo-hero-official-image) {
   object-fit: cover;
+  object-position: center 46%;
+}
+
+.consoleHeader {
+  padding: 1.15rem 1.35rem !important;
+  border-color: rgba(34, 53, 80, .82) !important;
+  border-radius: 1.05rem !important;
+  background: linear-gradient(135deg, rgba(18, 31, 51, .96), rgba(10, 20, 35, .97)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025), 0 12px 30px rgba(0, 0, 0, .1);
 }
 
 .headerRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1rem 1.4rem;
 }
 
 .headingBlock {
-  max-width: 48rem;
+  max-width: 52rem;
 }
 
 .eyebrow {
   margin: 0;
-  color: #7dd3fc;
-  font-size: .72rem;
-  font-weight: 800;
-  letter-spacing: .16em;
+  color: #6dd9f7;
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .17em;
   text-transform: uppercase;
 }
 
 .title {
-  margin: .35rem 0 0;
+  margin: .28rem 0 0;
   color: #fff;
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(1.9rem, 3.6vw, 2.85rem);
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.02;
   letter-spacing: -.035em;
 }
 
 .subtitle {
-  margin: .75rem 0 0;
-  max-width: 44rem;
+  margin: .58rem 0 0;
+  max-width: 48rem;
   color: #a9b8ca;
-  font-size: .95rem;
-  line-height: 1.6;
+  font-size: .9rem;
+  line-height: 1.5;
 }
 
 .actions {
@@ -64,83 +83,85 @@
 
 .secondaryAction {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 2.55rem;
   align-items: center;
   justify-content: center;
   gap: .45rem;
-  border: 1px solid rgba(148, 163, 184, .24);
-  border-radius: .85rem;
-  padding: .7rem 1rem;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: .8rem;
+  padding: .62rem .9rem;
   color: #e6eef8;
-  background: rgba(7, 17, 31, .68);
-  font-size: .85rem;
+  background: rgba(7, 17, 31, .62);
+  font-size: .8rem;
   font-weight: 800;
   text-decoration: none;
   transition: border-color .18s ease, background .18s ease, transform .18s ease;
 }
 
 .secondaryAction:hover {
-  border-color: rgba(0, 212, 255, .42);
-  background: rgba(0, 212, 255, .06);
+  border-color: rgba(0, 212, 255, .4);
+  background: rgba(0, 212, 255, .055);
   transform: translateY(-1px);
 }
 
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .75rem;
+  gap: .68rem;
 }
 
 .metricCard {
   display: flex;
-  min-height: 6rem;
+  min-height: 5.45rem;
   align-items: center;
-  gap: .9rem;
-  border: 1px solid rgba(34, 53, 80, .9);
-  border-radius: 1rem;
-  padding: 1rem;
-  background: linear-gradient(180deg, rgba(16, 26, 43, .96), rgba(8, 17, 29, .96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+  gap: .8rem;
+  border: 1px solid rgba(34, 53, 80, .88);
+  border-radius: .95rem;
+  padding: .82rem .9rem;
+  background: linear-gradient(180deg, rgba(15, 27, 45, .97), rgba(8, 17, 30, .98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025), 0 10px 24px rgba(0, 0, 0, .08);
 }
 
 .metricIcon {
   display: grid;
-  width: 2.9rem;
-  height: 2.9rem;
+  width: 2.65rem;
+  height: 2.65rem;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid rgba(0, 212, 255, .24);
-  border-radius: .8rem;
+  border-radius: .75rem;
   color: #67e8f9;
-  background: rgba(0, 212, 255, .06);
+  background: rgba(0, 212, 255, .055);
 }
 
 .metricLabel {
   margin: 0;
-  color: #9fb0c7;
-  font-size: .75rem;
-  font-weight: 700;
+  color: #a8b7ca;
+  font-size: .7rem;
+  font-weight: 750;
 }
 
 .metricValue {
-  margin: .18rem 0 0;
+  margin: .15rem 0 0;
   color: #fff;
-  font-size: 1.45rem;
+  font-size: 1.34rem;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -.02em;
 }
 
 .metricHint {
-  margin: .3rem 0 0;
+  margin: .25rem 0 0;
   color: #64748b;
-  font-size: .68rem;
+  font-size: .64rem;
+  line-height: 1.25;
 }
 
 .alertSuccess,
 .alertError {
-  border-radius: .9rem;
-  padding: .85rem 1rem;
-  font-size: .84rem;
+  border-radius: .82rem;
+  padding: .78rem .95rem;
+  font-size: .8rem;
   font-weight: 800;
 }
 
@@ -158,37 +179,40 @@
 
 .operationsGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(17rem, .92fr);
-  gap: .8rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(17rem, .9fr);
+  gap: .72rem;
+  align-items: stretch;
 }
 
 .operationCard,
 .journeyCard,
 .activityPanel {
-  border: 1px solid rgba(34, 53, 80, .92);
-  border-radius: 1.1rem;
-  background: linear-gradient(180deg, rgba(11, 18, 32, .98), rgba(7, 15, 27, .98));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+  border: 1px solid rgba(34, 53, 80, .9);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(11, 19, 33, .985), rgba(7, 15, 27, .985));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025), 0 12px 28px rgba(0, 0, 0, .09);
 }
 
 .operationCard,
 .journeyCard {
-  padding: 1.15rem;
+  min-height: 18.2rem;
+  padding: 1rem;
 }
 
 .cardTitleRow {
   display: flex;
   align-items: flex-start;
-  gap: .7rem;
+  gap: .65rem;
 }
 
 .cardIcon {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.25rem;
+  height: 2.25rem;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: .75rem;
+  border: 1px solid rgba(255, 122, 0, .08);
+  border-radius: .72rem;
   color: #fb923c;
   background: rgba(255, 122, 0, .08);
 }
@@ -196,99 +220,108 @@
 .cardTitle {
   margin: 0;
   color: #fff;
-  font-size: 1rem;
+  font-size: .96rem;
   font-weight: 900;
 }
 
 .cardText {
-  margin: .25rem 0 0;
-  color: #7f91a8;
-  font-size: .75rem;
-  line-height: 1.45;
+  margin: .2rem 0 0;
+  color: #8294aa;
+  font-size: .72rem;
+  line-height: 1.42;
 }
 
 .form {
   display: grid;
-  gap: .72rem;
-  margin-top: 1rem;
+  gap: .66rem;
+  margin-top: .9rem;
 }
 
 .field {
   display: grid;
-  gap: .38rem;
+  gap: .34rem;
 }
 
 .label {
   color: #d7e2ee;
-  font-size: .76rem;
+  font-size: .72rem;
   font-weight: 800;
 }
 
 .input,
 .select {
   width: 100%;
-  min-height: 2.75rem;
-  border: 1px solid rgba(71, 85, 105, .5);
-  border-radius: .75rem;
-  padding: .65rem .75rem;
+  min-height: 2.58rem;
+  border: 1px solid rgba(71, 85, 105, .48);
+  border-radius: .72rem;
+  padding: .58rem .72rem;
   color: #f8fafc;
   background: #0a1422;
-  font-size: .82rem;
+  font-size: .78rem;
   outline: none;
-  transition: border-color .16s ease, box-shadow .16s ease;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 
 .input::placeholder {
   color: #52627a;
 }
 
+.input:hover,
+.select:hover {
+  border-color: rgba(100, 116, 139, .62);
+  background: #0b1727;
+}
+
 .input:focus,
 .select:focus {
-  border-color: rgba(0, 212, 255, .6);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, .08);
+  border-color: rgba(0, 212, 255, .58);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, .075);
 }
 
 .primaryButton {
   display: inline-flex;
-  min-height: 2.85rem;
+  min-height: 2.65rem;
   align-items: center;
   justify-content: center;
-  gap: .5rem;
+  gap: .48rem;
   border: 0;
-  border-radius: .78rem;
-  padding: .72rem 1rem;
+  border-radius: .74rem;
+  padding: .65rem .95rem;
   color: #06101b;
   background: linear-gradient(90deg, #ff7a00, #ff9a1f);
-  font-size: .82rem;
+  font-size: .78rem;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 8px 28px rgba(255, 122, 0, .12);
+  box-shadow: 0 9px 24px rgba(255, 122, 0, .13);
+  transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
 }
 
 .primaryButton:hover {
-  filter: brightness(1.04);
+  filter: brightness(1.045);
+  transform: translateY(-1px);
+  box-shadow: 0 11px 28px rgba(255, 122, 0, .17);
 }
 
 .helper {
-  margin: -.2rem 0 0;
-  color: #64748b;
-  font-size: .68rem;
-  line-height: 1.4;
+  margin: -.12rem 0 0;
+  color: #68788e;
+  font-size: .65rem;
+  line-height: 1.38;
 }
 
 .journeyStatus {
   display: grid;
-  gap: .8rem;
-  margin-top: 1rem;
+  gap: .7rem;
+  margin-top: .9rem;
 }
 
 .statusRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .75rem;
-  border-bottom: 1px solid rgba(51, 65, 85, .45);
-  padding-bottom: .7rem;
+  gap: .7rem;
+  border-bottom: 1px solid rgba(51, 65, 85, .42);
+  padding-bottom: .62rem;
 }
 
 .statusRow:last-child {
@@ -298,12 +331,12 @@
 
 .statusName {
   color: #9fb0c7;
-  font-size: .74rem;
+  font-size: .7rem;
 }
 
 .statusValue {
   color: #f8fafc;
-  font-size: .76rem;
+  font-size: .72rem;
   font-weight: 800;
   text-align: right;
 }
@@ -311,12 +344,13 @@
 .statusBadge {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
+  gap: .33rem;
+  border: 1px solid rgba(34, 197, 94, .14);
   border-radius: 999px;
-  padding: .28rem .55rem;
+  padding: .25rem .5rem;
   color: #bbf7d0;
-  background: rgba(34, 197, 94, .1);
-  font-size: .66rem;
+  background: rgba(34, 197, 94, .085);
+  font-size: .63rem;
   font-weight: 900;
 }
 
@@ -329,44 +363,51 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: .75rem;
-  padding: 1rem 1.1rem;
-  border-bottom: 1px solid rgba(51, 65, 85, .45);
+  gap: .72rem;
+  padding: .85rem 1rem;
+  border-bottom: 1px solid rgba(51, 65, 85, .42);
 }
 
 .activityTitle {
   margin: 0;
   color: #fff;
-  font-size: .95rem;
+  font-size: .9rem;
   font-weight: 900;
 }
 
 .activityText {
-  margin: .18rem 0 0;
+  margin: .16rem 0 0;
   color: #64748b;
-  font-size: .72rem;
+  font-size: .68rem;
 }
 
 .activityEmpty {
   display: grid;
-  min-height: 8rem;
+  min-height: 6.6rem;
   place-items: center;
-  padding: 1.5rem;
+  padding: 1.2rem;
   text-align: center;
 }
 
 .activityEmpty strong {
   color: #e5edf6;
-  font-size: .86rem;
+  font-size: .8rem;
 }
 
 .activityEmpty p {
-  margin: .35rem 0 0;
+  margin: .3rem 0 0;
   color: #64748b;
-  font-size: .74rem;
+  font-size: .69rem;
+  line-height: 1.4;
 }
 
 @media (max-width: 1100px) {
+  .heroCompact :global(.xpex-polo-hero),
+  .heroCompact :global(.xpex-polo-hero-official) {
+    min-height: 11.5rem;
+    max-height: 11.5rem;
+  }
+
   .metricsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -377,19 +418,44 @@
 
   .journeyCard {
     grid-column: 1 / -1;
+    min-height: auto;
   }
 }
 
 @media (max-width: 720px) {
+  .page {
+    gap: .72rem;
+  }
+
+  .heroCompact {
+    border-radius: .95rem;
+  }
+
   .heroCompact :global(.xpex-polo-hero),
   .heroCompact :global(.xpex-polo-hero-official) {
-    min-height: 10.5rem;
-    max-height: 10.5rem;
+    min-height: 9.75rem;
+    max-height: 9.75rem;
+  }
+
+  .heroCompact :global(.xpex-polo-hero-official-image) {
+    object-position: center center;
+  }
+
+  .consoleHeader {
+    padding: 1rem !important;
   }
 
   .headerRow,
   .actions {
     align-items: stretch;
+  }
+
+  .title {
+    font-size: clamp(1.8rem, 10vw, 2.3rem);
+  }
+
+  .subtitle {
+    font-size: .82rem;
   }
 
   .actions,
@@ -402,6 +468,11 @@
     grid-template-columns: 1fr;
   }
 
+  .operationCard,
+  .journeyCard {
+    min-height: auto;
+  }
+
   .journeyCard {
     grid-column: auto;
   }
@@ -410,7 +481,8 @@
 @media (prefers-reduced-motion: reduce) {
   .secondaryAction,
   .input,
-  .select {
+  .select,
+  .primaryButton {
     transition: none;
   }
 }
