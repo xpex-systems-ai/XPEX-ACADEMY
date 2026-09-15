@@ -59,7 +59,7 @@ export default function DashboardHome() {
           {isKelleDigitalLab && (
             <section className="xpex-kelle-admin-hero" aria-label="Kelle Digital Lab">
               <Image
-                src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+                src="/xpex/polos/kelle-digital-lab/hero-background-v2.png"
                 alt="Kelle Digital Lab — educação, tecnologia e transformação"
                 fill
                 priority

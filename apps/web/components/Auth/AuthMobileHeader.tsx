@@ -46,7 +46,7 @@ export default function AuthMobileHeader({ org }: { org: any }) {
     >
       {isKelleDigitalLab ? (
         <Image
-          src="/xpex/polos/kelle-digital-lab/hero-official-clean.jpg"
+          src="/xpex/polos/kelle-digital-lab/hero-background-v2.png"
           alt="Polo Kelle Digital Lab"
           fill
           priority
@@ -70,7 +70,7 @@ export default function AuthMobileHeader({ org }: { org: any }) {
       <div className="relative z-10 flex items-center gap-3 pr-20">
         {isKelleDigitalLab ? (
           <div className="relative h-16 w-52">
-            <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="208px" className="object-contain object-left" />
+            <Image src="/xpex/polos/kelle-digital-lab/logo-horizontal-v2.svg" alt="Kelle Digital Lab" fill sizes="208px" className="object-contain object-left" />
           </div>
         ) : (
           <>
