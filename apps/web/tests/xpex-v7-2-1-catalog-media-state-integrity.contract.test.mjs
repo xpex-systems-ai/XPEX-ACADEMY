@@ -8,6 +8,7 @@ const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (...parts) => readFileSync(join(WEB_ROOT, ...parts), 'utf8')
 
 const useCourses = read('hooks/queries/useCourses.ts')
+const courseService = read('services/courses/courses.ts')
 const publicLibrary = read('app/orgs/[orgslug]/(withmenu)/library/LibraryClient.tsx')
 const publicLibraryFolder = read('app/orgs/[orgslug]/(withmenu)/library/folder/[folderid]/FolderClient.tsx')
 const courseThumbnail = read('components/Objects/Thumbnails/CourseThumbnail.tsx')
@@ -22,26 +23,43 @@ const signupClient = read('services/auth/auth.ts')
 describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () => {
   test('resolves catalog truth only after auth state and scopes cache per acting user', () => {
     expect(useCourses).toContain("const sessionResolved = session.status === 'authenticated' || session.status === 'unauthenticated'")
-    expect(useCourses).toContain("session?.data?.user?.user_uuid || 'authenticated'")
+    expect(useCourses).toContain('session?.data?.user?.user_uuid || session?.data?.user?.id')
     expect(useCourses).toContain("'anonymous'")
     expect(useCourses).toContain('queryKey: [...queryKeys.courses.list(orgSlug), authScope]')
     expect(useCourses).toContain('enabled: !!orgSlug && sessionResolved')
     expect(useCourses).toContain('isLoading: !sessionResolved || query.isLoading')
   })
 
+  test('paginates the complete canonical learner-visible catalog instead of trusting page 1', () => {
+    expect(courseService).toContain('export async function getAllVisibleOrgCourses')
+    expect(courseService).toContain('for (let page = 1; page <= maxPages; page += 1)')
+    expect(courseService).toContain('getOrgCourses(org_slug, next, access_token, false, page, pageSize)')
+    expect(courseService).toContain('if (batch.length < pageSize) return courses')
+    expect(useCourses).toContain('getAllVisibleOrgCourses(orgSlug, {}, accessToken)')
+  })
+
   test('keeps learner Library course resources inside the canonical /courses visibility set', () => {
     expect(publicLibrary).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibrary).toContain('const visibleCourseUuids = useMemo')
-    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || visibleCourseUuids.has")
+    expect(publicLibrary).toContain("item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has")
     expect(publicLibrary).toContain('const libraryLoading = !org?.id || foldersLoading || rootItemsLoading || catalogCoursesLoading')
-    expect(publicLibrary).toContain('const libraryError = rootItemsError || catalogCoursesError')
+    expect(publicLibrary).toContain('const libraryError = rootItemsError')
+    expect(publicLibrary).toContain('catalogCoursesError && (')
     expect(publicLibrary).toContain('<LibraryState kind="loading" />')
     expect(publicLibrary).toContain('<LibraryState kind="error" />')
 
     expect(publicLibraryFolder).toContain("import { useCourses } from '@/hooks/queries/useCourses'")
     expect(publicLibraryFolder).toContain('queryKey: [...queryKeys.folders.detail(folderUuid), authScope]')
-    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || visibleCourseUuids.has")
-    expect(publicLibraryFolder).toContain('const error = folderError || catalogCoursesError')
+    expect(publicLibraryFolder).toContain("item?.resource_type !== 'courses' || (!catalogCoursesError && visibleCourseUuids.has")
+    expect(publicLibraryFolder).toContain('const error = folderError')
+    expect(publicLibraryFolder).toContain('catalogCoursesError && (')
+  })
+
+  test('fails closed for course cards while preserving unrelated Library content on catalog failure', () => {
+    expect(publicLibrary).toContain('Os cursos estão temporariamente indisponíveis')
+    expect(publicLibrary).not.toContain('rootItemsError || catalogCoursesError')
+    expect(publicLibraryFolder).toContain('Os cursos desta pasta estão temporariamente indisponíveis')
+    expect(publicLibraryFolder).not.toContain('folderError || catalogCoursesError')
   })
 
   test('uses one resilient image contract for course and community thumbnails', () => {
