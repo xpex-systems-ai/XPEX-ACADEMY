@@ -77,8 +77,15 @@ describe('XPeX Polo Enterprise V7.2.1 catalog, media and state integrity', () =>
   test('does not record false empty Library analytics while catalog visibility is unresolved', () => {
     expect(publicLibrary).toContain('analyticsReady,')
     expect(publicLibraryFolder).toContain('analyticsReady,')
-    expect(publicLibrary).toContain('const genuineEmpty = folders.length === 0 && rootItems.length === 0')
-    expect(publicLibraryFolder).toContain('const genuineEmpty = subfolders.length === 0 && rawItems.length === 0')
+  })
+
+  test('shows empty state only after learner visibility filtering is resolved', () => {
+    expect(publicLibrary).toContain('const learnerEmpty = folders.length === 0 && visibleRootItems.length === 0')
+    expect(publicLibrary).toContain('catalogReady && learnerEmpty && (')
+    expect(publicLibrary).not.toContain('const genuineEmpty = folders.length === 0 && rootItems.length === 0')
+    expect(publicLibraryFolder).toContain('const learnerEmpty = subfolders.length === 0 && items.length === 0')
+    expect(publicLibraryFolder).toContain('catalogReady && learnerEmpty && (')
+    expect(publicLibraryFolder).not.toContain('const genuineEmpty = subfolders.length === 0 && rawItems.length === 0')
   })
 
   test('uses one resilient image contract for course and community thumbnails', () => {
