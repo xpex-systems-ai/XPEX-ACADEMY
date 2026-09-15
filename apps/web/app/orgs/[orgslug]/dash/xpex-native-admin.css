@@ -89,7 +89,9 @@
 }
 .xpex-native-admin textarea { min-height:96px; }
 .xpex-native-admin input::placeholder,.xpex-native-admin textarea::placeholder { color:#70839d; }
-.xpex-native-admin input:focus,.xpex-native-admin textarea:focus,.xpex-native-admin select:focus { outline:none; border-color:rgba(0,212,255,.62) !important; box-shadow:var(--xpex-native-focus); }
+.xpex-native-admin input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
+.xpex-native-admin textarea:focus,
+.xpex-native-admin select:focus { outline:none; border-color:rgba(0,212,255,.62) !important; box-shadow:var(--xpex-native-focus); }
 .xpex-native-admin-main a,.xpex-native-admin-main button { transition:transform .18s ease,border-color .18s ease,background-color .18s ease,box-shadow .18s ease,opacity .18s ease; }
 .xpex-native-admin-main a:hover,.xpex-native-admin-main button:hover { border-color:rgba(0,212,255,.34); }
 .xpex-native-admin-main button:focus-visible,.xpex-native-admin-main a:focus-visible { outline:none; box-shadow:var(--xpex-native-focus); }
