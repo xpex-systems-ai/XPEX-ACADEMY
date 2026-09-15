@@ -37,7 +37,7 @@ export default function AuthMobileHeader({ org }: { org: any }) {
 
   return (
     <header
-      aria-label="XpeX Academy"
+      aria-label={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}
       className={cn(
         'relative overflow-hidden border-b border-white/10 bg-[#0B1220] px-5 py-4',
         isKelleDigitalLab && 'min-h-[172px] flex flex-col justify-end',
@@ -68,26 +68,27 @@ export default function AuthMobileHeader({ org }: { org: any }) {
       />
 
       <div className="relative z-10 flex items-center gap-3 pr-20">
-        <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#FF7A00] text-sm font-black text-[#0B1220] shadow-[0_0_24px_rgba(255,122,0,.24)]">XP</span>
-        <span>
-          <strong className="block text-sm tracking-[.18em]">XpeX</strong>
-          <small
-            className={cn(
-              'text-[9px] font-bold uppercase tracking-[.22em]',
-              isDarkText ? 'text-slate-700' : 'text-white/55',
-            )}
-          >
-            Academy
-          </small>
-        </span>
-        {organizationName && (
+        {isKelleDigitalLab ? (
+          <div className="relative h-16 w-52">
+            <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="208px" className="object-contain object-left" />
+          </div>
+        ) : (
+          <>
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#FF7A00] text-sm font-black text-[#0B1220] shadow-[0_0_24px_rgba(255,122,0,.24)]">XP</span>
+            <span>
+              <strong className="block text-sm tracking-[.18em]">XpeX</strong>
+              <small className={cn('text-[9px] font-bold uppercase tracking-[.22em]', isDarkText ? 'text-slate-700' : 'text-white/55')}>Academy</small>
+            </span>
+          </>
+        )}
+        {organizationName && !isKelleDigitalLab && (
           <span className="ml-auto max-w-36 truncate rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[.12em]">
             {organizationName}
           </span>
         )}
       </div>
 
-      {organizationName && (
+      {organizationName && !isKelleDigitalLab && (
         <p
           className={cn(
             'relative z-10 mt-2 truncate pr-20 text-xs font-semibold',

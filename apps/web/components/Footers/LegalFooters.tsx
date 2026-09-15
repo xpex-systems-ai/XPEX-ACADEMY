@@ -26,6 +26,11 @@ export function AuthFooter({ className = '', tone = 'light' }: { className?: str
 
   return (
     <div className={`pb-8 pt-6 text-center px-6 ${className}`}>
+      {tone === 'dark' && (
+        <p className="mb-3 text-[11px] font-black uppercase tracking-[.2em] text-[#00D4FF]">
+          Tecnologia por <span className="text-white">XPeX Academy AI</span>
+        </p>
+      )}
       <p className={`text-[13px] font-medium ${text}`}>
         {termsLead}{' '}
         <Link

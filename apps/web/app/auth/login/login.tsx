@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Info, Lock, Mail, Shield, X, Clock } from 'lucide-react'
 import { checkSSOEnabled, redirectToSSOLogin } from '@services/auth/sso'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@components/Contexts/AuthContext'
 import { getLEARNHOUSE_TOP_DOMAIN_VAL, getDeploymentMode, isOnCustomDomain } from '@services/config/config'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +24,7 @@ interface LoginClientProps {
 
 const LoginClient = (props: LoginClientProps) => {
   const { t } = useTranslation()
+  const isKelleDigitalLab = /kelle/i.test(`${props.org?.slug || ''} ${props.org?.name || ''}`)
   const { signIn } = useAuth()
   const { track } = useLHAnalytics('public')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -269,7 +271,7 @@ const LoginClient = (props: LoginClientProps) => {
     <AuthLayout
       org={props.org}
       welcomeText={t('auth.login_to')}
-      title="XpeX Academy"
+      title={isKelleDigitalLab ? 'Kelle Digital Lab' : 'XpeX Academy'}
       subtitle={t('auth.enter_credentials')}
     >
         {showErrorModal && (
@@ -337,7 +339,13 @@ const LoginClient = (props: LoginClientProps) => {
 
         <div className="flex-1 flex items-center justify-center px-6 md:px-12 lg:px-20">
           <div className="w-full max-w-[460px] rounded-[28px] border border-white/10 bg-white/[.035] p-6 shadow-[0_24px_80px_rgba(0,0,0,.28)] backdrop-blur-xl md:p-8">
-            <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
+            {isKelleDigitalLab ? (
+              <div className="relative h-16 w-56">
+                <Image src="/xpex/polos/kelle-digital-lab/logo-official.png" alt="Kelle Digital Lab" fill sizes="224px" className="object-contain object-left" />
+              </div>
+            ) : (
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#00D4FF]">XpeX Academy</p>
+            )}
             <h1 className="mt-3 text-[28px] font-black leading-tight tracking-tight text-white md:text-[32px]">{t('auth.login_to')}</h1>
             <p className="mt-2 text-[15px] font-medium text-white/55">{t('auth.enter_credentials')}</p>
 
