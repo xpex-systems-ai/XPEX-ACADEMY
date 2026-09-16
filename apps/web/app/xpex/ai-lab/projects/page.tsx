@@ -53,7 +53,9 @@ export default async function XpexAiLabProjectsPage() {
   const learning = await getAuthorizedStudentLearning('/xpex/ai-lab/projects')
   if (!learning) return <XpexStudentDenied />
 
-  const orgBase = `/orgs/${learning.organization.slug}`
+  const organizationSlug = learning.organization.slug
+  const nativeWorkspaceAvailable = Boolean(organizationSlug && organizationSlug !== 'default')
+  const orgBase = nativeWorkspaceAvailable ? `/orgs/${organizationSlug}` : null
   const courses = learning.data.courses
   const totalLessons = courses.reduce((sum, course) => sum + (course.total_lessons || 0), 0)
   const completedLessons = courses.reduce((sum, course) => sum + (course.completed_lessons || 0), 0)
@@ -71,7 +73,7 @@ export default async function XpexAiLabProjectsPage() {
         <header>
           <p className="xpex-label">LAB-002 · Projetos com evidência</p>
           <h1>Workspace de Projetos GX</h1>
-          <p>Transforme aprendizado em entregas reais usando o GX como mentor e Boards + Library da XPeX como infraestrutura de organização e evidência.</p>
+          <p>Transforme aprendizado em entregas reais usando o GX como mentor e, quando a organização estiver habilitada, Boards + Library da XPeX como infraestrutura de organização e evidência.</p>
         </header>
 
         <section className="xpex-card mt-5 overflow-hidden border border-orange-500/25 bg-[radial-gradient(circle_at_85%_0%,rgba(0,180,255,0.20),transparent_32%),radial-gradient(circle_at_10%_10%,rgba(255,106,0,0.18),transparent_38%),#07111d]">
@@ -79,12 +81,13 @@ export default async function XpexAiLabProjectsPage() {
             <div>
               <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-orange-400"><FolderKanban size={16}/> Project OS XPeX</span>
               <h2 className="mt-4 text-4xl font-black md:text-5xl">Do curso para um projeto demonstrável.</h2>
-              <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX, organize tarefas e decisões em Boards e mantenha fontes e materiais na Library. A XPeX não inventa conclusão de projeto: a evidência continua sendo produzida por você.</p>
+              <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX e produza evidências reais. Recursos nativos de Boards e Library só aparecem como ação quando a organização possui uma rota própria válida.</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href={`${orgBase}/boards`} className="xpex-primary"><FolderKanban size={17}/> Abrir Boards</Link>
-                <Link href={`${orgBase}/library`} className="xpex-secondary"><LibraryBig size={17}/> Abrir Library</Link>
+                {orgBase ? <Link href={`${orgBase}/boards`} className="xpex-primary"><FolderKanban size={17}/> Abrir Boards</Link> : <span className="xpex-secondary cursor-default opacity-60"><FolderKanban size={17}/> Boards indisponível neste Polo</span>}
+                {orgBase ? <Link href={`${orgBase}/library`} className="xpex-secondary"><LibraryBig size={17}/> Abrir Library</Link> : <span className="xpex-secondary cursor-default opacity-60"><LibraryBig size={17}/> Library indisponível neste Polo</span>}
                 <Link href="/xpex/ai-lab#gx-copilot" className="xpex-secondary"><Bot size={17}/> Abrir GX</Link>
               </div>
+              {!nativeWorkspaceAvailable ? <p className="mt-4 max-w-2xl text-sm text-slate-400">A organização atual não expõe uma rota nativa válida de workspace. O laboratório continua funcional com GX e templates sem criar links quebrados ou simular capacidades indisponíveis.</p> : null}
             </div>
             <div className="rounded-3xl border border-cyan-400/20 bg-black/20 p-6">
               <p className="xpex-label">Contexto real do aluno</p>
@@ -101,7 +104,7 @@ export default async function XpexAiLabProjectsPage() {
         <section className="mt-10" aria-labelledby="project-templates-title">
           <p className="xpex-label">Templates profissionais</p>
           <h2 id="project-templates-title" className="mt-1 text-3xl font-black">Escolha um desafio e produza evidência</h2>
-          <p className="mt-2 max-w-4xl text-slate-400">Os templates são estruturas de trabalho, não projetos falsamente concluídos. Use-os para guiar a execução dentro das capacidades reais já existentes no fork.</p>
+          <p className="mt-2 max-w-4xl text-slate-400">Os templates são estruturas de trabalho, não projetos falsamente concluídos. Use-os para guiar a execução dentro das capacidades reais já existentes na XPeX.</p>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             {projectTemplates.map(({ title, level, icon: Icon, objective, evidence, gxPrompt }) => (
@@ -127,8 +130,8 @@ export default async function XpexAiLabProjectsPage() {
 
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   <Link href="/xpex/ai-lab#gx-copilot" className="xpex-primary"><Bot size={16}/> Trabalhar com GX</Link>
-                  <Link href={`${orgBase}/boards`} className="xpex-secondary">Planejar no Board <ArrowRight size={15}/></Link>
-                  <Link href={`${orgBase}/library`} className="xpex-secondary">Guardar fontes <ArrowRight size={15}/></Link>
+                  {orgBase ? <Link href={`${orgBase}/boards`} className="xpex-secondary">Planejar no Board <ArrowRight size={15}/></Link> : null}
+                  {orgBase ? <Link href={`${orgBase}/library`} className="xpex-secondary">Guardar fontes <ArrowRight size={15}/></Link> : null}
                 </div>
               </article>
             ))}
@@ -136,8 +139,8 @@ export default async function XpexAiLabProjectsPage() {
         </section>
 
         <section className="mt-10 grid gap-5 xl:grid-cols-3">
-          <article className="xpex-card"><FolderKanban className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">1. Planeje no Board</h2><p className="mt-2 text-slate-400">Quebre o projeto em problema, pesquisa, construção, teste e entrega. O Board continua sob as regras de autenticação da XPeX.</p></article>
-          <article className="xpex-card"><LibraryBig className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">2. Organize fontes</h2><p className="mt-2 text-slate-400">Use a Library para materiais, referências e artefatos permitidos. Não há progresso inventado a partir de arquivos externos.</p></article>
+          <article className="xpex-card"><FolderKanban className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">1. Planeje com evidência</h2><p className="mt-2 text-slate-400">Quebre o projeto em problema, pesquisa, construção, teste e entrega. Quando o Board nativo estiver disponível, ele continua sob as regras de autenticação da XPeX.</p></article>
+          <article className="xpex-card"><LibraryBig className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">2. Organize suas fontes</h2><p className="mt-2 text-slate-400">Mantenha materiais, referências e artefatos permitidos organizados. A XPeX não transforma arquivos externos em progresso fictício.</p></article>
           <article className="xpex-card"><Bot className="text-cyan-400"/><h2 className="mt-3 text-xl font-black">3. Revise com GX</h2><p className="mt-2 text-slate-400">Peça ao GX para criticar decisões, propor testes e identificar lacunas, mantendo clara a diferença entre sugestão e evidência executada.</p></article>
         </section>
 
@@ -146,9 +149,9 @@ export default async function XpexAiLabProjectsPage() {
             <div>
               <p className="xpex-label">Governança do laboratório</p>
               <h2 className="mt-1 text-2xl font-black">Aprender, construir e provar.</h2>
-              <p className="mt-2 max-w-3xl text-slate-400">Boards e Library são infraestrutura real do fork; GX é mentor e copiloto. Execução isolada de código, modelos e datasets privados continua fora deste bloco até existir sandbox, quota, autorização e observabilidade adequados.</p>
+              <p className="mt-2 max-w-3xl text-slate-400">GX é mentor e copiloto. Boards e Library são usados somente quando a organização possui rota própria válida. Execução isolada de código, modelos e datasets privados continua fora deste bloco até existir sandbox, quota, autorização e observabilidade adequados.</p>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/5 px-4 py-2 text-sm font-black text-emerald-300"><ShieldCheck size={17}/> Sem bypass de ACL</span>
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/5 px-4 py-2 text-sm font-black text-emerald-300"><ShieldCheck size={17}/> Sem links órfãos · sem bypass de ACL</span>
           </div>
         </section>
       </section>
