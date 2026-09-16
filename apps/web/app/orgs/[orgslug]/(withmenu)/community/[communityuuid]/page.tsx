@@ -5,7 +5,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { getCommunity } from '@services/communities/communities'
 import { getDiscussions, DiscussionWithAuthor } from '@services/communities/discussions'
 import { getOrgThumbnailMediaDirectory, getOrgOgImageMediaDirectory } from '@services/media/media'
-import { getCanonicalUrl, getOrgSeoConfig, buildPageTitle, buildBreadcrumbJsonLd } from '@/lib/seo/utils'
+import { getOrgSeoConfig, buildPageTitle, buildBreadcrumbJsonLd } from '@/lib/seo/utils'
 import { getServerCanonicalUrl } from '@/lib/seo/utils.server'
 import { JsonLd } from '@components/SEO/JsonLd'
 import CommunityClient from './community'
@@ -26,15 +26,14 @@ export async function generateMetadata(props: MetadataProps): Promise<Metadata> 
   let community = null
   try {
     community = await getCommunity(communityUuid, { revalidate: 120, tags: ['communities'] })
-  } catch (error) {
-    // Community might not exist or user doesn't have access
+  } catch {
+    // A comunidade pode não existir ou não estar disponível para esta sessão.
   }
 
   const seoConfig = getOrgSeoConfig(org)
 
-  const title = buildPageTitle(community ? community.name : 'Community', org.name, seoConfig)
-  const description = community?.description || seoConfig.default_meta_description || `Community discussions from ${org.name}`
-
+  const title = buildPageTitle(community ? community.name : 'Comunidade', org.name, seoConfig)
+  const description = community?.description || seoConfig.default_meta_description || `Comunidade de aprendizagem de ${org.name}`
   const ogImageUrl = seoConfig.default_og_image
     ? getOrgOgImageMediaDirectory(org?.org_uuid, seoConfig.default_og_image)
     : null
@@ -123,19 +122,20 @@ const CommunityPage = async (params: any) => {
     }
   }
 
-  // Missing, or denied-to-anon: 404 so non-public communities aren't enumerable.
+  // Ausente, ou negada para sessão anônima: 404 para evitar enumeração de comunidades privadas.
   if (!community && (!communityError || !access_token)) {
     notFound()
   }
 
   if (!community) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-600">You don't have access</h1>
-          <p className="text-gray-400 mt-2">You do not have permission to view this community.</p>
-        </div>
-      </div>
+      <main className="flex min-h-[50vh] items-center justify-center px-6 py-12" role="main">
+        <section className="w-full max-w-xl rounded-3xl border border-amber-400/20 bg-amber-400/5 p-8 text-center shadow-2xl" aria-labelledby="community-access-title">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-300">Acesso protegido</p>
+          <h1 id="community-access-title" className="mt-3 text-2xl font-black text-white">Comunidade ainda não liberada</h1>
+          <p className="mt-3 leading-7 text-slate-300">Sua conta está autenticada, mas esta comunidade não está disponível para o seu perfil neste momento. Quando o acesso for autorizado, ela aparecerá normalmente na sua jornada.</p>
+        </section>
+      </main>
     )
   }
 
@@ -152,9 +152,9 @@ const CommunityPage = async (params: any) => {
   }
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
-    { name: 'Home', url: await getServerCanonicalUrl(orgslug, '/') },
-    { name: 'Communities', url: await getServerCanonicalUrl(orgslug, '/communities') },
-    { name: community.name || 'Community', url: await getServerCanonicalUrl(orgslug, `/community/${communityuuid}`) },
+    { name: 'Início', url: await getServerCanonicalUrl(orgslug, '/') },
+    { name: 'Comunidades', url: await getServerCanonicalUrl(orgslug, '/communities') },
+    { name: community.name || 'Comunidade', url: await getServerCanonicalUrl(orgslug, `/community/${communityuuid}`) },
   ])
 
   return (
