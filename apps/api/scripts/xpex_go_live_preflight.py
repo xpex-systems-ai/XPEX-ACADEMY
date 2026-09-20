@@ -92,6 +92,9 @@ def _environment_checks(require_ai: bool, require_payments: bool) -> list[Check]
 
     if require_ai:
         provider = (os.getenv("LEARNHOUSE_AI_PROVIDER") or "").strip().lower()
+        embedding_provider = (
+            os.getenv("LEARNHOUSE_AI_EMBEDDING_PROVIDER") or ""
+        ).strip().lower()
         ai_enabled = (os.getenv("LEARNHOUSE_IS_AI_ENABLED") or "").strip().lower() in {
             "1",
             "true",
@@ -100,14 +103,67 @@ def _environment_checks(require_ai: bool, require_payments: bool) -> list[Check]
         }
         checks.append(Check("LEARNHOUSE_IS_AI_ENABLED", ai_enabled, "P1", "AI launch requested"))
         checks.append(Check("LEARNHOUSE_AI_PROVIDER", bool(provider), "P1", "provider must be selected"))
-        checks.append(Check("LEARNHOUSE_AI_API_KEY", _present("LEARNHOUSE_AI_API_KEY"), "P1", "LLM provider credential"))
-        if provider == "google":
+
+        if provider == "openrouter":
+            llm_credential_ok = _present("LEARNHOUSE_AI_API_KEY") or _present(
+                "OPENROUTER_API_KEY"
+            )
+            llm_detail = (
+                "OpenRouter credential via LEARNHOUSE_AI_API_KEY or OPENROUTER_API_KEY"
+            )
+        elif provider == "bedrock":
+            llm_credential_ok = True
+            llm_detail = "Bedrock uses the AWS credential chain"
+        elif provider == "ollama":
+            llm_credential_ok = True
+            llm_detail = "Ollama does not require a hosted provider key"
+        elif provider in {"google", "google-gla", "gemini"}:
+            llm_credential_ok = _present("LEARNHOUSE_AI_API_KEY") or _present(
+                "LEARNHOUSE_GEMINI_API_KEY"
+            )
+            llm_detail = "Google credential"
+        else:
+            llm_credential_ok = _present("LEARNHOUSE_AI_API_KEY")
+            llm_detail = "LLM provider credential"
+
+        checks.append(Check("AI_LLM_CREDENTIAL", llm_credential_ok, "P1", llm_detail))
+
+        effective_embedding_provider = embedding_provider or provider
+        if effective_embedding_provider in {"google", "google-gla", "gemini"}:
+            embedding_ok = _present("LEARNHOUSE_GEMINI_API_KEY") or (
+                provider in {"google", "google-gla", "gemini"}
+                and _present("LEARNHOUSE_AI_API_KEY")
+            )
+            embedding_detail = "Google embeddings credential"
+        elif effective_embedding_provider in {
+            "openai",
+            "openai-compatible",
+            "azure",
+            "together",
+        }:
+            embedding_ok = _present("LEARNHOUSE_AI_API_KEY")
+            embedding_detail = "OpenAI-family embeddings credential"
+        elif effective_embedding_provider == "ollama":
+            embedding_ok = True
+            embedding_detail = "local Ollama embeddings"
+        else:
+            # The current core embeddings layer has no native OpenRouter/Hugging Face
+            # embeddings adapter. Providers without embeddings fall back to Google.
+            embedding_ok = _present("LEARNHOUSE_GEMINI_API_KEY")
+            embedding_detail = (
+                f"{effective_embedding_provider or 'selected provider'} has no native core "
+                "embeddings path; configure LEARNHOUSE_GEMINI_API_KEY or a supported "
+                "LEARNHOUSE_AI_EMBEDDING_PROVIDER"
+            )
+
+        checks.append(Check("AI_RAG_EMBEDDINGS", embedding_ok, "P1", embedding_detail))
+        if _present("HF_TOKEN"):
             checks.append(
                 Check(
-                    "LEARNHOUSE_GEMINI_API_KEY",
-                    _present("LEARNHOUSE_GEMINI_API_KEY"),
+                    "HF_TOKEN",
+                    True,
                     "P1",
-                    "Google embeddings credential",
+                    "available for XPeX Content Studio; not used by core RAG embeddings",
                 )
             )
 
