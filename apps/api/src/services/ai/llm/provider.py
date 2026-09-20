@@ -8,10 +8,10 @@ logic touches a vendor SDK. Embeddings are handled provider-agnostically in ``em
 from __future__ import annotations
 
 import logging
-
-from pydantic_ai.models import Model
+import os
 
 from config.config import get_learnhouse_config
+from pydantic_ai.models import Model
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,14 @@ class AINotConfiguredError(Exception):
     """Raised when the configured AI provider is missing its API key."""
 
 
+
+def _resolve_api_key(provider_id: str, cfg) -> str | None:
+    """Resolve the provider credential without exposing or copying secret values."""
+    api_key = getattr(cfg, "api_key", None)
+    if provider_id == "openrouter" and not api_key:
+        return os.getenv("OPENROUTER_API_KEY") or None
+    return api_key
+
 def build_model(model_name: str) -> Model:
     """Build a Pydantic AI ``Model`` for ``model_name`` using the global AI config.
 
@@ -39,7 +47,11 @@ def build_model(model_name: str) -> Model:
     cfg = lh_config.ai_config
     # Treat None / empty / whitespace-only as "unset" and fall back to the default provider.
     provider_id = (getattr(cfg, "provider", None) or "").strip().lower() or DEFAULT_PROVIDER
-    api_key = getattr(cfg, "api_key", None)
+    # XPeX already uses OPENROUTER_API_KEY for Content Studio. When OpenRouter
+    # is selected as the core LearnHouse provider, allow that same server-side
+    # secret to satisfy the provider contract without duplicating secret values.
+    # LEARNHOUSE_AI_API_KEY still takes precedence when explicitly configured.
+    api_key = _resolve_api_key(provider_id, cfg)
     base_url = getattr(cfg, "base_url", None) or None  # treat "" as unset
 
     # Ollama (and other local OpenAI-compatible servers) need no real key.
@@ -70,9 +82,12 @@ def build_model(model_name: str) -> Model:
         api_key = getattr(cfg, "gemini_api_key", None)
 
     if not api_key:
-        raise AINotConfiguredError(
-            "AI provider API key not configured (set LEARNHOUSE_AI_API_KEY)"
+        hint = (
+            "set LEARNHOUSE_AI_API_KEY or OPENROUTER_API_KEY"
+            if provider_id == "openrouter"
+            else "set LEARNHOUSE_AI_API_KEY"
         )
+        raise AINotConfiguredError(f"AI provider API key not configured ({hint})")
 
     if provider_id in _GOOGLE_ALIASES:
         from pydantic_ai.models.google import GoogleModel
