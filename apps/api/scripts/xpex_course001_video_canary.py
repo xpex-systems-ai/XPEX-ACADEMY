@@ -24,7 +24,10 @@ from src.services.xpex.content_studio import CourseDraft
 from src.services.xpex.video_factory import VideoJobState, VideoModelRegistry
 from src.services.xpex.video_jobs import claim_job
 from src.services.xpex.video_media import require_durable_media_storage
-from src.services.xpex.video_pipeline import VideoLessonSource, build_video_stage_handlers
+from src.services.xpex.video_pipeline import (
+    VideoLessonSource,
+    build_video_stage_handlers,
+)
 from src.services.xpex.video_worker import run_claimed_job
 
 BATCH_ID = "xpvb-course001-ia-r1"
