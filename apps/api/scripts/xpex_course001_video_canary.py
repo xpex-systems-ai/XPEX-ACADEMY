@@ -90,7 +90,14 @@ async def run(*, execute: bool) -> int:
                     "status=AWAITING_HUMAN_APPROVAL auto_approved=false auto_published=false"
                 )
                 return 0
-            if row.state not in {VideoJobState.QUEUED.value, VideoJobState.FAILED.value}:
+            if row.state == VideoJobState.FAILED.value:
+                print(
+                    "COURSE001_VIDEO_CANARY RETRY_READY "
+                    f"resume_state={row.resume_state or 'unknown'} "
+                    f"attempt_count={row.attempt_count} "
+                    f"last_error={row.last_error or 'unknown'}"
+                )
+            elif row.state != VideoJobState.QUEUED.value:
                 print(f"COURSE001_VIDEO_CANARY BLOCKED state={row.state}")
                 return 5
 
@@ -153,7 +160,10 @@ async def run(*, execute: bool) -> int:
             if completed.state != VideoJobState.AWAITING_HUMAN_APPROVAL.value:
                 print(
                     "COURSE001_VIDEO_CANARY BLOCKED "
-                    f"state={completed.state} attempt_count={completed.attempt_count}"
+                    f"state={completed.state} "
+                    f"resume_state={completed.resume_state or 'unknown'} "
+                    f"attempt_count={completed.attempt_count} "
+                    f"last_error={completed.last_error or 'unknown'}"
                 )
                 return 8
 
