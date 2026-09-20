@@ -104,7 +104,7 @@ def _http_error(
     return VideoProviderError(
         f"{message} with HTTP {response.status_code}",
         http_status=response.status_code,
-        request_id=_request_id(response) or request_id,
+        request_id=request_id or _request_id(response),
         sanitized_response=_safe_response(response),
         endpoint_category=category,
     )
@@ -326,14 +326,27 @@ async def _generate_video_with_fal(
                 await asyncio.sleep(1.0)
 
             # Fal can briefly report COMPLETED before the routed result endpoint is
-            # readable through Hugging Face. Retry only transient 404/425/429/5xx
-            # responses; other client errors remain fail-closed.
+            # readable through Hugging Face. Retry transient readiness failures and
+            # also probe the equivalent single/double fal-ai route once: provider
+            # response_url shapes have differed across router revisions.
             result_response = None
-            for _ in range(15):
-                result_response = await client.get(result_url, headers=_headers())
-                if result_response.status_code < 400:
-                    break
-                if result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}:
+            candidate_urls = [result_url]
+            if "/fal-ai/fal-ai/" in result_url:
+                candidate_urls.append(result_url.replace("/fal-ai/fal-ai/", "/fal-ai/", 1))
+            elif "/fal-ai/" in result_url:
+                candidate_urls.append(result_url.replace("/fal-ai/", "/fal-ai/fal-ai/", 1))
+
+            for _ in range(120):
+                for candidate_url in candidate_urls:
+                    result_response = await client.get(candidate_url, headers=_headers())
+                    if result_response.status_code < 400:
+                        break
+                    if result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}:
+                        break
+                if result_response is not None and (
+                    result_response.status_code < 400
+                    or result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}
+                ):
                     break
                 await asyncio.sleep(1.0)
             assert result_response is not None
