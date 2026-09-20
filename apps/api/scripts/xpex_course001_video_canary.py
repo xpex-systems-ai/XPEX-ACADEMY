@@ -142,6 +142,7 @@ async def run(*, execute: bool) -> int:
                 worker_id="course001-canary",
                 org_id=int(org.id),
                 lease_seconds=3600,
+                max_attempts=8,
             )
             if claimed is None:
                 print("COURSE001_VIDEO_CANARY BLOCKED claim_failed")
