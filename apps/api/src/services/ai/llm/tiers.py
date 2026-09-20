@@ -10,9 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-from sqlmodel.ext.asyncio.session import AsyncSession
-
 from config.config import get_learnhouse_config
+from sqlmodel.ext.asyncio.session import AsyncSession
 from src.security.features_utils.plan_check import get_org_plan
 from src.security.features_utils.plans import plan_meets_requirement
 
