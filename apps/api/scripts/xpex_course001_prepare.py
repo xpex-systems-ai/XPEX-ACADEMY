@@ -19,11 +19,10 @@ import os
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from config.config import get_learnhouse_config
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from config.config import get_learnhouse_config
 from src.db.courses.activities import (
     Activity,
     ActivityLockType,
@@ -628,7 +627,7 @@ async def _ensure_video_bridge(
     await session.commit()
 
     plan = VideoBatchPlan(
-        course_id=f"xpvb-course001-ia-r1",
+        course_id="xpvb-course001-ia-r1",
         lesson_ids=[f"m{index:02d}-l01" for index in range(1, 13)],
         concurrency=3,
     )
