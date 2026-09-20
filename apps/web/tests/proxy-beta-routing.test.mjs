@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isPublicBetaPath, isPublicBrandAsset, tenantScopedPath } from '../lib/proxyPaths.ts'
+import { authOrgForCurrentRequest, isPublicBetaPath, isPublicBrandAsset, tenantScopedPath } from '../lib/proxyPaths.ts'
 
 describe('public beta proxy routing', () => {
   test('/beta/aluno bypasses the tenant-scoped rewrite', () => {
@@ -40,5 +40,19 @@ describe('tenant-scoped proxy routing', () => {
     expect(tenantScopedPath('turma-demo', '/')).toBe('/orgs/turma-demo/')
     expect(tenantScopedPath('turma-demo', '/account/general'))
       .toBe('/orgs/turma-demo/account/general')
+  })
+})
+
+
+describe('auth tenant resolution', () => {
+  test('current proxy tenant wins over a stale org cookie', () => {
+    expect(authOrgForCurrentRequest('kelle-digital-lab', 'default'))
+      .toBe('kelle-digital-lab')
+  })
+
+  test('cookie remains a fallback when no request tenant is forwarded', () => {
+    expect(authOrgForCurrentRequest(null, 'kelle-digital-lab'))
+      .toBe('kelle-digital-lab')
+    expect(authOrgForCurrentRequest(null, null)).toBe(null)
   })
 })

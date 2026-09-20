@@ -14,6 +14,17 @@ export function tenantScopedPath(slug: string, pathname: string): string {
 }
 
 /** Accept only same-origin absolute paths for the post-auth bridge. */
+/** Prefer the tenant resolved by middleware for the current request over a stale browser cookie. */
+export function authOrgForCurrentRequest(
+  forwardedOrg: string | null,
+  cookieOrg: string | null,
+): string | null {
+  const resolved = forwardedOrg?.trim()
+  if (resolved) return resolved
+  const cookie = cookieOrg?.trim()
+  return cookie || null
+}
+
 export function safeAuthReturnPath(target: string | null): string {
   if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return '/home'
   try {

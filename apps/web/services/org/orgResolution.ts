@@ -1,5 +1,6 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { getOrganizationContextInfoWithoutCredentials, getOrganizationContextInfoWithUUID } from '@services/organizations/orgs'
+import { authOrgForCurrentRequest } from '@/lib/proxyPaths'
 
 export interface ResolvedOrg {
   id: number
@@ -106,7 +107,11 @@ export async function getAuthOrgSlug(): Promise<string | null> {
   }
 
   const cookieStore = await cookies()
-  return cookieStore.get('LH_org')?.value ?? null
+  const requestHeaders = await headers()
+  return authOrgForCurrentRequest(
+    requestHeaders.get('x-lh-org'),
+    cookieStore.get('LH_org')?.value ?? null,
+  )
 }
 
 // =============================================================================

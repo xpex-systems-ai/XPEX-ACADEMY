@@ -350,6 +350,8 @@ export default async function proxy(req: NextRequest) {
     )
     setOrgCookies(response, resolved, instance)
     setInstanceCookies(response, instance)
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate')
+    response.headers.set('Vary', 'Cookie')
     return response
   }
 
