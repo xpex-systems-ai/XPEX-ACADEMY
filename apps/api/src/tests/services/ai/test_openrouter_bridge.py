@@ -3,8 +3,6 @@ from types import SimpleNamespace
 from src.services.ai.llm import embeddings, provider, tiers
 
 
-
-
 def test_openrouter_uses_existing_xpex_secret_when_core_key_missing(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-secret")
     cfg = SimpleNamespace(api_key=None)
