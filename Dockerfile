@@ -93,7 +93,8 @@ COPY --from=frontend-runner /app /app/web
 WORKDIR /app/api
 COPY ./apps/api/uv.lock ./apps/api/pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip uv \
-    && uv sync --no-dev
+    && uv sync --no-dev \
+    && uv pip install --python .venv/bin/python huggingface-hub==1.32.0
 COPY ./apps/api ./
 
 # Remove Enterprise Edition folder for public builds
