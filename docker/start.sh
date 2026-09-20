@@ -122,18 +122,21 @@ pm2 status
 # Start Nginx in the background
 nginx -g 'daemon off;' &
 
-# Mission 043 is intentionally idempotent and fail-closed. Before each resume,
-# emit the bounded/redacted read-only Mission 041 evidence for the same sole
-# canary. This exposes a consumed provider attempt without revealing credentials,
-# changing job state, or making any provider call. Mission 043 can then resume only
-# when its persisted single-submission guard allows it.
-(
-    sleep 8
-    cd /app/api || exit 92
-    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py \
-        || echo "XPEX-WAVE1-MEDIA-CANARY-DIAGNOSTIC-041 unavailable; guarded resume continues"
-    PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_final_043.py --execute
-) &
+# Historical Wave1 media canary is opt-in in production. It used to run on
+# every deploy, consuming provider attempts and obscuring normal startup logs.
+# Operators can explicitly re-enable the guarded diagnostic/resume sequence with
+# XPEX_WAVE1_MEDIA_CANARY_ON_START=1 when a dedicated canary is intended.
+if [ "${XPEX_WAVE1_MEDIA_CANARY_ON_START:-0}" = "1" ]; then
+    (
+        sleep 8
+        cd /app/api || exit 92
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_diagnostic_041.py \
+            || echo "XPEX-WAVE1-MEDIA-CANARY-DIAGNOSTIC-041 unavailable; guarded resume continues"
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_wave1_media_canary_final_043.py --execute
+    ) &
+else
+    echo "XPEX-WAVE1-MEDIA-CANARY disabled by default"
+fi
 
 # Tail PM2 logs with proper formatting
 pm2 logs --raw
