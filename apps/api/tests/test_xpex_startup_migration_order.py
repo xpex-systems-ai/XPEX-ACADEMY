@@ -29,3 +29,15 @@ def test_schema_repair_is_scoped_to_assignment_passing_score():
     assert "DELETE FROM" not in repair
     assert "DROP TABLE" not in repair
     assert "UPDATE user" not in repair
+
+
+def test_wave1_media_canary_is_opt_in_on_startup():
+    repo_root = Path(__file__).resolve().parents[3]
+    start_script = (repo_root / "docker" / "start.sh").read_text()
+
+    assert 'XPEX_WAVE1_MEDIA_CANARY_ON_START:-0' in start_script
+    assert 'XPEX-WAVE1-MEDIA-CANARY disabled by default' in start_script
+    gate_index = start_script.index('XPEX_WAVE1_MEDIA_CANARY_ON_START:-0')
+    diagnostic_index = start_script.index('scripts/xpex_wave1_media_canary_diagnostic_041.py')
+    resume_index = start_script.index('scripts/xpex_wave1_media_canary_final_043.py --execute')
+    assert gate_index < diagnostic_index < resume_index
