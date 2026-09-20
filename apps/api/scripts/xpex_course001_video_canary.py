@@ -13,10 +13,11 @@ import argparse
 import asyncio
 import os
 
-from config.config import get_learnhouse_config
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from config.config import get_learnhouse_config
 from src.db.organizations import Organization
 from src.db.xpex_editorial import XPeXEditorialDraft
 from src.db.xpex_video import XPeXVideoJob
