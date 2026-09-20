@@ -17,6 +17,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+from huggingface_hub import AsyncInferenceClient
 from pydantic import BaseModel, Field, ValidationError
 from src.services.xpex.video_factory import (
     MultimodalReview,
@@ -260,134 +261,27 @@ async def _generate_video_with_fal(
     provider_model: str,
     timeout_seconds: float,
 ) -> ProviderBinary:
-    """Use Fal's queued text-to-video task through Hugging Face routed billing."""
-    submit_url = _fal_routed_url(provider_model)
-    headers = {**_headers(), "Content-Type": "application/json"}
-    deadline = asyncio.get_running_loop().time() + timeout_seconds
-    request_id: str | None = None
+    """Generate text-to-video through Hugging Face's official Fal provider adapter."""
+    _ = provider_model
     try:
-        async with httpx.AsyncClient(timeout=min(timeout_seconds, 120.0)) as client:
-            submit = await client.post(submit_url, headers=headers, json={"prompt": prompt})
-            if submit.status_code >= 400:
-                raise _http_error("Hugging Face Fal video submit failed", submit, "submit")
-            try:
-                submitted = submit.json()
-                response_url = submitted["response_url"]
-                request_id = submitted["request_id"]
-            except (ValueError, KeyError, TypeError):
-                raise VideoProviderError("Hugging Face Fal video submit returned invalid JSON") from None
-            if not request_id:
-                raise VideoProviderError("Hugging Face Fal video submit returned no request id")
-            status_url, result_url = _fal_poll_urls(submit_url, response_url)
-
-            while True:
-                if asyncio.get_running_loop().time() >= deadline:
-                    raise VideoProviderError(
-                        "Hugging Face Fal video generation timed out",
-                        request_id=request_id,
-                        endpoint_category="status",
-                    )
-                status_response = await client.get(status_url, headers=_headers())
-                if status_response.status_code >= 400:
-                    raise _http_error(
-                        "Hugging Face Fal video status failed",
-                        status_response,
-                        "status",
-                        request_id=request_id,
-                    )
-                try:
-                    status_body = status_response.json()
-                    queue_status = status_body.get("status")
-                except (ValueError, AttributeError):
-                    raise VideoProviderError(
-                        "Hugging Face Fal video status returned invalid JSON",
-                        request_id=request_id,
-                        sanitized_response=_safe_response(status_response),
-                        endpoint_category="status",
-                    ) from None
-                if queue_status == "COMPLETED":
-                    if status_body.get("error"):
-                        raise VideoProviderError(
-                            "Hugging Face Fal video generation failed",
-                            request_id=request_id,
-                            queue_state=queue_status,
-                            sanitized_response=_safe_response(status_response),
-                            endpoint_category="status",
-                        )
-                    break
-                if queue_status not in {"IN_QUEUE", "IN_PROGRESS"}:
-                    raise VideoProviderError(
-                        "Hugging Face Fal video returned an unknown queue state",
-                        request_id=request_id,
-                        queue_state=str(queue_status),
-                        sanitized_response=_safe_response(status_response),
-                        endpoint_category="status",
-                    )
-                await asyncio.sleep(1.0)
-
-            # Fal can briefly report COMPLETED before the routed result endpoint is
-            # readable through Hugging Face. Retry transient readiness failures and
-            # also probe the equivalent single/double fal-ai route once: provider
-            # response_url shapes have differed across router revisions.
-            result_response = None
-            candidate_urls = [result_url]
-            if "/fal-ai/fal-ai/" in result_url:
-                candidate_urls.append(result_url.replace("/fal-ai/fal-ai/", "/fal-ai/", 1))
-            elif "/fal-ai/" in result_url:
-                candidate_urls.append(result_url.replace("/fal-ai/", "/fal-ai/fal-ai/", 1))
-
-            transient_statuses = {404, 425, 429, 500, 502, 503, 504}
-            primary_url = candidate_urls[0]
-            alternate_urls = candidate_urls[1:]
-            for _ in range(120):
-                primary_response = await client.get(primary_url, headers=_headers())
-                result_response = primary_response
-                if primary_response.status_code < 400:
-                    break
-
-                # Alternate route variants are recovery probes only. A non-transient
-                # alternate error (for example 405) must not abort retries against
-                # the primary routed result URL.
-                if primary_response.status_code in transient_statuses:
-                    for alternate_url in alternate_urls:
-                        alternate_response = await client.get(alternate_url, headers=_headers())
-                        if alternate_response.status_code < 400:
-                            result_response = alternate_response
-                            break
-                    if result_response.status_code < 400:
-                        break
-                    await asyncio.sleep(1.0)
-                    continue
-
-                break
-            assert result_response is not None
-            if result_response.status_code >= 400:
-                raise _http_error(
-                    "Hugging Face Fal video result failed",
-                    result_response,
-                    "result",
-                    request_id=request_id,
-                )
-            try:
-                result_body = result_response.json()
-                video_url = result_body["video"]["url"]
-            except (ValueError, KeyError, TypeError):
-                raise VideoProviderError(
-                    "Hugging Face Fal video result returned invalid JSON",
-                    request_id=request_id,
-                    sanitized_response=_safe_response(result_response),
-                    endpoint_category="result",
-                ) from None
-            video = await _download_public_media(client, video_url, request_id=request_id)
-    except httpx.RequestError:
+        client = AsyncInferenceClient(
+            provider="fal-ai",
+            api_key=_hf_token(),
+            timeout=timeout_seconds,
+        )
+        video = await client.text_to_video(prompt, model=model)
+    except Exception as exc:  # noqa: BLE001
         raise VideoProviderError(
-            "Hugging Face Fal video transport failed",
-            request_id=request_id,
-            endpoint_category="queue",
-        ) from None
+            "Hugging Face Fal official client failed",
+            endpoint_category="official-client",
+        ) from exc
 
-    return ProviderBinary(data=video, mime_type="video/mp4", model=model, request_id=request_id)
-
+    if not video:
+        raise VideoProviderError(
+            "Hugging Face Fal official client returned an empty video",
+            endpoint_category="official-client",
+        )
+    return ProviderBinary(data=bytes(video), mime_type="video/mp4", model=model)
 
 async def generate_video_clip(
     prompt: str,
