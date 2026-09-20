@@ -325,7 +325,18 @@ async def _generate_video_with_fal(
                     )
                 await asyncio.sleep(1.0)
 
-            result_response = await client.get(result_url, headers=_headers())
+            # Fal can briefly report COMPLETED before the routed result endpoint is
+            # readable through Hugging Face. Retry only transient 404/425/429/5xx
+            # responses; other client errors remain fail-closed.
+            result_response = None
+            for _ in range(15):
+                result_response = await client.get(result_url, headers=_headers())
+                if result_response.status_code < 400:
+                    break
+                if result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}:
+                    break
+                await asyncio.sleep(1.0)
+            assert result_response is not None
             if result_response.status_code >= 400:
                 raise _http_error(
                     "Hugging Face Fal video result failed",
