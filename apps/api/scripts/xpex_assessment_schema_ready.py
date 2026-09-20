@@ -12,6 +12,7 @@ from config.config import get_learnhouse_config
 from scripts.xpex_launch_course import _to_async_url
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import SQLModel
 
 
 async def run() -> int:
@@ -20,6 +21,67 @@ async def run() -> int:
     engine = create_async_engine(_to_async_url(sql_url), pool_pre_ping=True)
     try:
         async with engine.begin() as connection:
+            assignment_table_exists = bool(
+                (
+                    await connection.execute(
+                        text(
+                            """
+                            SELECT 1
+                            FROM information_schema.tables
+                            WHERE table_schema = current_schema()
+                              AND table_name = 'assignment'
+                            """
+                        )
+                    )
+                ).scalar_one_or_none()
+            )
+
+            if not assignment_table_exists:
+                # Fresh provider databases have no LearnHouse base schema yet. The
+                # running API normally creates that schema during FastAPI startup,
+                # but this readiness gate intentionally runs before the API starts.
+                # Bootstrap SQLModel metadata only when the DB is demonstrably fresh;
+                # existing production databases keep the historical narrow-repair path.
+                from src.core.events.database import import_all_models
+
+                import_all_models()
+                try:
+                    await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                    print("XPEX_DB_BOOTSTRAP extension=vector action=ready")
+                except Exception as exc:
+                    print(
+                        "XPEX_DB_BOOTSTRAP BLOCKED vector_extension=false "
+                        f"error={type(exc).__name__}"
+                    )
+                    return 3
+
+                await connection.run_sync(SQLModel.metadata.create_all)
+                print("XPEX_DB_BOOTSTRAP base_schema action=created source=sqlmodel_metadata")
+
+                required_tables = ("assignment", "user", "organization")
+                present_tables = set(
+                    (
+                        await connection.execute(
+                            text(
+                                """
+                                SELECT table_name
+                                FROM information_schema.tables
+                                WHERE table_schema = current_schema()
+                                  AND table_name = ANY(:required_tables)
+                                """
+                            ),
+                            {"required_tables": list(required_tables)},
+                        )
+                    ).scalars().all()
+                )
+                if set(required_tables) != present_tables:
+                    print(
+                        "XPEX_DB_BOOTSTRAP BLOCKED core_schema=false "
+                        f"present={sorted(present_tables)}"
+                    )
+                    return 4
+                print("XPEX_DB_BOOTSTRAP PASS core_schema=true")
+
             column_exists = bool(
                 (
                     await connection.execute(
