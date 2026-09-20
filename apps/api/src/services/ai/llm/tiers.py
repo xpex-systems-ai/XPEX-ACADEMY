@@ -32,6 +32,12 @@ _TIER_DEFAULTS: dict[str, str] = {
     "pro": "gemini-3.1-pro-preview",
 }
 
+_OPENROUTER_TIER_DEFAULTS: dict[str, str] = {
+    "fast": "openrouter/auto",
+    "standard": "openrouter/auto",
+    "pro": "openrouter/auto",
+}
+
 _TIER_CONFIG_ATTR: dict[str, str] = {
     "fast": "model_fast",
     "standard": "model_standard",
@@ -49,9 +55,16 @@ _PURPOSE_TIERS: dict[str, tuple[Tier, Tier]] = {
 
 
 def model_for_tier(tier: Tier) -> str:
-    """Return the configured model name for a tier, falling back to the Gemini default."""
+    """Return the configured model name for a tier using provider-aware safe defaults."""
     cfg = get_learnhouse_config().ai_config
-    return getattr(cfg, _TIER_CONFIG_ATTR[tier], None) or _TIER_DEFAULTS[tier]
+    configured = getattr(cfg, _TIER_CONFIG_ATTR[tier], None)
+    if configured:
+        return configured
+
+    provider = (getattr(cfg, "provider", None) or "").strip().lower()
+    if provider == "openrouter":
+        return _OPENROUTER_TIER_DEFAULTS[tier]
+    return _TIER_DEFAULTS[tier]
 
 
 async def resolve_model_for_org(
