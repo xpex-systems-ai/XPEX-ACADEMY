@@ -146,9 +146,13 @@ def _environment_checks(require_ai: bool, require_payments: bool) -> list[Check]
         elif effective_embedding_provider == "ollama":
             embedding_ok = True
             embedding_detail = "local Ollama embeddings"
+        elif effective_embedding_provider in {"hf", "huggingface", "hugging-face"}:
+            embedding_ok = _present("HF_TOKEN")
+            embedding_detail = (
+                "Hugging Face Inference Providers feature-extraction credential"
+            )
         else:
-            # The current core embeddings layer has no native OpenRouter/Hugging Face
-            # embeddings adapter. Providers without embeddings fall back to Google.
+            # Providers without an embeddings API fall back to Google.
             embedding_ok = _present("LEARNHOUSE_GEMINI_API_KEY")
             embedding_detail = (
                 f"{effective_embedding_provider or 'selected provider'} has no native core "
@@ -157,15 +161,6 @@ def _environment_checks(require_ai: bool, require_payments: bool) -> list[Check]
             )
 
         checks.append(Check("AI_RAG_EMBEDDINGS", embedding_ok, "P1", embedding_detail))
-        if _present("HF_TOKEN"):
-            checks.append(
-                Check(
-                    "HF_TOKEN",
-                    True,
-                    "P1",
-                    "available for XPeX Content Studio; not used by core RAG embeddings",
-                )
-            )
 
     if require_payments:
         payment_vars = {
