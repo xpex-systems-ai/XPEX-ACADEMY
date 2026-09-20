@@ -11,6 +11,7 @@ import asyncio
 from config.config import get_learnhouse_config
 from scripts.xpex_launch_course import _to_async_url
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 
@@ -48,7 +49,7 @@ async def run() -> int:
                 try:
                     await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                     print("XPEX_DB_BOOTSTRAP extension=vector action=ready")
-                except Exception as exc:
+                except SQLAlchemyError as exc:
                     print(
                         "XPEX_DB_BOOTSTRAP BLOCKED vector_extension=false "
                         f"error={type(exc).__name__}"
