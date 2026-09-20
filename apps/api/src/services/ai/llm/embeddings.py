@@ -22,9 +22,9 @@ from pydantic_ai.embeddings import Embedder, EmbeddingModel, EmbeddingSettings
 from src.services.ai.llm.provider import (
     _GOOGLE_ALIASES,
     _OPENAI_ALIASES,
-    AINotConfiguredError,
     DEFAULT_OLLAMA_BASE_URL,
     DEFAULT_PROVIDER,
+    AINotConfiguredError,
 )
 
 logger = logging.getLogger(__name__)
