@@ -75,3 +75,23 @@ def test_course001_production_prepare_is_explicit_and_runs_after_course_bootstra
     assert start_script.index(course_bootstrap) < start_script.index(prepare_gate)
     assert start_script.index(prepare_gate) < start_script.index(prepare_script)
     assert start_script.index(prepare_script) < start_script.index(enrollment)
+
+
+def test_course001_video_canary_is_explicit_and_stops_before_human_gates():
+    repo_root = Path(__file__).resolve().parents[3]
+    start_script = (repo_root / "docker" / "start.sh").read_text()
+    canary = (
+        repo_root / "apps" / "api" / "scripts" / "xpex_course001_video_canary.py"
+    ).read_text()
+
+    assert "XPEX_COURSE001_VIDEO_CANARY_ON_START:-0" in start_script
+    assert "scripts/xpex_course001_video_canary.py --execute" in start_script
+    assert 'LESSON_ID = "m01-l01"' in canary
+    assert 'BATCH_ID = "xpvb-course001-ia-r1"' in canary
+    assert "AWAITING_HUMAN_APPROVAL" in canary
+    assert "auto_approved=false" in canary
+    assert "auto_attached=false" in canary
+    assert "auto_published=false" in canary
+    assert "approve_video_job" not in canary
+    assert "attach_video_job" not in canary
+    assert "publish_video_job" not in canary
