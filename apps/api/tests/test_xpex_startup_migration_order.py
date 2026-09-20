@@ -41,3 +41,21 @@ def test_wave1_media_canary_is_opt_in_on_startup():
     diagnostic_index = start_script.index('scripts/xpex_wave1_media_canary_diagnostic_041.py')
     resume_index = start_script.index('scripts/xpex_wave1_media_canary_final_043.py --execute')
     assert gate_index < diagnostic_index < resume_index
+
+
+def test_assessment_schema_repair_bootstraps_only_a_demonstrably_fresh_database():
+    repo_root = Path(__file__).resolve().parents[3]
+    repair = (
+        repo_root / "apps" / "api" / "scripts" / "xpex_assessment_schema_ready.py"
+    ).read_text()
+
+    table_probe = "table_name = 'assignment'"
+    bootstrap = "SQLModel.metadata.create_all"
+    required_tables = 'required_tables = ("assignment", "user", "organization")'
+
+    assert table_probe in repair
+    assert bootstrap in repair
+    assert required_tables in repair
+    assert repair.index(table_probe) < repair.index(bootstrap)
+    assert "CREATE EXTENSION IF NOT EXISTS vector" in repair
+    assert "XPEX_DB_BOOTSTRAP PASS core_schema=true" in repair
