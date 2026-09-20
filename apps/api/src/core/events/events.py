@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from collections.abc import Callable
 
 from config.config import LearnHouseConfig, get_learnhouse_config
@@ -126,8 +127,11 @@ def startup_app(app: FastAPI) -> Callable:
         await _reconcile_xpex_official_catalog()
         if wave1_schema_ready:
             await _reconcile_xpex_wave1()
-            global _xpex_wave1_media_task
-            _xpex_wave1_media_task = asyncio.create_task(_run_xpex_wave1_media_canary())
+            if os.environ.get("XPEX_WAVE1_MEDIA_CANARY_ON_START", "0") == "1":
+                global _xpex_wave1_media_task
+                _xpex_wave1_media_task = asyncio.create_task(_run_xpex_wave1_media_canary())
+            else:
+                logger.info("XPeX Wave 1 media canary disabled by configuration")
 
         from src.services.courses.migration.migration_service import (
             cleanup_old_temp_migrations,
