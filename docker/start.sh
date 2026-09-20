@@ -160,5 +160,17 @@ else
     echo "XPEX-WAVE1-MEDIA-CANARY disabled by default"
 fi
 
+# Course 001 real-media canary is separately opt-in and processes exactly one queued
+# lesson to AWAITING_HUMAN_APPROVAL. It never approves, attaches or publishes media.
+if [ "${XPEX_COURSE001_VIDEO_CANARY_ON_START:-0}" = "1" ]; then
+    (
+        sleep 10
+        cd /app/api || exit 94
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course001_video_canary.py --execute
+    ) &
+else
+    echo "COURSE001_VIDEO_CANARY disabled by default"
+fi
+
 # Tail PM2 logs with proper formatting
 pm2 logs --raw
