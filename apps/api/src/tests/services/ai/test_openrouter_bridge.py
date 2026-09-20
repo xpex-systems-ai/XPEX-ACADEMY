@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 
-from src.services.ai.llm import provider, tiers
+from src.services.ai.llm import embeddings, provider, tiers
+
+
 
 
 def test_openrouter_uses_existing_xpex_secret_when_core_key_missing(monkeypatch):
@@ -56,3 +58,20 @@ def test_explicit_openrouter_model_still_wins(monkeypatch):
     )
 
     assert tiers.model_for_tier("fast") == "openai/gpt-4o-mini"
+
+
+def test_huggingface_e5_prefixes_queries_and_documents():
+    model = "intfloat/multilingual-e5-base"
+
+    assert embeddings._hf_prepare_texts(["olá"], model, "query") == ["query: olá"]
+    assert embeddings._hf_prepare_texts(["conteúdo"], model, "document") == [
+        "passage: conteúdo"
+    ]
+
+
+def test_non_e5_huggingface_model_keeps_text_unchanged():
+    assert embeddings._hf_prepare_texts(
+        ["conteúdo"],
+        "sentence-transformers/all-mpnet-base-v2",
+        "document",
+    ) == ["conteúdo"]
