@@ -336,19 +336,30 @@ async def _generate_video_with_fal(
             elif "/fal-ai/" in result_url:
                 candidate_urls.append(result_url.replace("/fal-ai/", "/fal-ai/fal-ai/", 1))
 
+            transient_statuses = {404, 425, 429, 500, 502, 503, 504}
+            primary_url = candidate_urls[0]
+            alternate_urls = candidate_urls[1:]
             for _ in range(120):
-                for candidate_url in candidate_urls:
-                    result_response = await client.get(candidate_url, headers=_headers())
+                primary_response = await client.get(primary_url, headers=_headers())
+                result_response = primary_response
+                if primary_response.status_code < 400:
+                    break
+
+                # Alternate route variants are recovery probes only. A non-transient
+                # alternate error (for example 405) must not abort retries against
+                # the primary routed result URL.
+                if primary_response.status_code in transient_statuses:
+                    for alternate_url in alternate_urls:
+                        alternate_response = await client.get(alternate_url, headers=_headers())
+                        if alternate_response.status_code < 400:
+                            result_response = alternate_response
+                            break
                     if result_response.status_code < 400:
                         break
-                    if result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}:
-                        break
-                if result_response is not None and (
-                    result_response.status_code < 400
-                    or result_response.status_code not in {404, 425, 429, 500, 502, 503, 504}
-                ):
-                    break
-                await asyncio.sleep(1.0)
+                    await asyncio.sleep(1.0)
+                    continue
+
+                break
             assert result_response is not None
             if result_response.status_code >= 400:
                 raise _http_error(
