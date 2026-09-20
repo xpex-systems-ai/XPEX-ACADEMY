@@ -10,9 +10,8 @@ from __future__ import annotations
 import logging
 import os
 
-from pydantic_ai.models import Model
-
 from config.config import get_learnhouse_config
+from pydantic_ai.models import Model
 
 logger = logging.getLogger(__name__)
 
