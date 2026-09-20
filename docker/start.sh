@@ -59,6 +59,28 @@ if [ "${XPEX_LAUNCH_COURSE_ON_START:-0}" = "1" ]; then
     ) || echo "XPEX_LAUNCH course bootstrap blocked; application startup will continue"
 fi
 
+# Optional one-shot completion of Course 001. Disabled by default. It is safe
+# for production startup because xpex_course001_prepare.py is idempotent and
+# only creates/repairs course activities plus queues 12 video jobs. It never
+# calls media providers, approves media, publishes media, enrolls students,
+# sends email, or performs payments.
+if [ "${XPEX_COURSE001_PREPARE_ON_START:-0}" = "1" ]; then
+    echo "XPEX_COURSE001 preparation requested"
+    (
+        cd /app/api || exit 93
+        if [ -n "${XPEX_OPS_USER_UUID:-}" ]; then
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course001_prepare.py \
+                --org-slug "${XPEX_LAUNCH_ORG_SLUG:-default}" \
+                --operator-uuid "$XPEX_OPS_USER_UUID" \
+                --execute
+        else
+            PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course001_prepare.py \
+                --org-slug "${XPEX_LAUNCH_ORG_SLUG:-default}" \
+                --execute
+        fi
+    ) || echo "XPEX_COURSE001 preparation blocked; application startup will continue"
+fi
+
 # Optional guarded one-shot XPeX enrollment bootstrap. Disabled by default. The
 # command blocks on ambiguous org/student/course scope and is idempotent when a
 # valid enrollment already exists. XPEX_OPS_AUTO_UNIQUE_LEARNER=1 is an explicit

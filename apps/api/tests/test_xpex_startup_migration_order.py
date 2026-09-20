@@ -59,3 +59,19 @@ def test_assessment_schema_repair_bootstraps_only_a_demonstrably_fresh_database(
     assert repair.index(table_probe) < repair.index(bootstrap)
     assert "CREATE EXTENSION IF NOT EXISTS vector" in repair
     assert "XPEX_DB_BOOTSTRAP PASS core_schema=true" in repair
+
+
+def test_course001_production_prepare_is_explicit_and_runs_after_course_bootstrap():
+    repo_root = Path(__file__).resolve().parents[3]
+    start_script = (repo_root / "docker" / "start.sh").read_text()
+
+    course_bootstrap = "XPEX_LAUNCH course bootstrap requested"
+    prepare_gate = "XPEX_COURSE001_PREPARE_ON_START:-0"
+    prepare_script = "scripts/xpex_course001_prepare.py"
+    enrollment = "XPEX_OPS bootstrap requested"
+
+    assert prepare_gate in start_script
+    assert prepare_script in start_script
+    assert start_script.index(course_bootstrap) < start_script.index(prepare_gate)
+    assert start_script.index(prepare_gate) < start_script.index(prepare_script)
+    assert start_script.index(prepare_script) < start_script.index(enrollment)
