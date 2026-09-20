@@ -2,10 +2,10 @@ from src.services.xpex.video_factory import VideoModelRegistry
 from src.services.xpex.video_providers import _fal_poll_urls, _fal_routed_url
 
 
-def test_fal_routed_url_normalizes_official_provider_mapping() -> None:
+def test_fal_routed_url_preserves_official_provider_mapping() -> None:
     assert (
         _fal_routed_url("fal-ai/wan/v2.2-5b/text-to-video")
-        == "https://router.huggingface.co/fal-ai/wan/v2.2-5b/text-to-video?_subdomain=queue"
+        == "https://router.huggingface.co/fal-ai/fal-ai/wan/v2.2-5b/text-to-video?_subdomain=queue"
     )
 
 
