@@ -168,8 +168,6 @@ def render_premium_lesson_video(
     scene_durations = [d * scale for d in scene_durations]
 
     total = len(scenes)
-    concat_file = work / "premium-scenes.txt"
-    concat_lines: list[str] = []
     image_paths: list[str] = []
     for idx, (kicker, scene_title, body, bullets, badge) in enumerate(scenes, 1):
         png = str(work / f"scene-{idx:02d}.png")
@@ -184,27 +182,40 @@ def render_premium_lesson_video(
             badge=badge,
         )
         image_paths.append(png)
-        concat_lines.append(f"file '{Path(png).name}'\n")
-        concat_lines.append(f"duration {scene_durations[idx - 1]:.3f}\n")
 
-    # The final still is repeated so the concat demuxer honors its duration.
-    concat_lines.append(f"file '{Path(image_paths[-1]).name}'\n")
-    concat_file.write_text("".join(concat_lines), encoding="utf-8")
+    # Build one ffmpeg graph from looped PNG inputs. This avoids concat-demuxer
+    # timestamp quirks with still images while preserving exact scene durations.
     visual_bed = str(work / "premium-visual-bed.mp4")
-    try:
-        _run_ffmpeg(
-            [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", str(concat_file),
-                "-vf", "fps=30,scale=1920:1080:flags=lanczos,format=yuv420p",
-                "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-                "-profile:v", "high", "-level", "4.1",
-                "-movflags", "+faststart", visual_bed,
-            ],
-            timeout_seconds=1200,
+    command = ["ffmpeg", "-y"]
+    for png, scene_duration in zip(image_paths, scene_durations, strict=True):
+        command.extend(
+            ["-loop", "1", "-framerate", "30", "-t", f"{scene_duration:.3f}", "-i", png]
         )
+
+    filters: list[str] = []
+    labels: list[str] = []
+    for idx in range(total):
+        label = f"v{idx}"
+        filters.append(
+            f"[{idx}:v]scale=1920:1080:flags=lanczos,"
+            f"fps=30,format=yuv420p,setpts=PTS-STARTPTS[{label}]"
+        )
+        labels.append(f"[{label}]")
+    filters.append("".join(labels) + f"concat=n={total}:v=1:a=0[outv]")
+
+    command.extend(
+        [
+            "-filter_complex", ";".join(filters),
+            "-map", "[outv]",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+            "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart", visual_bed,
+        ]
+    )
+    try:
+        _run_ffmpeg(command, timeout_seconds=1200)
     except VideoMediaError as exc:
-        raise VideoMediaError("premium visual-bed render failed") from exc
+        raise VideoMediaError("premium visual-bed filter render failed") from exc
 
     try:
         _run_ffmpeg(
