@@ -327,18 +327,23 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                     frame_samples=[ProviderBinary(frame_bytes, frame.mime_type, "ffmpeg-frame")],
                 )
             except VideoProviderError as exc:
-                if exc.endpoint_category != "multimodal-review" or exc.http_status != 402:
+                if (
+                    exc.endpoint_category != "multimodal-review"
+                    or exc.http_status not in {400, 402}
+                ):
                     raise
-                # Keep the human gate mandatory when provider billing is unavailable.
+                # Keep the human gate mandatory when the automated reviewer is
+                # unavailable (billing or provider/payload incompatibility). The
+                # draft is never auto-approved, attached or published.
                 review = MultimodalReview(
                     model="human-review-required",
                     notes=[
                         VideoReviewNote(
                             severity=ReviewSeverity.WARNING,
-                            code="PROVIDER_BILLING_FALLBACK",
+                            code="AUTOMATED_REVIEW_FALLBACK",
                             message=(
-                                "Automated multimodal review was unavailable because provider "
-                                "billing returned HTTP 402. Human audiovisual review is required."
+                                "Automated multimodal review was unavailable "
+                                f"(HTTP {exc.http_status}). Human audiovisual review is required."
                             ),
                         )
                     ],
