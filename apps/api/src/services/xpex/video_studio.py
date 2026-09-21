@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import HTTPException, Request, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -246,6 +247,36 @@ async def list_video_jobs(
     ).scalars().all()
     return [await _response(row, db_session) for row in rows]
 
+
+
+async def preview_video_job(
+    job_id: str,
+    current_user: PublicUser,
+    db_session: AsyncSession,
+):
+    """Stream a rendered draft to an authorized org admin without attaching/publishing it."""
+    row, _ = await _job_for_actor(job_id, current_user, db_session)
+    manifest = LessonVideoManifest.model_validate(row.manifest_json)
+    if manifest.video_draft is None:
+        raise HTTPException(status_code=404, detail="Rendered video draft is not available")
+
+    root = os.getenv("XPEX_DURABLE_MEDIA_ROOT", "").strip()
+    if not root:
+        raise HTTPException(status_code=503, detail="Preview requires durable volume storage")
+    path = Path(root) / manifest.video_draft.uri
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Rendered video file is missing")
+
+    return FileResponse(
+        path=str(path),
+        media_type="video/mp4",
+        filename=f"xpex-{row.lesson_id}-r{manifest.revision}-preview.mp4",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Accept-Ranges": "bytes",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 def _require_real_pipeline_ready(registry: VideoModelRegistry) -> str:
     """Fail closed before a job claim unless every production dependency is real.
