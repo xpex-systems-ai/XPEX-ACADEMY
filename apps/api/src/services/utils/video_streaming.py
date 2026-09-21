@@ -282,7 +282,24 @@ def validate_video_path(base_content_dir: str, *path_parts: str) -> Optional[str
         # For S3, return the relative key path (S3 keys use forward slashes)
         return '/'.join([base_content_dir] + list(path_parts))
     else:
-        # For local filesystem, resolve to absolute path
+        # For local filesystem, prefer an explicitly configured durable media
+        # volume when the requested object exists there. XPeX generated media is
+        # persisted under <XPEX_DURABLE_MEDIA_ROOT>/content/... while legacy
+        # uploads still live under the application-relative content/ tree.
+        durable_root = os.getenv("XPEX_DURABLE_MEDIA_ROOT", "").strip()
+        if durable_root and os.path.isabs(durable_root):
+            try:
+                durable_base = os.path.realpath(os.path.join(durable_root, base_content_dir))
+                durable_path = os.path.realpath(os.path.join(durable_base, *path_parts))
+                if (
+                    durable_path == durable_base
+                    or os.path.commonpath([durable_path, durable_base]) == durable_base
+                ) and os.path.isfile(durable_path):
+                    return durable_path
+            except (OSError, ValueError):
+                pass
+
+        # Legacy/application-local filesystem fallback.
         full_path = os.path.join(base_content_dir, *path_parts)
 
         try:
