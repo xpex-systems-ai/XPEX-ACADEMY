@@ -167,11 +167,12 @@ def render_premium_lesson_video(
     scale = duration / sum(scene_durations)
     scene_durations = [d * scale for d in scene_durations]
 
-    segment_paths: list[str] = []
     total = len(scenes)
+    concat_file = work / "premium-scenes.txt"
+    concat_lines: list[str] = []
+    image_paths: list[str] = []
     for idx, (kicker, scene_title, body, bullets, badge) in enumerate(scenes, 1):
         png = str(work / f"scene-{idx:02d}.png")
-        seg = str(work / f"scene-{idx:02d}.mp4")
         _scene(
             png,
             scene_no=idx,
@@ -182,44 +183,28 @@ def render_premium_lesson_video(
             bullets=bullets,
             badge=badge,
         )
-        frames = max(1, int(scene_durations[idx - 1] * 30))
-        try:
-            _run_ffmpeg(
-                [
-                "ffmpeg", "-y", "-loop", "1", "-i", png,
-                "-vf",
-                (
-                    "scale=1920:1080,"
-                    f"zoompan=z='min(zoom+0.00028,1.035)':d={frames}:s=1920x1080:fps=30,"
-                    "fade=t=in:st=0:d=0.35"
-                ),
-                "-t", f"{scene_durations[idx - 1]:.3f}",
-                "-an", "-c:v", "libx264", "-preset", "medium",
-                "-crf", "18", "-pix_fmt", "yuv420p",
-                "-movflags", "+faststart", seg,
-            ],
-                timeout_seconds=600,
-            )
-        except VideoMediaError as exc:
-            raise VideoMediaError(f"premium scene {idx} render failed") from exc
-        segment_paths.append(seg)
+        image_paths.append(png)
+        concat_lines.append(f"file '{Path(png).name}'\n")
+        concat_lines.append(f"duration {scene_durations[idx - 1]:.3f}\n")
 
-    concat_file = work / "premium-scenes.txt"
-    concat_file.write_text(
-        "".join(f"file '{Path(p).name}'\n" for p in segment_paths),
-        encoding="utf-8",
-    )
+    # The final still is repeated so the concat demuxer honors its duration.
+    concat_lines.append(f"file '{Path(image_paths[-1]).name}'\n")
+    concat_file.write_text("".join(concat_lines), encoding="utf-8")
     visual_bed = str(work / "premium-visual-bed.mp4")
     try:
         _run_ffmpeg(
             [
                 "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", str(concat_file), "-c", "copy", visual_bed,
+                "-i", str(concat_file),
+                "-vf", "fps=30,scale=1920:1080:flags=lanczos,format=yuv420p",
+                "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+                "-profile:v", "high", "-level", "4.1",
+                "-movflags", "+faststart", visual_bed,
             ],
-            timeout_seconds=600,
+            timeout_seconds=1200,
         )
     except VideoMediaError as exc:
-        raise VideoMediaError("premium scene concat failed") from exc
+        raise VideoMediaError("premium visual-bed render failed") from exc
 
     try:
         _run_ffmpeg(
