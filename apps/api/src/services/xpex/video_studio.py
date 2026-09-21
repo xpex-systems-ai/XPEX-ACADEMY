@@ -45,6 +45,7 @@ from src.services.xpex.video_jobs import (
 from src.services.xpex.video_media import (
     VideoMediaError,
     activity_artifact_key,
+    activity_caption_artifact_key,
     materialize_storage_key,
     persist_local_or_s3,
     require_durable_media_storage,
@@ -426,11 +427,11 @@ async def attach_video_job(
                 )
                 persist_local_or_s3(
                     caption_local,
-                    activity_artifact_key(
+                    activity_caption_artifact_key(
                         org_uuid=org.org_uuid,
                         course_uuid=row.native_course_uuid,
                         activity_uuid=activity.activity_uuid,
-                        filename=caption_filename,
+                        language="pt-BR",
                     ),
                 )
     except Exception:  # noqa: BLE001
