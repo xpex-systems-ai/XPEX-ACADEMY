@@ -108,14 +108,6 @@ async def run(*, execute: bool) -> int:
             missing = []
             if not os.getenv("HF_TOKEN", "").strip():
                 missing.append("HF_TOKEN")
-            if registry.video_provider != "fal-ai":
-                missing.append("XPEX_HF_VIDEO_PROVIDER=fal-ai")
-            if not registry.video_model:
-                missing.append("XPEX_HF_VIDEO_MODEL")
-            if not registry.video_provider_model:
-                missing.append("XPEX_HF_VIDEO_PROVIDER_MODEL")
-            if not registry.image_model:
-                missing.append("XPEX_HF_IMAGE_MODEL")
             if not registry.stt_model:
                 missing.append("XPEX_HF_STT_MODEL")
             if not registry.multimodal_review_model:

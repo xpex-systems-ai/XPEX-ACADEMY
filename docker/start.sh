@@ -173,6 +173,18 @@ else
     echo "COURSE001_MEDIA_REPAIR disabled by default"
 fi
 
+# Optional one-shot that re-opens only Course 001 / m01-l01 as premium V2.
+# It preserves the native course/activity mapping and never publishes media.
+if [ "${XPEX_COURSE001_VIDEO_V2_RESET_ON_START:-0}" = "1" ]; then
+    (
+        sleep 4
+        cd /app/api || exit 96
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course001_video_v2_reset.py --execute
+    ) &
+else
+    echo "COURSE001_VIDEO_V2_RESET disabled by default"
+fi
+
 # Course 001 real-media canary is separately opt-in and processes exactly one queued
 # lesson to AWAITING_HUMAN_APPROVAL. It never approves, attaches or publishes media.
 # Use "audit" for a no-provider diagnostic and "1" for one real execution attempt.

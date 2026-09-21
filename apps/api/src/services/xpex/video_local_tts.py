@@ -1,71 +1,70 @@
-"""Deterministic local narration fallback for the XPeX video factory.
+"""Professional neural narration for the XPeX video factory.
 
-Hugging Face Inference Providers currently do not expose a general text-to-speech
-provider contract. This adapter keeps the production pipeline runnable without adding a
-browser credential or silently selecting an unaudited third-party service. It executes
-``espeak-ng`` without a shell and returns WAV bytes for the existing media pipeline.
+Uses Edge neural voices for natural pt-BR speech. A robotic espeak fallback is
+intentionally not used in production: if neural narration is unavailable, the
+pipeline fails closed instead of publishing low-quality audio.
 """
 
 from __future__ import annotations
 
 import asyncio
-import subprocess
+import os
 import tempfile
 from pathlib import Path
 
+import edge_tts
+
 from src.services.xpex.video_providers import ProviderBinary, VideoProviderError
-
-
-def _synthesize_sync(
-    narration: str,
-    *,
-    voice: str,
-    words_per_minute: int,
-) -> bytes:
-    rate = max(80, min(words_per_minute, 260))
-    with tempfile.TemporaryDirectory(prefix="xpex-local-tts-") as directory:
-        output = Path(directory) / "narration.wav"
-        try:
-            result = subprocess.run(
-                [
-                    "espeak-ng",
-                    "-v",
-                    voice,
-                    "-s",
-                    str(rate),
-                    "-w",
-                    str(output),
-                    "--stdin",
-                ],
-                input=narration,
-                text=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                check=False,
-                timeout=120,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise VideoProviderError("Local TTS execution failed") from exc
-        if result.returncode != 0 or not output.is_file() or output.stat().st_size == 0:
-            raise VideoProviderError("Local TTS produced no narration")
-        return output.read_bytes()
 
 
 async def synthesize_local_narration(
     text: str,
     *,
-    voice: str = "pt-br",
-    words_per_minute: int = 155,
+    voice: str | None = None,
+    words_per_minute: int = 150,
 ) -> ProviderBinary:
     narration = " ".join(text.split()).strip()
     if not narration:
-        raise VideoProviderError("Local TTS narration is empty")
+        raise VideoProviderError("Neural TTS narration is empty", endpoint_category="tts")
     if len(narration) > 20000:
-        raise VideoProviderError("Local TTS narration exceeds the safe limit")
-    audio = await asyncio.to_thread(
-        _synthesize_sync,
-        narration,
-        voice=voice,
-        words_per_minute=words_per_minute,
+        raise VideoProviderError("Neural TTS narration exceeds the safe limit", endpoint_category="tts")
+
+    selected_voice = (
+        voice
+        or os.getenv("XPEX_NEURAL_TTS_VOICE", "").strip()
+        or "pt-BR-AntonioNeural"
     )
-    return ProviderBinary(data=audio, mime_type="audio/wav", model="local/espeak-ng:pt-br")
+    # Around 150 wpm is a calm course pace. Edge accepts relative percentage.
+    delta = max(-30, min(20, round((words_per_minute - 165) / 1.65)))
+    rate = f"{delta:+d}%"
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="xpex-neural-tts-") as directory:
+            output = Path(directory) / "narration.mp3"
+            communicate = edge_tts.Communicate(
+                narration,
+                selected_voice,
+                rate=rate,
+                pitch="+0Hz",
+                volume="+0%",
+            )
+            await communicate.save(str(output))
+            if not output.is_file() or output.stat().st_size == 0:
+                raise VideoProviderError(
+                    "Neural TTS produced no narration",
+                    endpoint_category="tts",
+                )
+            data = await asyncio.to_thread(output.read_bytes)
+    except VideoProviderError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise VideoProviderError(
+            f"Neural TTS failed ({type(exc).__name__})",
+            endpoint_category="tts",
+        ) from exc
+
+    return ProviderBinary(
+        data=data,
+        mime_type="audio/mpeg",
+        model=f"edge-tts/{selected_voice}",
+    )

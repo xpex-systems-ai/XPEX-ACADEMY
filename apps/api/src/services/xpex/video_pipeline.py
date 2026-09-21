@@ -36,13 +36,11 @@ from src.services.xpex.video_media import (
     require_durable_media_storage,
     write_caption_artifact,
 )
-from src.services.xpex.video_motion import compose_motion_lesson_video
+from src.services.xpex.video_premium import render_premium_lesson_video
 from src.services.xpex.video_providers import (
     ProviderBinary,
     VideoProviderError,
     VideoProviderNotConfigured,
-    generate_image,
-    generate_video_clip,
     review_multimodal_draft,
     synthesize_narration,
     transcribe_audio,
@@ -87,10 +85,17 @@ def _stored_ref(local_path: str, key: str) -> MediaRef:
 
 
 def _narration_text(lesson: LessonDraft) -> str:
+    """Build a natural pt-BR teaching narration instead of reading database fields."""
     return (
-        f"{lesson.title}. {lesson.objective} "
-        f"{lesson.explanation} Agora pratique: {lesson.practice} "
-        f"Para demonstrar aprendizagem: {lesson.assessment}"
+        "Olá, seja muito bem-vindo à XPeX Academy, em parceria com o Kelle Digital Lab. "
+        f"Hoje vamos trabalhar {lesson.title}. "
+        f"Nosso objetivo é simples: {lesson.objective} "
+        f"Para entender isso de forma prática, pense assim: {lesson.explanation} "
+        f"Agora é a sua vez de praticar. {lesson.practice} "
+        f"Para confirmar o aprendizado, {lesson.assessment} "
+        "Use o GX como seu mentor durante a aula: pergunte, compare, teste e valide. "
+        "Quando estiver pronto, marque a atividade como concluída e avance para o próximo conteúdo. "
+        "Vamos começar."
     )
 
 
@@ -185,82 +190,36 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
         return manifest
 
     async def asset_generation(manifest: LessonVideoManifest) -> LessonVideoManifest:
+        """Premium V2 uses deterministic branded scenes, not AI-invented slide text."""
         require_durable_media_storage()
         if not manifest.storyboard:
             raise ValueError("storyboard is required before asset generation")
-        prompt = (
-            "Professional 16:9 educational cover illustration for XPeX Academy. "
-            f"Lesson: {source.lesson.title}. Objective: {source.lesson.objective}. "
-            "Dark-tech premium composition, cyan and warm orange accents, no third-party logos, "
-            "no fake browser UI, no credentials, no dense text."
-        )
-        image = await generate_image(prompt, source.registry)
-        with tempfile.TemporaryDirectory(prefix="xpex-assets-") as directory:
-            local_image = _write_provider_binary(image, directory, "lesson-visual", ".png")
-            key = draft_artifact_key(
-                batch_id=source.batch_id,
-                lesson_id=manifest.lesson_id,
-                revision=manifest.revision,
-                filename=Path(local_image).name,
-            )
-            ref = await asyncio.to_thread(_stored_ref, local_image, key)
-        manifest.thumbnails = [ref]
-        manifest.assets = [ref]
+        manifest.assets = []
+        manifest.thumbnails = []
         return manifest
 
     async def rendering(manifest: LessonVideoManifest) -> LessonVideoManifest:
         require_durable_media_storage()
-        if manifest.narration is None or not manifest.assets or not manifest.storyboard:
-            raise ValueError("narration, storyboard and visual asset are required before rendering")
-        if not (
-            source.registry.video_model
-            and source.registry.video_provider_model
-            and source.registry.video_provider == "fal-ai"
-        ):
-            raise VideoProviderNotConfigured(
-                "XPeX motion-video standard requires XPEX_HF_VIDEO_MODEL, "
-                "XPEX_HF_VIDEO_PROVIDER=fal-ai and XPEX_HF_VIDEO_PROVIDER_MODEL"
-            )
+        if manifest.narration is None or not manifest.storyboard or manifest.video_script is None:
+            raise ValueError("narration, storyboard and video script are required before rendering")
 
-        with tempfile.TemporaryDirectory(prefix="xpex-render-") as directory:
-            narration_suffix = _extension(manifest.narration.mime_type, ".wav")
+        with tempfile.TemporaryDirectory(prefix="xpex-premium-render-") as directory:
+            narration_suffix = _extension(manifest.narration.mime_type, ".mp3")
             narration_path = await asyncio.to_thread(
                 materialize_storage_key,
                 manifest.narration.uri,
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             output_path = str(Path(directory) / "lesson-draft.mp4")
-            if source.before_video_submit is not None:
-                await source.before_video_submit()
-            motion = await generate_video_clip(
-                _motion_prompt(source, manifest),
-                source.registry,
-                duration_seconds=5,
-            )
-            if source.after_video_submit is not None and motion.request_id:
-                await source.after_video_submit(motion.request_id)
-            motion_path = _write_provider_binary(motion, directory, "motion-source", ".mp4")
-            motion_key = draft_artifact_key(
-                batch_id=source.batch_id,
-                lesson_id=manifest.lesson_id,
-                revision=manifest.revision,
-                filename=Path(motion_path).name,
-            )
-            motion_ref = await asyncio.to_thread(_stored_ref, motion_path, motion_key)
-            manifest.assets.append(motion_ref)
-            # Compose only from bytes re-read through the durable abstraction. This
-            # proves the provider result is recoverable instead of accidentally
-            # depending on the download scratch file that dies with this process.
-            durable_motion_path = await asyncio.to_thread(
-                materialize_storage_key,
-                motion_ref.uri,
-                str(Path(directory) / "materialized-motion-source.mp4"),
-            )
             rendered = await asyncio.to_thread(
-                compose_motion_lesson_video,
-                clip_path=durable_motion_path,
+                render_premium_lesson_video,
                 narration_path=narration_path,
                 output_path=output_path,
+                title=source.lesson.title,
+                objective=source.lesson.objective,
+                explanation=source.lesson.explanation,
+                practice=source.lesson.practice,
+                assessment=source.lesson.assessment,
             )
 
             key = draft_artifact_key(
