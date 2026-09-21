@@ -271,8 +271,9 @@ async def _generate_video_with_fal(
         )
         video = await client.text_to_video(prompt, model=model)
     except Exception as exc:  # noqa: BLE001
+        safe_detail = _HF_TOKEN_VALUE.sub("[REDACTED]", str(exc)).replace("\n", " ")[:300]
         raise VideoProviderError(
-            "Hugging Face Fal official client failed",
+            f"Hugging Face Fal official client failed ({type(exc).__name__}: {safe_detail})",
             endpoint_category="official-client",
         ) from exc
 
