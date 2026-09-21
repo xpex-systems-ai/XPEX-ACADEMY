@@ -186,12 +186,12 @@ def render_premium_lesson_video(
             _run_ffmpeg(
                 [
                     "ffmpeg", "-y",
-                    "-loop", "1", "-i", png,
+                    "-loop", "1", "-framerate", "24", "-i", png,
                     "-t", f"{scene_durations[idx - 1]:.3f}",
-                    "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,"
-                           "pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30",
+                    "-vf", "format=yuv420p",
                     "-an",
-                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                    "-threads", "1", "-r", "24",
                     "-pix_fmt", "yuv420p",
                     "-movflags", "+faststart",
                     seg,
@@ -231,8 +231,7 @@ def render_premium_lesson_video(
             [
             "ffmpeg", "-y", "-i", visual_bed, "-i", str(narration),
             "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-            "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
+            "-c:v", "copy",
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
             "-shortest", "-movflags", "+faststart", str(out),
         ],
