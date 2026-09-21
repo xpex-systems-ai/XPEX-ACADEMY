@@ -85,10 +85,17 @@ def _stored_ref(local_path: str, key: str) -> MediaRef:
 
 
 def _narration_text(lesson: LessonDraft) -> str:
+    """Build a natural pt-BR teaching narration instead of reading database fields."""
     return (
-        f"{lesson.title}. {lesson.objective} "
-        f"{lesson.explanation} Agora pratique: {lesson.practice} "
-        f"Para demonstrar aprendizagem: {lesson.assessment}"
+        "Olá, seja muito bem-vindo à XPeX Academy, em parceria com o Kelle Digital Lab. "
+        f"Hoje vamos trabalhar {lesson.title}. "
+        f"Nosso objetivo é simples: {lesson.objective} "
+        f"Para entender isso de forma prática, pense assim: {lesson.explanation} "
+        f"Agora é a sua vez de praticar. {lesson.practice} "
+        f"Para confirmar o aprendizado, {lesson.assessment} "
+        "Use o GX como seu mentor durante a aula: pergunte, compare, teste e valide. "
+        "Quando estiver pronto, marque a atividade como concluída e avance para o próximo conteúdo. "
+        "Vamos começar."
     )
 
 
