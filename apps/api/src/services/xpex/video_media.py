@@ -220,7 +220,7 @@ def _run_ffmpeg(command: list[str], *, timeout_seconds: int = 900) -> None:
             for line in (result.stderr or "").splitlines()[-4:]
             if line.strip()
         )
-        tail = re.sub(r"[^A-Za-z0-9 _.,:;()\[\]{}'"/+=@%-]+", "?", tail)[:500]
+        tail = re.sub(r"[^A-Za-z0-9 _.,:;()\[\]{}/+=@%'-]+", "?", tail)[:500]
         raise VideoMediaError(
             "ffmpeg render failed" + (f": {tail}" if tail else "")
         )
