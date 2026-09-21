@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.users import User  # noqa: F401  # registers FK target metadata
 from src.db.xpex_video import XPeXVideoJob
 from src.services.xpex.video_factory import LessonVideoManifest, VideoJobState
 
