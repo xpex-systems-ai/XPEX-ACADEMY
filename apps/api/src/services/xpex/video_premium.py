@@ -199,7 +199,9 @@ def render_premium_lesson_video(
                 timeout_seconds=600,
             )
         except VideoMediaError as exc:
-            raise VideoMediaError(f"premium static scene {idx} render failed") from exc
+            raise VideoMediaError(
+                f"premium static scene {idx} render failed: {str(exc)[:420]}"
+            ) from exc
         segment_paths.append(seg)
 
     concat_file = work / "premium-scenes.txt"
@@ -220,7 +222,9 @@ def render_premium_lesson_video(
             timeout_seconds=600,
         )
     except VideoMediaError as exc:
-        raise VideoMediaError("premium static scene concat failed") from exc
+        raise VideoMediaError(
+            f"premium static scene concat failed: {str(exc)[:420]}"
+        ) from exc
 
     try:
         _run_ffmpeg(
@@ -235,7 +239,9 @@ def render_premium_lesson_video(
             timeout_seconds=1200,
         )
     except VideoMediaError as exc:
-        raise VideoMediaError("premium final mux failed") from exc
+        raise VideoMediaError(
+            f"premium final mux failed: {str(exc)[:420]}"
+        ) from exc
     if not out.is_file() or out.stat().st_size == 0:
         raise VideoMediaError("premium lesson render produced no video")
     import hashlib
