@@ -131,8 +131,25 @@ def activity_artifact_key(
         "content/orgs/"
         f"{_safe_component(org_uuid, 'org_uuid')}/courses/"
         f"{_safe_component(course_uuid, 'course_uuid')}/activities/"
-        f"{_safe_component(activity_uuid, 'activity_uuid')}/"
+        f"{_safe_component(activity_uuid, 'activity_uuid')}/video/"
         f"{_safe_component(safe_name, 'filename')}"
+    )
+
+
+def activity_caption_artifact_key(
+    *,
+    org_uuid: str,
+    course_uuid: str,
+    activity_uuid: str,
+    language: str = "pt-BR",
+) -> str:
+    """Build the native LearnHouse caption key expected by the stream router."""
+    return (
+        "content/orgs/"
+        f"{_safe_component(org_uuid, 'org_uuid')}/courses/"
+        f"{_safe_component(course_uuid, 'course_uuid')}/activities/"
+        f"{_safe_component(activity_uuid, 'activity_uuid')}/video/captions/"
+        f"{_safe_component(language, 'language')}.vtt"
     )
 
 
