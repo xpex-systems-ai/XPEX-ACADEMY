@@ -41,6 +41,7 @@ from src.services.xpex.video_studio import (
     create_video_batch,
     list_video_jobs,
     process_video_job,
+    preview_video_job,
     publish_video_job,
 )
 
@@ -237,6 +238,15 @@ async def video_studio_process_job(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     return await process_video_job(job_id, current_user, db_session)
+
+
+@router.get("/video-studio/jobs/{job_id}/preview")
+async def video_studio_preview_job(
+    job_id: str,
+    current_user: Annotated[PublicUser, Depends(get_current_user)],
+    db_session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return await preview_video_job(job_id, current_user, db_session)
 
 
 @router.post("/video-studio/jobs/{job_id}/approve", response_model=VideoJobResponse)
