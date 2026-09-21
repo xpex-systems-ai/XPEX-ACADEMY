@@ -183,54 +183,69 @@ def render_premium_lesson_video(
         )
         image_paths.append(png)
 
-    # Build one ffmpeg graph from looped PNG inputs. This avoids concat-demuxer
-    # timestamp quirks with still images while preserving exact scene durations.
-    visual_bed = str(work / "premium-visual-bed.mp4")
-    command = ["ffmpeg", "-y"]
-    for png, scene_duration in zip(image_paths, scene_durations, strict=True):
-        command.extend(
-            ["-loop", "1", "-framerate", "30", "-t", f"{scene_duration:.3f}", "-i", png]
-        )
+    # Encode each still independently with a one-thread ultrafast encoder.
+    # This keeps peak memory bounded on Railway. All segments share identical
+    # H.264 parameters, so they can then be concatenated without re-encoding.
+    segment_paths: list[str] = []
+    for idx, (png, scene_duration) in enumerate(
+        zip(image_paths, scene_durations, strict=True),
+        start=1,
+    ):
+        segment = str(work / f"segment-{idx:02d}.mp4")
+        try:
+            _run_ffmpeg(
+                [
+                    "ffmpeg", "-y",
+                    "-loop", "1", "-framerate", "30", "-i", png,
+                    "-t", f"{scene_duration:.3f}",
+                    "-vf", "scale=1920:1080:flags=lanczos,format=yuv420p",
+                    "-an",
+                    "-c:v", "libx264", "-preset", "ultrafast",
+                    "-tune", "stillimage", "-crf", "20",
+                    "-profile:v", "high", "-level", "4.1",
+                    "-threads", "1",
+                    "-movflags", "+faststart",
+                    segment,
+                ],
+                timeout_seconds=600,
+            )
+        except VideoMediaError as exc:
+            raise VideoMediaError(f"premium low-memory scene {idx} render failed") from exc
+        segment_paths.append(segment)
 
-    filters: list[str] = []
-    labels: list[str] = []
-    for idx in range(total):
-        label = f"v{idx}"
-        filters.append(
-            f"[{idx}:v]scale=1920:1080:flags=lanczos,"
-            f"fps=30,format=yuv420p,setpts=PTS-STARTPTS[{label}]"
-        )
-        labels.append(f"[{label}]")
-    filters.append("".join(labels) + f"concat=n={total}:v=1:a=0[outv]")
-
-    command.extend(
-        [
-            "-filter_complex", ";".join(filters),
-            "-map", "[outv]",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-            "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart", visual_bed,
-        ]
+    concat_file = work / "premium-segments.txt"
+    concat_file.write_text(
+        "".join(f"file '{Path(segment).name}'\n" for segment in segment_paths),
+        encoding="utf-8",
     )
-    try:
-        _run_ffmpeg(command, timeout_seconds=1200)
-    except VideoMediaError as exc:
-        raise VideoMediaError("premium visual-bed filter render failed") from exc
-
+    visual_bed = str(work / "premium-visual-bed.mp4")
     try:
         _run_ffmpeg(
             [
-            "ffmpeg", "-y", "-i", visual_bed, "-i", str(narration),
-            "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-            "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
-            "-shortest", "-movflags", "+faststart", str(out),
-        ],
-            timeout_seconds=1200,
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", str(concat_file), "-c", "copy",
+                "-movflags", "+faststart", visual_bed,
+            ],
+            timeout_seconds=300,
         )
     except VideoMediaError as exc:
-        raise VideoMediaError("premium final mux failed") from exc
+        raise VideoMediaError("premium low-memory concat failed") from exc
+
+    # Preserve the already-encoded Full HD video and only add the neural voice.
+    try:
+        _run_ffmpeg(
+            [
+                "ffmpeg", "-y", "-i", visual_bed, "-i", str(narration),
+                "-map", "0:v:0", "-map", "1:a:0",
+                "-c:v", "copy",
+                "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+                "-shortest", "-movflags", "+faststart", str(out),
+            ],
+            timeout_seconds=300,
+        )
+    except VideoMediaError as exc:
+        raise VideoMediaError("premium low-memory final mux failed") from exc
+
     if not out.is_file() or out.stat().st_size == 0:
         raise VideoMediaError("premium lesson render produced no video")
     import hashlib
