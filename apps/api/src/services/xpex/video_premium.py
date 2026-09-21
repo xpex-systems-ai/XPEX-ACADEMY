@@ -183,8 +183,9 @@ def render_premium_lesson_video(
             badge=badge,
         )
         frames = max(1, int(scene_durations[idx - 1] * 30))
-        _run_ffmpeg(
-            [
+        try:
+            _run_ffmpeg(
+                [
                 "ffmpeg", "-y", "-loop", "1", "-i", png,
                 "-vf",
                 (
@@ -197,8 +198,10 @@ def render_premium_lesson_video(
                 "-crf", "18", "-pix_fmt", "yuv420p",
                 "-movflags", "+faststart", seg,
             ],
-            timeout_seconds=600,
-        )
+                timeout_seconds=600,
+            )
+        except VideoMediaError as exc:
+            raise VideoMediaError(f"premium scene {idx} render failed") from exc
         segment_paths.append(seg)
 
     concat_file = work / "premium-scenes.txt"
@@ -207,16 +210,20 @@ def render_premium_lesson_video(
         encoding="utf-8",
     )
     visual_bed = str(work / "premium-visual-bed.mp4")
-    _run_ffmpeg(
-        [
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-            "-i", str(concat_file), "-c", "copy", visual_bed,
-        ],
-        timeout_seconds=600,
-    )
+    try:
+        _run_ffmpeg(
+            [
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", str(concat_file), "-c", "copy", visual_bed,
+            ],
+            timeout_seconds=600,
+        )
+    except VideoMediaError as exc:
+        raise VideoMediaError("premium scene concat failed") from exc
 
-    _run_ffmpeg(
-        [
+    try:
+        _run_ffmpeg(
+            [
             "ffmpeg", "-y", "-i", visual_bed, "-i", str(narration),
             "-map", "0:v:0", "-map", "1:a:0",
             "-c:v", "libx264", "-preset", "medium", "-crf", "18",
@@ -224,8 +231,10 @@ def render_premium_lesson_video(
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
             "-shortest", "-movflags", "+faststart", str(out),
         ],
-        timeout_seconds=1200,
-    )
+            timeout_seconds=1200,
+        )
+    except VideoMediaError as exc:
+        raise VideoMediaError("premium final mux failed") from exc
     if not out.is_file() or out.stat().st_size == 0:
         raise VideoMediaError("premium lesson render produced no video")
     import hashlib
