@@ -18,9 +18,12 @@ from src.services.xpex.content_studio import LessonDraft
 from src.services.xpex.video_factory import (
     LessonVideoManifest,
     MediaRef,
+    MultimodalReview,
     NarrationAsset,
+    ReviewSeverity,
     StoryboardScene,
     VideoModelRegistry,
+    VideoReviewNote,
     VideoScript,
 )
 from src.services.xpex.video_local_tts import synthesize_local_narration
@@ -36,6 +39,7 @@ from src.services.xpex.video_media import (
 from src.services.xpex.video_motion import compose_motion_lesson_video
 from src.services.xpex.video_providers import (
     ProviderBinary,
+    VideoProviderError,
     VideoProviderNotConfigured,
     generate_image,
     generate_video_clip,
@@ -284,7 +288,24 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / f"narration{narration_suffix}"),
             )
             audio_bytes = Path(narration_path).read_bytes()
-            transcript = await transcribe_audio(audio_bytes, manifest.narration.mime_type, source.registry)
+            try:
+                transcript = await transcribe_audio(
+                    audio_bytes,
+                    manifest.narration.mime_type,
+                    source.registry,
+                )
+            except VideoProviderError as exc:
+                if exc.endpoint_category != "stt" or exc.http_status != 402:
+                    raise
+                # The narration audio was synthesized from this exact script. When
+                # provider billing blocks STT, preserve a deterministic transcript
+                # for captions and require human review instead of blocking the video.
+                from src.services.xpex.video_providers import TranscriptResult
+
+                transcript = TranscriptResult(
+                    text=manifest.video_script.narration_text,
+                    model="deterministic-script-fallback",
+                )
             video_path = await asyncio.to_thread(
                 materialize_storage_key,
                 manifest.video_draft.uri,
@@ -296,14 +317,32 @@ def build_video_stage_handlers(source: VideoLessonSource) -> VideoStageHandlers:
                 str(Path(directory) / "review-frame.png"),
             )
             frame_bytes = Path(frame.uri).read_bytes()
-            review = await review_multimodal_draft(
-                registry=source.registry,
-                lesson_title=manifest.video_script.title,
-                learning_objective=manifest.video_script.learning_objective,
-                narration_text=manifest.video_script.narration_text,
-                transcript=transcript.text,
-                frame_samples=[ProviderBinary(frame_bytes, frame.mime_type, "ffmpeg-frame")],
-            )
+            try:
+                review = await review_multimodal_draft(
+                    registry=source.registry,
+                    lesson_title=manifest.video_script.title,
+                    learning_objective=manifest.video_script.learning_objective,
+                    narration_text=manifest.video_script.narration_text,
+                    transcript=transcript.text,
+                    frame_samples=[ProviderBinary(frame_bytes, frame.mime_type, "ffmpeg-frame")],
+                )
+            except VideoProviderError as exc:
+                if exc.endpoint_category != "multimodal-review" or exc.http_status != 402:
+                    raise
+                # Keep the human gate mandatory when provider billing is unavailable.
+                review = MultimodalReview(
+                    model="human-review-required",
+                    notes=[
+                        VideoReviewNote(
+                            severity=ReviewSeverity.WARNING,
+                            code="PROVIDER_BILLING_FALLBACK",
+                            message=(
+                                "Automated multimodal review was unavailable because provider "
+                                "billing returned HTTP 402. Human audiovisual review is required."
+                            ),
+                        )
+                    ],
+                )
             caption_path = str(Path(directory) / "captions.pt-BR.vtt")
             caption = await asyncio.to_thread(
                 write_caption_artifact,
