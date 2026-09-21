@@ -328,16 +328,31 @@ async def transcribe_audio(
                 content=audio,
             )
     except httpx.RequestError:
-        raise VideoProviderError("Hugging Face STT transport failed") from None
+        raise VideoProviderError(
+            "Hugging Face STT transport failed",
+            endpoint_category="stt",
+        ) from None
     if response.status_code >= 400:
-        raise VideoProviderError(f"Hugging Face STT failed with HTTP {response.status_code}")
+        raise VideoProviderError(
+            f"Hugging Face STT failed with HTTP {response.status_code}",
+            http_status=response.status_code,
+            request_id=_request_id(response),
+            sanitized_response=_safe_response(response),
+            endpoint_category="stt",
+        )
     try:
         body = response.json()
         text = body["text"].strip()
     except (ValueError, KeyError, AttributeError, TypeError):
-        raise VideoProviderError("Hugging Face STT returned an invalid transcript") from None
+        raise VideoProviderError(
+            "Hugging Face STT returned an invalid transcript",
+            endpoint_category="stt",
+        ) from None
     if not text:
-        raise VideoProviderError("Hugging Face STT returned an empty transcript")
+        raise VideoProviderError(
+            "Hugging Face STT returned an empty transcript",
+            endpoint_category="stt",
+        )
     return TranscriptResult(text=text, model=model)
 
 
@@ -407,10 +422,17 @@ async def review_multimodal_draft(
                 json=payload,
             )
     except httpx.RequestError:
-        raise VideoProviderError("Hugging Face multimodal review transport failed") from None
+        raise VideoProviderError(
+            "Hugging Face multimodal review transport failed",
+            endpoint_category="multimodal-review",
+        ) from None
     if response.status_code >= 400:
         raise VideoProviderError(
-            f"Hugging Face multimodal review failed with HTTP {response.status_code}"
+            f"Hugging Face multimodal review failed with HTTP {response.status_code}",
+            http_status=response.status_code,
+            request_id=_request_id(response),
+            sanitized_response=_safe_response(response),
+            endpoint_category="multimodal-review",
         )
     try:
         body = response.json()
@@ -418,7 +440,10 @@ async def review_multimodal_draft(
         parsed = json.loads(raw)
         review = _ReviewPayload.model_validate(parsed)
     except (ValueError, KeyError, IndexError, TypeError, ValidationError, json.JSONDecodeError):
-        raise VideoProviderError("Hugging Face returned an invalid multimodal review") from None
+        raise VideoProviderError(
+            "Hugging Face returned an invalid multimodal review",
+            endpoint_category="multimodal-review",
+        ) from None
 
     normalized: list[VideoReviewNote] = []
     for note in review.notes:
