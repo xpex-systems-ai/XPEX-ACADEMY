@@ -14,6 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.xpex_video import XPeXVideoJob
 from src.services.xpex.video_factory import LessonVideoManifest, VideoJobState
 from src.services.xpex.video_jobs import mark_job_failed, save_worker_checkpoint
+from src.services.xpex.video_media import VideoMediaError
 from src.services.xpex.video_providers import VideoProviderError
 
 StageHandler = Callable[[LessonVideoManifest], Awaitable[LessonVideoManifest]]
@@ -97,6 +98,8 @@ async def run_claimed_job(
         # Handler failures may originate from provider/storage adapters. Persist only
         # the exception category, never upstream bodies, prompts, media or credentials.
         safe_error = f"{type(exc).__name__}: stage execution failed"
+        if isinstance(exc, VideoMediaError):
+            safe_error += f" [{str(exc)[:180]}]"
         if isinstance(exc, VideoProviderError):
             details: list[str] = []
             if exc.endpoint_category:
