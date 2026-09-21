@@ -190,36 +190,27 @@ def render_premium_lesson_video(
     # The final still is repeated so the concat demuxer honors its duration.
     concat_lines.append(f"file '{Path(image_paths[-1]).name}'\n")
     concat_file.write_text("".join(concat_lines), encoding="utf-8")
-    visual_bed = str(work / "premium-visual-bed.mp4")
+    # Encode the 1080p timeline and narration in one pass. This avoids a
+    # temporary 1080p H.264 visual-bed plus a second re-encode, cutting memory,
+    # CPU and disk pressure on the production container.
     try:
         _run_ffmpeg(
             [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", str(concat_file),
+                "ffmpeg", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(concat_file),
+                "-i", str(narration),
+                "-map", "0:v:0", "-map", "1:a:0",
                 "-vf", "fps=30,scale=1920:1080:flags=lanczos,format=yuv420p",
-                "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-                "-profile:v", "high", "-level", "4.1",
-                "-movflags", "+faststart", visual_bed,
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "19",
+                "-profile:v", "high", "-level", "4.1", "-threads", "1",
+                "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+                "-shortest", "-movflags", "+faststart", str(out),
             ],
             timeout_seconds=1200,
         )
     except VideoMediaError as exc:
-        raise VideoMediaError("premium visual-bed render failed") from exc
+        raise VideoMediaError("premium single-pass mux failed") from exc
 
-    try:
-        _run_ffmpeg(
-            [
-            "ffmpeg", "-y", "-i", visual_bed, "-i", str(narration),
-            "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-            "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
-            "-shortest", "-movflags", "+faststart", str(out),
-        ],
-            timeout_seconds=1200,
-        )
-    except VideoMediaError as exc:
-        raise VideoMediaError("premium final mux failed") from exc
     if not out.is_file() or out.stat().st_size == 0:
         raise VideoMediaError("premium lesson render produced no video")
     import hashlib
