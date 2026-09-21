@@ -213,7 +213,17 @@ def _run_ffmpeg(command: list[str], *, timeout_seconds: int = 900) -> None:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise VideoMediaError("ffmpeg execution failed") from exc
     if result.returncode != 0:
-        raise VideoMediaError("ffmpeg render failed")
+        # Keep only a short, printable tail for production diagnosis. ffmpeg
+        # commands contain local scratch paths only; never persist the command.
+        tail = " ".join(
+            line.strip()
+            for line in (result.stderr or "").splitlines()[-4:]
+            if line.strip()
+        )
+        tail = re.sub(r"[^A-Za-z0-9 _.,:;()\[\]{}'"/+=@%-]+", "?", tail)[:500]
+        raise VideoMediaError(
+            "ffmpeg render failed" + (f": {tail}" if tail else "")
+        )
 
 
 def compose_lesson_video(
