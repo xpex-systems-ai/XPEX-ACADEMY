@@ -160,6 +160,19 @@ else
     echo "XPEX-WAVE1-MEDIA-CANARY disabled by default"
 fi
 
+# Optional idempotent repair for the already attached Course 001 video media path.
+# It only copies the existing approved draft artifact into LearnHouse's native
+# /video and /video/captions layout. No generation, approval or publication occurs.
+if [ "${XPEX_COURSE001_MEDIA_REPAIR_ON_START:-0}" = "1" ]; then
+    (
+        sleep 8
+        cd /app/api || exit 95
+        PYTHONPATH=/app/api .venv/bin/python scripts/xpex_course001_media_repair.py --execute
+    ) &
+else
+    echo "COURSE001_MEDIA_REPAIR disabled by default"
+fi
+
 # Course 001 real-media canary is separately opt-in and processes exactly one queued
 # lesson to AWAITING_HUMAN_APPROVAL. It never approves, attaches or publishes media.
 # Use "audit" for a no-provider diagnostic and "1" for one real execution attempt.
