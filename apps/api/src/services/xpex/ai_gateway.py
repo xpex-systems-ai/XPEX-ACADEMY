@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import os
 
-from pydantic import BaseModel
-
 from config.config import get_learnhouse_config
+from pydantic import BaseModel
 from src.services.ai.llm.tiers import model_for_tier
 
 # ---------------------------------------------------------------------------
