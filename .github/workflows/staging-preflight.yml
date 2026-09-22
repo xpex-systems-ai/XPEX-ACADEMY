@@ -544,6 +544,9 @@ jobs:
         run: |
           set -euo pipefail
           uv sync --frozen
+          # Mirror the production root Dockerfile runtime extras used by the
+          # XPeX video pipeline so import validation matches production.
+          uv pip install --python .venv/bin/python huggingface-hub==1.32.0 edge-tts==7.2.7 pillow==11.3.0
 
       - name: Import numpy and app
         working-directory: apps/api
