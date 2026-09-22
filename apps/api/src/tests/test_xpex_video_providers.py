@@ -43,7 +43,7 @@ class FakeResponse:
 class FakeInferenceClient:
     video = b"video-bytes"
     failure: Exception | None = None
-    instances: ClassVar[list["FakeInferenceClient"]] = []
+    instances: ClassVar[list[FakeInferenceClient]] = []
 
     def __init__(self, *args, **kwargs):
         self.args = args
