@@ -179,8 +179,8 @@ def get_ai_gateway_capabilities() -> AIGatewayHealth:
         rag=is_ready,
         course_planning=is_ready,
         quiz_generation=is_ready,
-        image_generation=bool(cfg.image_model or _google_key_configured),
-        voice_audio=bool(cfg.tts_model or _google_key_configured),
+        image_generation=enabled and bool(cfg.image_model or _google_key_configured),
+        voice_audio=enabled and bool(cfg.tts_model or _google_key_configured),
         # video_generation is always False: video is handled through the XPeX
         # asynchronous video-job pipeline (VideoJob / VideoFactory), not through
         # synchronous LLM routes.  This is an architecture invariant, not a
