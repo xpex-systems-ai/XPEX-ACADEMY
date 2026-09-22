@@ -1,7 +1,8 @@
-from typing import Annotated, Union
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from src.core.events.database import get_db_session
 from src.db.users import APITokenUser, PublicUser, SuperadminAPITokenUser
 from src.security.auth import get_authenticated_user, get_current_user
@@ -282,7 +283,7 @@ async def video_studio_publish_job(
 @router.get("/ai-gateway/health", response_model=AIGatewayHealth)
 async def ai_gateway_health(
     _current_user: Annotated[
-        Union[PublicUser, APITokenUser, SuperadminAPITokenUser],
+        PublicUser | APITokenUser | SuperadminAPITokenUser,
         Depends(get_authenticated_user),
     ],
 ) -> AIGatewayHealth:

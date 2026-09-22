@@ -1,9 +1,71 @@
 from __future__ import annotations
 
+import os
+
 from pydantic import BaseModel
 
 from config.config import get_learnhouse_config
 from src.services.ai.llm.tiers import model_for_tier
+
+# ---------------------------------------------------------------------------
+# Provider readiness constants
+# ---------------------------------------------------------------------------
+
+_GOOGLE_ALIASES = {"google", "google-gla", "gemini"}
+_NO_KEY_PROVIDERS = {"ollama", "bedrock"}
+_SUPPORTED_PROVIDERS = (
+    _GOOGLE_ALIASES
+    | _NO_KEY_PROVIDERS
+    | {
+        "openai",
+        "openai-compatible",
+        "azure",
+        "together",
+        "openrouter",
+        "anthropic",
+        "deepseek",
+        "moonshot",
+        "moonshotai",
+        "kimi",
+        "mistral",
+    }
+)
+
+
+def _has_credential(val: object) -> bool:
+    """Return True if val is a non-empty, non-whitespace string."""
+    return bool(val and str(val).strip())
+
+
+def is_provider_configured(provider: str, cfg: object) -> bool:
+    """Check whether the configured AI provider has usable credentials.
+
+    Provider-specific rules:
+    - Ollama: local runtime, requires no key.
+    - Bedrock: uses standard AWS credential chain, api_key is optional.
+    - OpenRouter: accepts LEARNHOUSE_AI_API_KEY or OPENROUTER_API_KEY env var.
+    - Google / Gemini: accepts api_key or legacy gemini_api_key.
+    - Other providers: require api_key.
+    """
+    provider_id = (provider or "google").strip().lower()
+    api_key = getattr(cfg, "api_key", None)
+
+    if provider_id in _NO_KEY_PROVIDERS:
+        return True
+
+    if provider_id in _GOOGLE_ALIASES:
+        gemini_key = getattr(cfg, "gemini_api_key", None)
+        return _has_credential(api_key) or _has_credential(gemini_key)
+
+    if provider_id == "openrouter":
+        return _has_credential(api_key) or _has_credential(
+            os.getenv("OPENROUTER_API_KEY")
+        )
+
+    if provider_id in _SUPPORTED_PROVIDERS:
+        return _has_credential(api_key)
+
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -82,25 +144,42 @@ def get_ai_gateway_capabilities() -> AIGatewayHealth:
 
     Reads *only* the presence/absence of configuration values.  No live
     provider call is made.  No credential value is included in the response.
+
+    Status semantics:
+    - "disabled": AI is explicitly disabled in configuration.
+    - "unconfigured": AI is enabled but the configured provider lacks credentials.
+    - "ready": AI is enabled and the configured provider has usable credentials.
     """
     cfg = get_learnhouse_config().ai_config
 
     provider = (cfg.provider or "google").strip().lower()
     enabled = bool(cfg.is_ai_enabled)
+    configured = is_provider_configured(provider, cfg)
 
-    # Capability flags are derived from config *presence*, never from secret
-    # values.  We check whether a key/model field is set (truthy), which tells
-    # the caller that the capability is configured — the actual credential
-    # never leaves the server.
-    _google_provider = provider in {"google", "google-gla", "gemini"}
-    _google_key_configured = bool(cfg.gemini_api_key or (_google_provider and cfg.api_key))
+    if not enabled:
+        status = "disabled"
+    elif not configured:
+        status = "unconfigured"
+    else:
+        status = "ready"
+
+    is_ready = status == "ready"
+
+    # Capability flags: core text & reasoning capabilities require the gateway
+    # to be fully ready (enabled and provider configured).
+    _google_provider = provider in _GOOGLE_ALIASES
+    api_key = getattr(cfg, "api_key", None)
+    gemini_key = getattr(cfg, "gemini_api_key", None)
+    _google_key_configured = _has_credential(gemini_key) or (
+        _google_provider and _has_credential(api_key)
+    )
 
     capabilities = AIGatewayCapabilities(
-        reasoning=enabled,
-        chat=enabled,
-        rag=enabled,
-        course_planning=enabled,
-        quiz_generation=enabled,
+        reasoning=is_ready,
+        chat=is_ready,
+        rag=is_ready,
+        course_planning=is_ready,
+        quiz_generation=is_ready,
         image_generation=bool(cfg.image_model or _google_key_configured),
         voice_audio=bool(cfg.tts_model or _google_key_configured),
         # video_generation is always False: video is handled through the XPeX
@@ -111,7 +190,7 @@ def get_ai_gateway_capabilities() -> AIGatewayHealth:
     )
 
     return AIGatewayHealth(
-        status="ready" if enabled else "disabled",
+        status=status,
         gateway="gxeon-ai",
         provider=provider,
         models=AIGatewayModels(

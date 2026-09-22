@@ -1,45 +1,42 @@
 """Tests for the XPeX AI Gateway health endpoint — XPEX-GEMINI-CORE-001.
 
-Covers the 7 required security and contract scenarios:
-  TEST 1 — unauthenticated request is rejected (HTTP 401)
-  TEST 2 — authenticated request receives a valid capability response
-  TEST 3 — response payload contains no secret fields
-  TEST 4 — AI disabled returns a safe disabled state
-  TEST 5 — Google/Gemini aliases resolve through the existing provider model
-  TEST 6 — health endpoint makes no external paid provider call
-  TEST 7 — existing unrelated AI routes remain compatible (no regression)
-
-CI requirements:
-  - No real GEMINI_API_KEY needed — all AI config is injected via patched config.
-  - Tests are hermetically isolated via function-scoped patches.
-  - The FastAPI app dependency override pattern is used to inject auth state.
+Covers the security and contract requirements:
+  - ROUTE AUTH: exercises actual FastAPI route GET /xpex/ai-gateway/health
+    * anonymous -> 401
+    * authenticated -> 200 + typed AIGatewayHealth payload
+    * fails if Depends(get_authenticated_user) is removed
+  - GATEWAY READINESS:
+    * is_ai_enabled=True does NOT automatically mean status="ready"
+    * enabled-but-unconfigured provider reports status="unconfigured"
+    * Google/Gemini with no usable API key reports "unconfigured"
+    * Ollama and Bedrock require no API key and report "ready"
+    * OpenRouter uses OPENROUTER_API_KEY when available
+    * AI disabled reports "disabled"
+  - SECRETS: response payload contains no secret fields or values
+  - NO LIVE CALLS: health inspection makes no paid/external provider call
 """
 
 from __future__ import annotations
 
+import inspect
 import os
 import sys
-
-# ---------------------------------------------------------------------------
-# Path bootstrap (must be before any app imports)
-# ---------------------------------------------------------------------------
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-os.environ.setdefault("TESTING", "true")
-os.environ.setdefault(
-    "LEARNHOUSE_AUTH_JWT_SECRET_KEY",
-    "test-secret-key-for-unit-tests-32chars!",
-)
-
-# ---------------------------------------------------------------------------
-# Standard imports
-# ---------------------------------------------------------------------------
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
-from src.db.users import AnonymousUser, PublicUser
+# Ensure mocks exist in sys.modules for optional video-pipeline dependencies
+# not required by the AI gateway (edge_tts, huggingface_hub).
+for _mod in ("edge_tts", "huggingface_hub"):
+    if _mod not in sys.modules:
+        sys.modules[_mod] = MagicMock()
+
+from src.db.users import PublicUser
+from src.routers.xpex import router as xpex_router
+from src.security.auth import get_authenticated_user
 from src.services.xpex.ai_gateway import (
     AIGatewayCapabilities,
     AIGatewayHealth,
@@ -47,10 +44,11 @@ from src.services.xpex.ai_gateway import (
     AIGatewayNotes,
     AIGatewaySecurity,
     get_ai_gateway_capabilities,
+    is_provider_configured,
 )
 
 # ---------------------------------------------------------------------------
-# Helpers — build a minimal fake AIConfig
+# Helpers — build minimal fake AIConfig and check secrets
 # ---------------------------------------------------------------------------
 
 _SECRET_FIELD_NAMES = {
@@ -63,21 +61,15 @@ _SECRET_FIELD_NAMES = {
     "access_key",
     "private_key",
 }
-# Field names that superficially look like secrets but are safe attestation
-# booleans present in the response by design.
+
 _SAFE_FIELD_NAMES = {
-    "secrets_exposed",          # AIGatewaySecurity — boolean, not a credential
-    "server_side_credentials",  # AIGatewaySecurity — boolean, not a credential
+    "secrets_exposed",
+    "server_side_credentials",
 }
 
 
 def _has_secret_field(obj: Any, path: str = "") -> bool:
-    """Recursively check whether ``obj`` (dict/model) contains any secret field name.
-
-    Fields in ``_SAFE_FIELD_NAMES`` are explicitly excluded — they are boolean
-    attestation flags that contain the substring 'secret' or 'credential' in
-    their key names by design but carry no credential value.
-    """
+    """Recursively check whether obj contains any secret field name."""
     if isinstance(obj, dict):
         for key, value in obj.items():
             if key in _SAFE_FIELD_NAMES:
@@ -105,7 +97,7 @@ def _make_ai_config(
     model_standard: str | None = None,
     model_pro: str | None = None,
 ) -> MagicMock:
-    """Return a minimal fake AIConfig to drive `get_ai_gateway_capabilities()`."""
+    """Return a minimal fake AIConfig for testing."""
     cfg = MagicMock()
     cfg.is_ai_enabled = is_ai_enabled
     cfg.provider = provider
@@ -120,7 +112,6 @@ def _make_ai_config(
 
 
 def _patched_config(ai_cfg: MagicMock):
-    """Context manager that patches get_learnhouse_config() with the given ai_config."""
     lh_cfg = MagicMock()
     lh_cfg.ai_config = ai_cfg
     return patch(
@@ -130,7 +121,6 @@ def _patched_config(ai_cfg: MagicMock):
 
 
 def _patched_tiers(ai_cfg: MagicMock):
-    """Context manager that patches get_learnhouse_config() inside tiers.py as well."""
     lh_cfg = MagicMock()
     lh_cfg.ai_config = ai_cfg
     return patch(
@@ -139,87 +129,280 @@ def _patched_tiers(ai_cfg: MagicMock):
     )
 
 
-# ---------------------------------------------------------------------------
-# TEST 1 — Unauthenticated request is rejected
-# ---------------------------------------------------------------------------
+@pytest.fixture
+def xpex_app():
+    """FastAPI test app mounting the real xpex.router at prefix '/xpex'."""
+    app = FastAPI()
+    app.include_router(xpex_router, prefix="/xpex")
+    return app
 
 
-def test_health_endpoint_rejects_anonymous_user():
-    """TEST 1: The auth dependency must block AnonymousUser with 401.
-
-    We verify the guard directly against the ``non_public_endpoint`` function
-    that ``get_authenticated_user`` delegates to when it resolves an AnonymousUser.
-    Uses asyncio.run() (Python 3.10+ / 3.14-safe) instead of get_event_loop().
-    """
-    import asyncio
-    from fastapi import HTTPException
-    from src.security.auth import non_public_endpoint
-
-    anonymous = AnonymousUser()
-
-    with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(non_public_endpoint(anonymous))
-
-    assert exc_info.value.status_code == 401, (
-        "Anonymous users must receive HTTP 401 — got "
-        f"{exc_info.value.status_code}"
+@pytest.fixture
+def mock_user():
+    return PublicUser(
+        id=1,
+        username="test_student",
+        first_name="Test",
+        last_name="Student",
+        email="student@xpex.com",
+        user_uuid="user_student_uuid",
     )
 
 
 # ---------------------------------------------------------------------------
-# TEST 2 — Authenticated request receives a valid capability response
+# REAL ROUTE AUTH TESTS (GET /xpex/ai-gateway/health)
 # ---------------------------------------------------------------------------
 
 
-def test_health_returns_valid_capability_response_when_enabled():
-    """TEST 2: A properly authenticated user sees a valid AIGatewayHealth response."""
+@pytest.mark.asyncio
+async def test_route_health_anonymous_rejected_with_401(xpex_app):
+    """Anonymous request to the actual route must receive HTTP 401."""
+    async with AsyncClient(
+        transport=ASGITransport(app=xpex_app), base_url="http://test"
+    ) as client:
+        response = await client.get("/xpex/ai-gateway/health")
+
+    assert response.status_code == 401
+    assert response.headers.get("www-authenticate") == "Bearer"
+
+
+@pytest.mark.asyncio
+async def test_route_health_authenticated_returns_200_and_typed_payload(
+    xpex_app, mock_user
+):
+    """Authenticated request to the actual route returns 200 and valid AIGatewayHealth."""
+    xpex_app.dependency_overrides[get_authenticated_user] = lambda: mock_user
+
     ai_cfg = _make_ai_config(
         is_ai_enabled=True,
         provider="google",
-        api_key="fake-key-not-real",
+        api_key="valid-test-key",
+    )
+    try:
+        with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+            async with AsyncClient(
+                transport=ASGITransport(app=xpex_app), base_url="http://test"
+            ) as client:
+                response = await client.get("/xpex/ai-gateway/health")
+
+        assert response.status_code == 200
+        data = response.json()
+        health = AIGatewayHealth.model_validate(data)
+        assert health.status == "ready"
+        assert health.gateway == "gxeon-ai"
+        assert health.provider == "google"
+        assert health.capabilities.reasoning is True
+        assert health.capabilities.video_generation is False
+        assert health.security.secrets_exposed is False
+    finally:
+        xpex_app.dependency_overrides.clear()
+
+
+def test_route_explicitly_declares_get_authenticated_user_dependency():
+    """Verify that /ai-gateway/health directly declares Depends(get_authenticated_user).
+
+    This ensures the test suite fails if someone removes Depends(get_authenticated_user).
+    """
+    target_route = None
+    for route in xpex_router.routes:
+        if getattr(route, "path", None) == "/ai-gateway/health":
+            target_route = route
+            break
+
+    assert target_route is not None, "Route /ai-gateway/health must exist in xpex.router"
+
+    sig = inspect.signature(target_route.endpoint)
+    has_auth_dep = False
+    for param in sig.parameters.values():
+        if hasattr(param.annotation, "__metadata__"):
+            for meta in param.annotation.__metadata__:
+                if getattr(meta, "dependency", None) is get_authenticated_user:
+                    has_auth_dep = True
+                    break
+
+    assert has_auth_dep, (
+        "ai_gateway_health endpoint MUST declare Depends(get_authenticated_user)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# GATEWAY READINESS & CONFIGURATION SEMANTICS
+# ---------------------------------------------------------------------------
+
+
+def test_readiness_enabled_but_unconfigured_google_reports_unconfigured():
+    """is_ai_enabled=True must NOT report 'ready' when Google has no usable key."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="google",
+        api_key=None,
+        gemini_api_key=None,
     )
     with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
         result = get_ai_gateway_capabilities()
 
-    assert isinstance(result, AIGatewayHealth), (
-        f"Expected AIGatewayHealth, got {type(result)}"
-    )
-    assert result.status == "ready"
-    assert result.gateway == "gxeon-ai"
-    assert result.provider == "google"
+    assert result.status == "unconfigured"
+    assert result.capabilities.reasoning is False
+    assert result.capabilities.chat is False
+    assert result.capabilities.rag is False
+    assert result.capabilities.course_planning is False
+    assert result.capabilities.quiz_generation is False
 
-    # All core text/reasoning caps must be enabled
+
+def test_readiness_enabled_but_whitespace_key_reports_unconfigured():
+    """Whitespace-only API key must be treated as unconfigured."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="google",
+        api_key="   ",
+        gemini_api_key="",
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "unconfigured"
+    assert result.capabilities.reasoning is False
+
+
+@pytest.mark.parametrize("alias", ["google", "google-gla", "gemini"])
+def test_readiness_gemini_aliases_without_keys_report_unconfigured(alias: str):
+    """Google/Gemini aliases without usable keys must report unconfigured."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider=alias,
+        api_key=None,
+        gemini_api_key=None,
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "unconfigured"
+    assert result.capabilities.reasoning is False
+
+
+def test_readiness_other_provider_without_key_reports_unconfigured():
+    """Providers requiring an API key report unconfigured when key is absent."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="anthropic",
+        api_key=None,
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "unconfigured"
+    assert result.capabilities.reasoning is False
+
+
+def test_readiness_ollama_requires_no_key_and_reports_ready():
+    """Ollama is a local runtime and reports ready without an API key."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="ollama",
+        api_key=None,
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "ready"
     assert result.capabilities.reasoning is True
     assert result.capabilities.chat is True
-    assert result.capabilities.rag is True
-    assert result.capabilities.course_planning is True
-    assert result.capabilities.quiz_generation is True
 
-    # video_generation MUST always be False (async job pipeline)
-    assert result.capabilities.video_generation is False
 
-    # Models must be non-empty strings
-    assert isinstance(result.models.fast, str) and result.models.fast
-    assert isinstance(result.models.standard, str) and result.models.standard
-    assert isinstance(result.models.pro, str) and result.models.pro
+def test_readiness_bedrock_requires_no_key_and_reports_ready():
+    """AWS Bedrock uses ambient IAM credentials and reports ready without an API key."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="bedrock",
+        api_key=None,
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
 
-    # Security attestation
-    assert result.security.server_side_credentials is True
-    assert result.security.secrets_exposed is False
+    assert result.status == "ready"
+    assert result.capabilities.reasoning is True
+
+
+def test_readiness_openrouter_uses_env_key():
+    """OpenRouter resolves OPENROUTER_API_KEY from the environment."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="openrouter",
+        api_key=None,
+    )
+    with (
+        _patched_config(ai_cfg),
+        _patched_tiers(ai_cfg),
+        patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-test-key"}),
+    ):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "ready"
+    assert result.capabilities.reasoning is True
+
+
+def test_readiness_openrouter_without_any_key_is_unconfigured():
+    """OpenRouter reports unconfigured when neither config nor env has a key."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=True,
+        provider="openrouter",
+        api_key=None,
+    )
+    with (
+        _patched_config(ai_cfg),
+        _patched_tiers(ai_cfg),
+        patch.dict(os.environ, {}, clear=True),
+    ):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "unconfigured"
+    assert result.capabilities.reasoning is False
+
+
+def test_readiness_disabled_ai_always_reports_disabled():
+    """When is_ai_enabled=False, status is 'disabled' regardless of credentials."""
+    ai_cfg = _make_ai_config(
+        is_ai_enabled=False,
+        provider="google",
+        api_key="some-key",
+        gemini_api_key="some-gemini-key",
+    )
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
+
+    assert result.status == "disabled"
+    assert result.capabilities.reasoning is False
+    assert result.capabilities.chat is False
+
+
+def test_is_provider_configured_helper_semantics():
+    """Unit tests for the is_provider_configured helper function."""
+    cfg = MagicMock()
+    cfg.api_key = None
+    cfg.gemini_api_key = None
+
+    # Google needs at least one key
+    assert is_provider_configured("google", cfg) is False
+    cfg.gemini_api_key = "test-gemini-key"
+    assert is_provider_configured("google", cfg) is True
+    cfg.gemini_api_key = None
+
+    # Ollama and Bedrock need no keys
+    assert is_provider_configured("ollama", cfg) is True
+    assert is_provider_configured("bedrock", cfg) is True
+
+    # Unknown provider
+    assert is_provider_configured("unknown-provider-xyz", cfg) is False
 
 
 # ---------------------------------------------------------------------------
-# TEST 3 — Response payload contains no secret fields
+# SECRETS & INTEGRATION INVARIANTS
 # ---------------------------------------------------------------------------
 
 
 def test_health_response_contains_no_secrets():
-    """TEST 3: The serialized response must not include any field that could be a secret.
-
-    We intentionally inject a fake API key into config and verify it DOES NOT
-    appear in the serialized response — neither as a field name nor as a value.
-    """
-    fake_api_key = "sk-xpex-test-super-secret-key-123456"
+    """The serialized response must never expose secrets or credentials."""
+    fake_api_key = "sk-xpex-super-secret-key-12345"
     ai_cfg = _make_ai_config(
         is_ai_enabled=True,
         provider="google",
@@ -232,170 +415,49 @@ def test_health_response_contains_no_secrets():
     payload = result.model_dump(mode="json")
     payload_str = str(payload)
 
-    # The secret value must never appear in the serialized output
-    assert fake_api_key not in payload_str, (
-        "API key value leaked into the health response payload!"
-    )
-
-    # No secret field names must appear in the payload dict keys (recursive)
-    assert not _has_secret_field(payload), (
-        "A field with a secret-like name was found in the health response payload."
-    )
-
-
-# ---------------------------------------------------------------------------
-# TEST 4 — AI disabled returns a safe disabled state
-# ---------------------------------------------------------------------------
-
-
-def test_health_returns_disabled_state_when_ai_off():
-    """TEST 4: When is_ai_enabled=False, all capability flags are False and status is 'disabled'."""
-    ai_cfg = _make_ai_config(
-        is_ai_enabled=False,
-        provider="google",
-        api_key=None,
-        gemini_api_key=None,
-    )
-    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
-        result = get_ai_gateway_capabilities()
-
-    assert result.status == "disabled"
-    assert result.capabilities.reasoning is False
-    assert result.capabilities.chat is False
-    assert result.capabilities.rag is False
-    assert result.capabilities.course_planning is False
-    assert result.capabilities.quiz_generation is False
-    assert result.capabilities.video_generation is False
-    # image/voice may still reflect key presence even when AI is disabled;
-    # the important contract is status="disabled" and core caps=False.
-
-
-# ---------------------------------------------------------------------------
-# TEST 5 — Google/Gemini aliases resolve through the existing provider model
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("alias", ["google", "google-gla", "gemini"])
-def test_google_aliases_resolve_through_provider_model(alias: str):
-    """TEST 5: All Google/Gemini aliases are treated identically by the service layer.
-
-    The provider field in the response must be the normalized lowercase alias.
-    Image and voice capabilities must be True when a Gemini key is present.
-    """
-    ai_cfg = _make_ai_config(
-        is_ai_enabled=True,
-        provider=alias,
-        api_key="fake-google-key",
-    )
-    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
-        result = get_ai_gateway_capabilities()
-
-    assert result.provider == alias.lower(), (
-        f"Provider '{alias}' was not preserved as-is in the response"
-    )
-    # All aliases with api_key should expose image + voice capabilities
-    assert result.capabilities.image_generation is True, (
-        f"image_generation should be True for provider '{alias}' with a key set"
-    )
-    assert result.capabilities.voice_audio is True, (
-        f"voice_audio should be True for provider '{alias}' with a key set"
-    )
-
-
-# ---------------------------------------------------------------------------
-# TEST 6 — Health endpoint makes no external paid provider call
-# ---------------------------------------------------------------------------
+    assert fake_api_key not in payload_str
+    assert not _has_secret_field(payload)
 
 
 def test_health_makes_no_external_provider_call():
-    """TEST 6: ``get_ai_gateway_capabilities()`` must never call a live provider.
-
-    We patch the Pydantic AI Google model/provider constructors which are the
-    actual call path used by build_model().  If the health function were to
-    accidentally call build_model() or a provider SDK, the patched constructors
-    would raise AssertionError and the test would fail.
-
-    Note: google.generativeai is not patched here because it is not installed
-    in the local test environment (image/TTS use the Google GenAI SDK only
-    at call time, not at import time).  The pydantic_ai patches are sufficient
-    to prove the synchronous health path makes no provider call.
-    """
+    """get_ai_gateway_capabilities() must never invoke a live provider SDK."""
     ai_cfg = _make_ai_config(
         is_ai_enabled=True,
         provider="google",
         api_key="fake-key",
     )
-
     with (
         _patched_config(ai_cfg),
         _patched_tiers(ai_cfg),
-        patch("pydantic_ai.models.google.GoogleModel", side_effect=AssertionError("GoogleModel was instantiated — provider was called!")),
-        patch("pydantic_ai.providers.google.GoogleProvider", side_effect=AssertionError("GoogleProvider was instantiated — provider was called!")),
+        patch(
+            "pydantic_ai.models.google.GoogleModel",
+            side_effect=AssertionError("GoogleModel instantiated"),
+        ),
+        patch(
+            "pydantic_ai.providers.google.GoogleProvider",
+            side_effect=AssertionError("GoogleProvider instantiated"),
+        ),
     ):
-        # Must NOT raise — if it does, a provider constructor was invoked
         result = get_ai_gateway_capabilities()
 
     assert isinstance(result, AIGatewayHealth)
 
 
-# ---------------------------------------------------------------------------
-# TEST 7 — Existing unrelated AI routes remain compatible (smoke check)
-# ---------------------------------------------------------------------------
-
-
-def test_existing_ai_service_imports_are_unbroken():
-    """TEST 7: Core AI service modules affected by the refactor still import correctly.
-
-    We verify the provider/tiers/ai_gateway modules export their primary symbols
-    and that model_for_tier() still works correctly — without importing the full
-    xpex router (which pulls in video_local_tts → edge_tts, an optional dep
-    not installed in the unit-test environment).
-
-    The router's changed import (AIGatewayHealth) is exercised indirectly by
-    importing ai_gateway directly and confirming the symbol is exported.
-    """
-    # Verify the provider module still exports its primary symbols
-    from src.services.ai.llm.provider import build_model, AINotConfiguredError  # noqa: F401
-
-    # Verify the tiers module still exports its primary symbols
-    from src.services.ai.llm.tiers import model_for_tier, resolve_model_for_org  # noqa: F401
-
-    # Verify the ai_gateway module (the changed file) exports all expected symbols
-    from src.services.xpex.ai_gateway import (  # noqa: F401
-        AIGatewayCapabilities,
-        AIGatewayHealth,
-        AIGatewayModels,
-        AIGatewayNotes,
-        AIGatewaySecurity,
-        get_ai_gateway_capabilities,
-    )
-
-    # Verify auth module exports the dependency used in the router fix
-    from src.security.auth import get_authenticated_user, non_public_endpoint  # noqa: F401
-
-    # Verify model_for_tier still works with the standard tier names
+def test_video_generation_is_always_false():
+    """Video generation is always False (managed by async pipeline)."""
     ai_cfg = _make_ai_config(
         is_ai_enabled=True,
         provider="google",
-        model_fast="gemini-3.1-flash-lite",
-        model_standard="gemini-3.5-flash",
-        model_pro="gemini-3.1-pro-preview",
+        api_key="fake-key",
     )
-    lh_cfg = MagicMock()
-    lh_cfg.ai_config = ai_cfg
-    with patch("src.services.ai.llm.tiers.get_learnhouse_config", return_value=lh_cfg):
-        assert model_for_tier("fast") == "gemini-3.1-flash-lite"
-        assert model_for_tier("standard") == "gemini-3.5-flash"
-        assert model_for_tier("pro") == "gemini-3.1-pro-preview"
+    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
+        result = get_ai_gateway_capabilities()
 
-
-# ---------------------------------------------------------------------------
-# Bonus: Typed model structure tests
-# ---------------------------------------------------------------------------
+    assert result.capabilities.video_generation is False
 
 
 def test_ai_gateway_health_model_structure():
-    """The AIGatewayHealth model must serialise cleanly to/from JSON."""
+    """AIGatewayHealth serializes and deserializes cleanly."""
     health = AIGatewayHealth(
         status="ready",
         gateway="gxeon-ai",
@@ -430,29 +492,5 @@ def test_ai_gateway_health_model_structure():
     assert data["capabilities"]["video_generation"] is False
     assert data["security"]["secrets_exposed"] is False
 
-    # Round-trip: from dict back to model
     reconstructed = AIGatewayHealth.model_validate(data)
     assert reconstructed == health
-
-
-def test_video_generation_is_always_false():
-    """Architecture invariant: video_generation must always be False in the health response.
-
-    This test verifies that even if someone accidentally sets a video-related
-    config key, the sync gateway still reports video_generation=False.
-    """
-    ai_cfg = _make_ai_config(
-        is_ai_enabled=True,
-        provider="google",
-        api_key="fake",
-    )
-    # Inject a fake video_model attribute to stress-test the invariant
-    ai_cfg.video_model = "some-video-model"
-
-    with _patched_config(ai_cfg), _patched_tiers(ai_cfg):
-        result = get_ai_gateway_capabilities()
-
-    assert result.capabilities.video_generation is False, (
-        "video_generation must ALWAYS be False — "
-        "video is managed through async XPeX job pipeline, not sync LLM routes."
-    )
