@@ -40,6 +40,24 @@ class FakeResponse:
         return self._json_body
 
 
+class FakeInferenceClient:
+    video = b"video-bytes"
+    failure: Exception | None = None
+    instances: ClassVar[list["FakeInferenceClient"]] = []
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.calls: list[tuple[str, str]] = []
+        self.__class__.instances.append(self)
+
+    async def text_to_video(self, prompt, *, model):
+        self.calls.append((prompt, model))
+        if self.__class__.failure is not None:
+            raise self.__class__.failure
+        return self.__class__.video
+
+
 class FakeClient:
     response = FakeResponse()
     get_responses: ClassVar[list[FakeResponse]] = []
@@ -72,7 +90,14 @@ def provider_env(monkeypatch):
     FakeClient.calls = []
     FakeClient.get_responses = []
     FakeClient.response = FakeResponse()
+    FakeInferenceClient.video = b"video-bytes"
+    FakeInferenceClient.failure = None
+    FakeInferenceClient.instances = []
     monkeypatch.setattr(httpx, "AsyncClient", FakeClient)
+    monkeypatch.setattr(
+        "src.services.xpex.video_providers.AsyncInferenceClient",
+        FakeInferenceClient,
+    )
 
 
 @pytest.mark.asyncio
@@ -98,51 +123,19 @@ async def test_binary_adapters_use_server_side_models_and_return_media():
 
 
 @pytest.mark.asyncio
-async def test_video_uses_hf_routed_fal_queue_and_downloads_result(monkeypatch):
-    monkeypatch.setattr("src.services.xpex.video_providers.asyncio.sleep", lambda _seconds: _noop())
-    FakeClient.response = FakeResponse(
-        content=b"{}",
-        headers={"content-type": "application/json"},
-        json_body={
-            "request_id": "req-1",
-            "response_url": (
-                "https://queue.fal.run/fal-ai/wan/v2.2-5b/text-to-video/requests/req-1"
-            ),
-        },
-    )
-    FakeClient.get_responses = [
-        FakeResponse(
-            content=b"{}",
-            headers={"content-type": "application/json"},
-            json_body={"status": "COMPLETED", "request_id": "req-1"},
-        ),
-        FakeResponse(
-            content=b"{}",
-            headers={"content-type": "application/json"},
-            json_body={"video": {"url": "https://media.example/video.mp4"}},
-        ),
-        FakeResponse(content=b"video-bytes", headers={"content-type": "video/mp4"}),
-    ]
-
+async def test_video_uses_official_hf_fal_client_with_server_side_credentials():
     clip = await generate_video_clip("browser animation", REGISTRY)
 
     assert clip.data == b"video-bytes"
     assert clip.mime_type == "video/mp4"
     assert clip.model == "Wan-AI/Wan2.2-TI2V-5B"
-    assert clip.request_id == "req-1"
-    method, submit_url, kwargs = FakeClient.calls[0]
-    assert method == "POST"
-    assert submit_url == (
-        "https://router.huggingface.co/fal-ai/"
-        "fal-ai/wan/v2.2-5b/text-to-video?_subdomain=queue"
-    )
-    assert kwargs["json"] == {"prompt": "browser animation"}
-    assert kwargs["headers"]["Authorization"] == "Bearer server-only-test-token"
-    assert FakeClient.calls[-1][1] == "https://media.example/video.mp4"
+    assert clip.request_id is None
 
-
-async def _noop():
-    return None
+    assert len(FakeInferenceClient.instances) == 1
+    client = FakeInferenceClient.instances[0]
+    assert client.kwargs["provider"] == "fal-ai"
+    assert client.kwargs["api_key"] == "server-only-test-token"
+    assert client.calls == [("browser animation", "Wan-AI/Wan2.2-TI2V-5B")]
 
 
 @pytest.mark.asyncio
@@ -225,60 +218,28 @@ async def test_multimodal_review_normalizes_blocker_and_embeds_frame():
 
 
 @pytest.mark.asyncio
-async def test_provider_http_error_does_not_leak_body():
-    FakeClient.response = FakeResponse(status_code=503, content=b"secret upstream body")
-    with pytest.raises(VideoProviderError, match="HTTP 503") as exc:
-        await generate_video_clip("x", REGISTRY)
-    assert "secret upstream body" not in str(exc.value)
-
-
-@pytest.mark.asyncio
-async def test_provider_http_error_exposes_sanitized_diagnostics():
-    FakeClient.response = FakeResponse(
-        status_code=429,
-        content=b'{"error":"quota exceeded","Authorization":"Bearer forbidden"}',
-        headers={"content-type": "application/json", "x-request-id": "req-limit"},
+async def test_official_client_failure_redacts_hf_tokens():
+    FakeInferenceClient.failure = RuntimeError(
+        "provider rejected credential hf_super_secret and request"
     )
 
-    with pytest.raises(VideoProviderError, match="HTTP 429") as caught:
+    with pytest.raises(VideoProviderError, match="official client failed") as caught:
         await generate_video_clip("x", REGISTRY)
 
     error = caught.value
-    assert error.http_status == 429
-    assert error.request_id == "req-limit"
-    assert error.endpoint_category == "submit"
-    assert "quota exceeded" in (error.sanitized_response or "")
-    assert "Bearer forbidden" not in (error.sanitized_response or "")
-    assert "server-only-test-token" not in (error.sanitized_response or "")
+    assert error.endpoint_category == "official-client"
+    assert "hf_super_secret" not in str(error)
+    assert "[REDACTED]" in str(error)
 
 
 @pytest.mark.asyncio
-async def test_provider_queue_failure_preserves_safe_upstream_cause(monkeypatch):
-    monkeypatch.setattr("src.services.xpex.video_providers.asyncio.sleep", lambda _seconds: _noop())
-    FakeClient.response = FakeResponse(
-        content=b"{}",
-        headers={"content-type": "application/json"},
-        json_body={
-            "request_id": "req-failed",
-            "response_url": "https://queue.fal.run/fal-ai/model/requests/req-failed",
-        },
-    )
-    FakeClient.get_responses = [
-        FakeResponse(
-            content=b'{"status":"COMPLETED","error":"model mapping unavailable"}',
-            headers={"content-type": "application/json"},
-            json_body={"status": "COMPLETED", "error": "model mapping unavailable"},
-        )
-    ]
+async def test_official_client_empty_video_fails_closed():
+    FakeInferenceClient.video = b""
 
-    with pytest.raises(VideoProviderError, match="generation failed") as caught:
+    with pytest.raises(VideoProviderError, match="empty video") as caught:
         await generate_video_clip("x", REGISTRY)
 
-    error = caught.value
-    assert error.request_id == "req-failed"
-    assert error.queue_state == "COMPLETED"
-    assert error.endpoint_category == "status"
-    assert "model mapping unavailable" in (error.sanitized_response or "")
+    assert caught.value.endpoint_category == "official-client"
 
 
 @pytest.mark.parametrize(
@@ -298,31 +259,8 @@ def test_plaintext_upstream_credentials_are_fully_redacted(body, forbidden):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failure_point", ["status", "result"])
-async def test_queue_request_id_survives_later_http_errors(failure_point):
-    FakeClient.response = FakeResponse(
-        content=b"{}",
-        headers={"content-type": "application/json"},
-        json_body={
-            "request_id": "req-123",
-            "response_url": "https://queue.fal.run/fal-ai/model/requests/req-123",
-        },
-    )
-    completed = FakeResponse(
-        content=b"{}",
-        headers={"content-type": "application/json"},
-        json_body={"status": "COMPLETED"},
-    )
-    failure = FakeResponse(
-        status_code=429,
-        content=b"Authorization: Bearer hf_secret\nquota exceeded",
-        headers={"content-type": "text/plain"},
-    )
-    FakeClient.get_responses = [failure] if failure_point == "status" else [completed, failure]
-
-    with pytest.raises(VideoProviderError, match="HTTP 429") as caught:
-        await generate_video_clip("x", REGISTRY)
-
-    assert caught.value.request_id == "req-123"
-    assert caught.value.endpoint_category == failure_point
-    assert "hf_secret" not in (caught.value.sanitized_response or "")
+async def test_official_client_uses_configured_model_mapping_contract():
+    await generate_video_clip("lesson visual", REGISTRY)
+    client = FakeInferenceClient.instances[0]
+    assert client.kwargs["provider"] == "fal-ai"
+    assert client.calls[0][1] == REGISTRY.video_model
