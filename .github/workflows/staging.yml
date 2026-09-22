@@ -32,6 +32,8 @@ jobs:
           working-directory: apps/api
       - name: Sync dependencies from lockfile
         run: uv sync --frozen
+      - name: Install production runtime extras
+        run: uv pip install --python .venv/bin/python huggingface-hub==1.32.0 edge-tts==7.2.7 pillow==11.3.0
       - name: Validate Python imports
         run: |
           LEARNHOUSE_AUTH_JWT_SECRET_KEY=staging-import-check-secret-minimum-32 TESTING=true uv run python -c "import app, numpy; print('imports ok')"
