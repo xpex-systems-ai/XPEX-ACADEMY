@@ -41,8 +41,8 @@ from src.services.xpex.video_studio import (
     attach_video_job,
     create_video_batch,
     list_video_jobs,
-    process_video_job,
     preview_video_job,
+    process_video_job,
     publish_video_job,
 )
 
