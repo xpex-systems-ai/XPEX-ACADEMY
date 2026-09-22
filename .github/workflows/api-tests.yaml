@@ -33,7 +33,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Install dependencies
-        run: uv sync
+        run: |
+          uv sync
+          uv pip install --python .venv/bin/python huggingface-hub==1.32.0 edge-tts==7.2.7 pillow==11.3.0
         working-directory: apps/api
 
       - name: Run tests with coverage
