@@ -1,0 +1,42 @@
+{
+  "handoff_id": "XPEX-GOOGLE-AI-IMPLEMENTATION-001",
+  "based_on_repository": "xpex-systems-ai/XPEX-ACADEMY",
+  "base_branch": "dev",
+  "architecture": {
+    "web": "Next.js 16 / React 19 / TypeScript",
+    "api": "FastAPI / Python",
+    "database": "PostgreSQL",
+    "cache": "Redis",
+    "deployment": "Railway",
+    "ai_gateway_real_path": "apps/api/src/services/ai",
+    "xpex_orchestration_real_path": "apps/api/src/services/xpex"
+  },
+  "existing_reuse": [
+    "provider abstraction",
+    "model tiers",
+    "RAG",
+    "AI credits",
+    "AI generation history",
+    "course factory",
+    "editorial studio",
+    "video jobs",
+    "RBAC",
+    "org tenancy",
+    "media storage"
+  ],
+  "immediate_work": [
+    "authenticated AI gateway health/capabilities endpoint",
+    "Tutor golden-flow validation",
+    "provider telemetry and correlation IDs",
+    "Google production API capability verification",
+    "asset inventory before generation"
+  ],
+  "constraints": [
+    "no rebuild",
+    "no destructive migration",
+    "no client secrets",
+    "no unbounded generation",
+    "no parallel authorization system",
+    "async video jobs only"
+  ]
+}

@@ -5,6 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_current_user
+from src.services.xpex.ai_gateway import get_ai_gateway_capabilities
 from src.services.xpex.course_factory import (
     FactoryRunResponse,
     run_flagship_course_factory,
@@ -40,8 +41,8 @@ from src.services.xpex.video_studio import (
     attach_video_job,
     create_video_batch,
     list_video_jobs,
-    process_video_job,
     preview_video_job,
+    process_video_job,
     publish_video_job,
 )
 
@@ -276,3 +277,9 @@ async def video_studio_publish_job(
     db_session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     return await publish_video_job(request, job_id, current_user, db_session)
+
+
+@router.get("/ai-gateway/health")
+async def ai_gateway_health():
+    """Authenticated, secret-free snapshot of the XPeX AI orchestration layer."""
+    return get_ai_gateway_capabilities()

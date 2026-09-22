@@ -28,7 +28,7 @@ def test_draft_and_activity_keys_are_scoped_and_path_safe():
         course_uuid="course_1",
         activity_uuid="activity_1",
         filename="lesson.mp4",
-    ) == "content/orgs/org_1/courses/course_1/activities/activity_1/lesson.mp4"
+    ) == "content/orgs/org_1/courses/course_1/activities/activity_1/video/lesson.mp4"
 
     with pytest.raises(VideoMediaError, match="plain filename"):
         activity_artifact_key(
