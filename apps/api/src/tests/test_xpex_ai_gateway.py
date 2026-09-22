@@ -4,7 +4,7 @@ Covers the security and contract requirements:
   - ROUTE AUTH: exercises actual FastAPI route GET /xpex/ai-gateway/health
     * anonymous -> 401
     * authenticated -> 200 + typed AIGatewayHealth payload
-    * fails if Depends(get_authenticated_user) is removed
+    * fails if Depends(get_authenticated_non_api_token_user) is removed
   - GATEWAY READINESS:
     * is_ai_enabled=True does NOT automatically mean status="ready"
     * enabled-but-unconfigured provider reports status="unconfigured"
@@ -36,7 +36,7 @@ for _mod in ("edge_tts", "huggingface_hub"):
 
 from src.db.users import PublicUser
 from src.routers.xpex import router as xpex_router
-from src.security.auth import get_authenticated_user
+from src.security.api_token_utils import get_authenticated_non_api_token_user
 from src.services.xpex.ai_gateway import (
     AIGatewayCapabilities,
     AIGatewayHealth,
@@ -171,7 +171,7 @@ async def test_route_health_authenticated_returns_200_and_typed_payload(
     xpex_app, mock_user
 ):
     """Authenticated request to the actual route returns 200 and valid AIGatewayHealth."""
-    xpex_app.dependency_overrides[get_authenticated_user] = lambda: mock_user
+    xpex_app.dependency_overrides[get_authenticated_non_api_token_user] = lambda: mock_user
 
     ai_cfg = _make_ai_config(
         is_ai_enabled=True,
@@ -198,10 +198,10 @@ async def test_route_health_authenticated_returns_200_and_typed_payload(
         xpex_app.dependency_overrides.clear()
 
 
-def test_route_explicitly_declares_get_authenticated_user_dependency():
-    """Verify that /ai-gateway/health directly declares Depends(get_authenticated_user).
+def test_route_explicitly_declares_get_authenticated_non_api_token_user_dependency():
+    """Verify that /ai-gateway/health directly declares Depends(get_authenticated_non_api_token_user).
 
-    This ensures the test suite fails if someone removes Depends(get_authenticated_user).
+    This ensures the test suite fails if someone removes Depends(get_authenticated_non_api_token_user).
     """
     target_route = None
     for route in xpex_router.routes:
@@ -216,12 +216,12 @@ def test_route_explicitly_declares_get_authenticated_user_dependency():
     for param in sig.parameters.values():
         if hasattr(param.annotation, "__metadata__"):
             for meta in param.annotation.__metadata__:
-                if getattr(meta, "dependency", None) is get_authenticated_user:
+                if getattr(meta, "dependency", None) is get_authenticated_non_api_token_user:
                     has_auth_dep = True
                     break
 
     assert has_auth_dep, (
-        "ai_gateway_health endpoint MUST declare Depends(get_authenticated_user)"
+        "ai_gateway_health endpoint MUST declare Depends(get_authenticated_non_api_token_user)"
     )
 
 
@@ -244,6 +244,11 @@ def test_readiness_enabled_but_unconfigured_google_reports_unconfigured():
     assert result.status == "unconfigured"
     assert result.capabilities.reasoning is False
     assert result.capabilities.chat is False
+    assert result.capabilities.rag is False
+    assert result.capabilities.course_planning is False
+    assert result.capabilities.quiz_generation is False
+    assert result.capabilities.image_generation is False
+    assert result.capabilities.voice_audio is False
     assert result.capabilities.rag is False
     assert result.capabilities.course_planning is False
     assert result.capabilities.quiz_generation is False
