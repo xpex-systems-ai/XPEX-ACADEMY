@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "mission_id": "XPEX-GCP-FOUNDATION-001",
+  "project": "XPEX-ACADEMY",
+  "owner": "Junior Sena",
+  "orchestrator": "GX / GXEON",
+  "executor": "Google Antigravity",
+  "timestamp": "2026-09-22T16:20:00Z",
+  "phase": "DISCOVERY_AND_FOUNDATION_ARCHITECTED",
+  "status": "AWAITING_GXEON_AUDIT",
+  "source_of_truth": {
+    "repository": "xpex-systems-ai/XPEX-ACADEMY",
+    "base_branch": "dev",
+    "feature_branch": "docs/gcp-migration-foundation-v1"
+  },
+  "current_infrastructure": {
+    "host": "Railway",
+    "project": "resourceful-optimism",
+    "domain": "xpex-academy-ai.up.railway.app",
+    "architecture_pattern": "Combined Multi-Service Container (Nginx + PM2 + Next.js 16 + FastAPI + Node Collab)",
+    "database": "Railway Managed PostgreSQL 16 (pgvector)",
+    "cache": "Railway Managed Redis 7.2",
+    "storage": "Local mount /data/xpex-media (XPEX_DURABLE_MEDIA_ROOT)",
+    "preview_frontend": "Vercel (prj_EvLi9wcPcy2p7op1ChdvI8kPksKV)"
+  },
+  "target_infrastructure": {
+    "cloud_provider": "Google Cloud Platform",
+    "primary_region": "southamerica-east1",
+    "services": {
+      "api": {
+        "service": "Cloud Run",
+        "name": "xpex-api",
+        "entrypoint": "uvicorn app:app",
+        "port": 8080,
+        "concurrency": 80,
+        "min_instances": 1,
+        "max_instances": 10
+      },
+      "web": {
+        "service": "Cloud Run",
+        "name": "xpex-web",
+        "entrypoint": "node server-wrapper.js",
+        "port": 8080,
+        "concurrency": 80,
+        "min_instances": 1,
+        "max_instances": 8
+      },
+      "collab": {
+        "service": "Cloud Run",
+        "name": "xpex-collab",
+        "entrypoint": "node dist/index.js",
+        "port": 8080,
+        "websockets": true,
+        "timeout_seconds": 3600,
+        "min_instances": 0,
+        "max_instances": 4
+      },
+      "database": {
+        "service": "Cloud SQL for PostgreSQL",
+        "version": "16",
+        "extensions": ["vector", "uuid-ossp", "pgcrypto"],
+        "ha": true,
+        "tier_prod": "db-custom-2-7680",
+        "tier_staging": "db-f1-micro"
+      },
+      "cache": {
+        "service": "Memorystore for Redis",
+        "version": "7.2",
+        "tier": "Standard (HA)",
+        "capacity_gb": 1
+      },
+      "storage": {
+        "service": "Google Cloud Storage",
+        "buckets": [
+          "xpex-media-prod-sa1",
+          "xpex-assets-prod-sa1",
+          "xpex-backups-prod-sa1"
+        ],
+        "delivery_mode": "s3api",
+        "endpoint": "https://storage.googleapis.com"
+      },
+      "secrets": {
+        "service": "Google Secret Manager",
+        "replication": "automatic"
+      },
+      "video_worker": {
+        "service": "Cloud Run Jobs",
+        "name": "xpex-video-worker",
+        "trigger": "Cloud Tasks",
+        "max_concurrent_jobs": 2
+      },
+      "registry": {
+        "service": "Artifact Registry",
+        "format": "Docker",
+        "location": "southamerica-east1"
+      }
+    }
+  },
+  "governance_invariants": {
+    "railway_preservation": "MANDATORY_STANDBY_MIN_14_DAYS",
+    "production_mutation_in_this_pr": false,
+    "secrets_in_repo": false,
+    "ai_architecture": "GXEON_AI_GATEWAY_PROVIDER_NEUTRAL_PRESERVED",
+    "google_ai_mode": "MODE_A_STUDIO_API_KEY_INITIAL_STAGE",
+    "video_human_review_gate": "MANDATORY_PRESERVED"
+  },
+  "documentation_artifacts": [
+    "docs/gxeon/gcp/XPEX_GCP_CURRENT_STATE.md",
+    "docs/gxeon/gcp/XPEX_GCP_TARGET_ARCHITECTURE.md",
+    "docs/gxeon/gcp/XPEX_GCP_SERVICE_MAPPING.md",
+    "docs/gxeon/gcp/XPEX_GCP_MIGRATION_PLAN.md",
+    "docs/gxeon/gcp/XPEX_GCP_SECURITY_PLAN.md",
+    "docs/gxeon/gcp/XPEX_GCP_COST_GUARDRAILS.md",
+    "docs/gxeon/gcp/RAILWAY_PRESERVATION_PLAN.md",
+    "docs/gxeon/gcp/XPEX_GCP_EXECUTION_HANDOFF.json"
+  ]
+}
