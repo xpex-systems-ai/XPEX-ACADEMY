@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
+from src.security.api_token_utils import get_authenticated_non_api_token_user
 from src.security.auth import get_current_user
-from src.services.xpex.ai_gateway import get_ai_gateway_capabilities
+from src.services.xpex.ai_gateway import AIGatewayHealth, get_ai_gateway_capabilities
 from src.services.xpex.course_factory import (
     FactoryRunResponse,
     run_flagship_course_factory,
@@ -279,7 +280,23 @@ async def video_studio_publish_job(
     return await publish_video_job(request, job_id, current_user, db_session)
 
 
-@router.get("/ai-gateway/health")
-async def ai_gateway_health():
-    """Authenticated, secret-free snapshot of the XPeX AI orchestration layer."""
+@router.get("/ai-gateway/health", response_model=AIGatewayHealth)
+async def ai_gateway_health(
+    _current_user: Annotated[
+        PublicUser,
+        Depends(get_authenticated_non_api_token_user),
+    ],
+) -> AIGatewayHealth:
+    """Authenticated, secret-free snapshot of the XPeX AI orchestration layer.
+
+    An authenticated **user session** is required. Organization and superadmin
+    API tokens are intentionally rejected by the enclosing XPeX router contract.  Returns an ``AIGatewayHealth``
+    snapshot derived solely from server-side configuration — no provider call is
+    made, and no credential value is included in the response.
+
+    SECURITY:
+    - Anonymous users receive HTTP 401.
+    - The response never contains API keys, tokens, raw config or provider secrets.
+    - ``security.secrets_exposed`` is a design-level attestation, not a runtime scan.
+    """
     return get_ai_gateway_capabilities()
