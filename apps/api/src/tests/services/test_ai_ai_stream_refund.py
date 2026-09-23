@@ -15,7 +15,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from src.services.ai import ai as ai_service
 from src.services.ai.schemas.ai import (
     SendActivityAIChatMessage,
@@ -25,7 +24,7 @@ from src.services.ai.schemas.ai import (
 
 def _activity_course_org(org_id=10):
     activity = SimpleNamespace(activity_uuid="act_1", name="Lesson")
-    course = SimpleNamespace(org_id=org_id, name="Course")
+    course = SimpleNamespace(org_id=org_id, course_uuid="crs_1", name="Course")
     org = SimpleNamespace(id=org_id)
     return activity, course, org, "gemini-2.5-flash", "friendly text"
 
@@ -52,12 +51,13 @@ class TestStartStreamRefund:
             "get_chat_session_history",
             side_effect=RuntimeError("session store down"),
         ), patch.object(
+            ai_service, "save_chat_session_meta"
+        ), patch.object(
             ai_service, "refund_ai_credit"
-        ) as refund:
-            with pytest.raises(RuntimeError, match="session store down"):
-                await ai_service.ai_start_activity_chat_session_stream(
-                    MagicMock(), chat_obj, current_user, db_session
-                )
+        ) as refund, pytest.raises(RuntimeError, match="session store down"):
+            await ai_service.ai_start_activity_chat_session_stream(
+                MagicMock(), chat_obj, current_user, db_session
+            )
 
         refund.assert_called_once_with(10)
 
@@ -78,6 +78,8 @@ class TestStartStreamRefund:
             ai_service,
             "get_chat_session_history",
             return_value={"aichat_uuid": "c1", "message_history": []},
+        ), patch.object(
+            ai_service, "save_chat_session_meta"
         ), patch.object(
             ai_service, "refund_ai_credit"
         ) as refund:
@@ -107,16 +109,19 @@ class TestSendStreamRefund:
         ), patch(
             "src.services.security.rate_limiting.enforce_ai_rate_limit"
         ), patch.object(
+            ai_service, "validate_activity_chat_session_ownership", return_value=True
+        ), patch.object(
             ai_service,
             "get_chat_session_history",
             side_effect=RuntimeError("session store down"),
         ), patch.object(
+            ai_service, "save_chat_session_meta"
+        ), patch.object(
             ai_service, "refund_ai_credit"
-        ) as refund:
-            with pytest.raises(RuntimeError, match="session store down"):
-                await ai_service.ai_send_activity_chat_message_stream(
-                    MagicMock(), chat_obj, MagicMock(), AsyncMock()
-                )
+        ) as refund, pytest.raises(RuntimeError, match="session store down"):
+            await ai_service.ai_send_activity_chat_message_stream(
+                MagicMock(), chat_obj, MagicMock(), AsyncMock()
+            )
 
         refund.assert_called_once_with(20)
 
@@ -136,9 +141,13 @@ class TestSendStreamRefund:
         ), patch(
             "src.services.security.rate_limiting.enforce_ai_rate_limit"
         ), patch.object(
+            ai_service, "validate_activity_chat_session_ownership", return_value=True
+        ), patch.object(
             ai_service,
             "get_chat_session_history",
             return_value={"aichat_uuid": "c1", "message_history": []},
+        ), patch.object(
+            ai_service, "save_chat_session_meta"
         ), patch.object(
             ai_service, "refund_ai_credit"
         ) as refund:

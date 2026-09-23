@@ -1,33 +1,41 @@
+# ruff: noqa: B008
+import asyncio
 import json
 import logging
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
-
+from src.core.events.database import get_db_session
+from src.db.users import PublicUser
+from src.security.auth import get_authenticated_user
+from src.security.features_utils import usage as ai_usage
 from src.services.ai.ai import (
     ai_send_activity_chat_message,
+    ai_send_activity_chat_message_stream,
     ai_start_activity_chat_session,
     ai_start_activity_chat_session_stream,
-    ai_send_activity_chat_message_stream,
+)
+from src.services.ai.base import (
+    ask_ai_stream,
+    generate_follow_up_suggestions,
+    save_message_to_history,
 )
 from src.services.ai.editor import (
-    editor_ai_start_chat_session_stream,
     editor_ai_send_message_stream,
+    editor_ai_start_chat_session_stream,
 )
-from src.services.ai.base import ask_ai_stream, save_message_to_history, generate_follow_up_suggestions
 from src.services.ai.schemas.ai import (
     ActivityAIChatSessionResponse,
     SendActivityAIChatMessage,
     StartActivityAIChatSession,
 )
 from src.services.ai.schemas.editor import (
-    StartEditorAIChatSession,
     SendEditorAIChatMessage,
+    StartEditorAIChatSession,
 )
-from src.core.events.database import get_db_session
-from src.db.users import PublicUser
-from src.security.auth import get_authenticated_user
+
+refund_ai_credit = ai_usage.refund_ai_credit
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +101,8 @@ async def activity_chat_event_generator(
     ai_friendly_text: str,
     ai_model: str,
     org_id: int | None = None,
+    user_id: int | None = None,
+    course_uuid: str | None = None,
 ):
     """Convert async generator to SSE format with follow-up suggestions.
 
@@ -101,11 +111,7 @@ async def activity_chat_event_generator(
     disconnect, cancellation) we refund one credit so a flaky connection
     doesn't silently drain the org's quota.
     """
-    import asyncio
-    from src.security.features_utils.usage import refund_ai_credit
-
     full_response = ""
-    stream_failed = False
     try:
         # Send start event immediately so frontend knows we're ready
         yield f"data: {json.dumps({'type': 'start', 'aichat_uuid': aichat_uuid})}\n\n"
@@ -114,19 +120,32 @@ async def activity_chat_event_generator(
             full_response += chunk
             yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
 
-        # Save the message exchange to history
-        save_message_to_history(aichat_uuid, user_message, full_response)
+        # Save the message exchange to history with ownership metadata.
+        save_message_to_history(
+            aichat_uuid,
+            user_message,
+            full_response,
+            user_id=user_id,
+            course_uuid=course_uuid,
+            org_id=org_id,
+            mode="course_only",
+        )
 
         # Send done event immediately (without waiting for follow-ups)
         yield f"data: {json.dumps({'type': 'done', 'aichat_uuid': aichat_uuid, 'activity_uuid': activity_uuid})}\n\n"
 
-        # Generate follow-up suggestions and send as separate event
-        follow_ups = await generate_follow_up_suggestions(
-            full_response,
-            ai_friendly_text[:1000],
-            ai_model,
-            user_message
-        )
+        # Follow-up suggestions are optional enrichment. Their failure must not
+        # invalidate a tutor answer that has already been delivered.
+        try:
+            follow_ups = await generate_follow_up_suggestions(
+                full_response,
+                ai_friendly_text[:1000],
+                ai_model,
+                user_message,
+            )
+        except Exception:
+            logger.exception("GX Tutor follow-up generation failed")
+            follow_ups = []
 
         if follow_ups:
             yield f"data: {json.dumps({'type': 'follow_ups', 'follow_up_suggestions': follow_ups})}\n\n"
@@ -139,14 +158,13 @@ async def activity_chat_event_generator(
         # be abused to get free AI. Re-raise so Starlette observes the cancel.
         raise
     except Exception:
-        stream_failed = True
         logger.exception("Error in activity_chat_event_generator")
-        yield f"data: {json.dumps({'type': 'error', 'message': 'An internal error occurred while processing the AI chat request.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'code': 'AI_UNAVAILABLE', 'message': 'GX Tutor está temporariamente indisponível. Seu conteúdo da aula continua disponível normalmente.'})}\n\n"
     finally:
         # Refund credit if the model produced nothing useful.
-        if org_id is not None and (stream_failed or not full_response):
+        if org_id is not None and not full_response:
             try:
-                refund_ai_credit(org_id, 1)
+                ai_usage.refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
@@ -253,6 +271,8 @@ async def api_ai_send_activity_chat_message_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
+            user_id=context.get("user_id"),
+            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
@@ -270,9 +290,6 @@ async def api_ai_send_activity_chat_message_stream(
 # Content modification markers
 CONTENT_START_MARKER = "<<<CONTENT>>>"
 CONTENT_END_MARKER = "<<<END_CONTENT>>>"
-
-import asyncio  # noqa: E402
-from src.security.features_utils.usage import refund_ai_credit  # noqa: E402
 
 
 async def editor_chat_event_generator(
@@ -527,6 +544,8 @@ async def api_editor_ai_send_message_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
+            user_id=context.get("user_id"),
+            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
