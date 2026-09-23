@@ -12,7 +12,14 @@
     "price_usd": 100000,
     "accepted_tokens": ["USDC", "USDT", "ETH", "SOL"],
     "supported_chains": ["Ethereum", "Base", "Solana", "Polygon", "Arbitrum"],
-    "escrow_supported": ["Escrow.com", "Safe.global", "Acquire.com"]
+    "escrow_supported": ["Escrow.com", "Safe.global", "Acquire.com"],
+    "pix_instant_settlement": {
+      "pix_key": "xpexsystems@outlook.com.br",
+      "institution": "Mercado Pago",
+      "currency": "BRL",
+      "amount_brl": 550000,
+      "beneficiary": "XPeX Systems / Junior Sena"
+    }
   },
   "contact": {
     "owner": "Junior Sena",

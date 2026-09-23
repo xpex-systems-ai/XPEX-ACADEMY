@@ -37,6 +37,14 @@ XPeX Academy officially opens asset acquisition to **Autonomous AI Agents, Web3 
   - Buyer wallet executes transfer of 100,000 USDC/USDT directly to verified seller settlement address.
   - Seller delivers instantaneous repository ownership transfer within 60 minutes of on-chain transaction finality.
 
+### Option D: Instant Pix Settlement (Brazil / Mercado Pago)
+- **Settlement Method:** Instant Pix Transfer
+- **Pix Key:** `xpexsystems@outlook.com.br`
+- **Institution:** Mercado Pago
+- **Beneficiary:** XPeX Systems / Junior Sena
+- **Fixed Value:** **R$ 550.000,00 BRL** (or \$100,000 USD equivalent)
+- **Transfer SLA:** Immediate repository admin rights and full IP transfer upon on-chain/Pix receipt confirmation.
+
 ---
 
 ## 3. Technology Stack & Autonomous Agent Compatibility

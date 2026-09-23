@@ -39,6 +39,15 @@
       "method": "Direct Wallet Settlement",
       "network_support": ["Ethereum (ERC-20)", "Solana", "Polygon", "Base", "Arbitrum"],
       "terms": "50% escrow milestone on staging audit, 50% on final repo key transfer"
+    },
+    {
+      "method": "Instant Pix Settlement (Mercado Pago / BRL)",
+      "institution": "Mercado Pago",
+      "pix_key": "xpexsystems@outlook.com.br",
+      "currency": "BRL",
+      "amount_brl": 550000,
+      "description": "Aquisição integral de código-fonte e IP XPeX Academy",
+      "beneficiary": "XPeX Systems / Junior Sena"
     }
   ],
   "contact": {
