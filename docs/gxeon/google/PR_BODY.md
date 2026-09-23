@@ -27,7 +27,7 @@ XPEX ACADEMY BRAND EXPERIENCE (Hero, Trilhas, GX Copilot, Professores)
   ↓
 LOGIN / ENTER ACADEMY (Primary CTA)
   ↓
-CURRENT XPEX RUNTIME (Railway)
+CURRENT XPEX RUNTIME (Railway — kelle-digital-lab.up.railway.app)
   ↓
 GXEON AI GATEWAY
   ↓
@@ -47,12 +47,17 @@ GEMINI
 - `GET https://xpex-academy-stage.firebaseapp.com`: 200 OK
 - `GET https://xpex-academy-stage.web.app/notfound`: 404 Not Found (Branded 404 page)
 - Mobile responsiveness: 360px, 390px, 768px, 1440px (Mobile-first, 0 horizontal scroll)
-- Primary CTA destination: `https://xpex-academy-ai.up.railway.app/login`
+- Primary CTA source destination: `https://kelle-digital-lab.up.railway.app/login?next=%2Fxpex` (must be re-verified live after Firebase redeploy)
 
 ## SECURITY
 - Zero secrets committed (no API keys, no tokens, no DB strings)
-- Strict security headers configured on Firebase Hosting (X-Content-Type-Options, X-Frame-Options, CSP, Permissions-Policy)
+- Security headers configured on Firebase Hosting: X-Content-Type-Options, X-Frame-Options, Content-Security-Policy, Permissions-Policy
 - Authentication authority remains isolated on canonical backend
+
+## GX AUDIT GATE
+- Initial live revision used a stale Railway CTA domain and failed the destination check.
+- Source has been corrected to the verified production domain.
+- Firebase redeploy + live CTA/CSP/mobile smoke evidence is required before merge approval.
 
 ## LIMITATIONS
 - Zero-billing bridge: public front door on Google/Firebase, backend processing on existing runtime until Cloud Run billing activation.
