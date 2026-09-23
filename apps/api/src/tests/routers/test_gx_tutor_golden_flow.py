@@ -290,7 +290,7 @@ class TestGXTutorSessionOwnership:
         with patch.object(
             gx_tutor_sessions,
             "get_learnhouse_config",
-            side_effect=ValueError("invalid runtime config"),
+            side_effect=RuntimeError("unexpected runtime config failure"),
         ):
             is_valid = gx_tutor_sessions.validate_activity_chat_session_ownership(
                 "chat_config_error",
