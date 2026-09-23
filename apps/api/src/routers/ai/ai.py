@@ -7,30 +7,34 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.core.events.database import get_db_session
+from src.db.users import PublicUser
+from src.security.auth import get_authenticated_user
+from src.security.features_utils.usage import refund_ai_credit
 from src.services.ai.ai import (
     ai_send_activity_chat_message,
+    ai_send_activity_chat_message_stream,
     ai_start_activity_chat_session,
     ai_start_activity_chat_session_stream,
-    ai_send_activity_chat_message_stream,
+)
+from src.services.ai.base import (
+    ask_ai_stream,
+    generate_follow_up_suggestions,
+    save_message_to_history,
 )
 from src.services.ai.editor import (
-    editor_ai_start_chat_session_stream,
     editor_ai_send_message_stream,
+    editor_ai_start_chat_session_stream,
 )
-from src.services.ai.base import ask_ai_stream, save_message_to_history, generate_follow_up_suggestions
 from src.services.ai.schemas.ai import (
     ActivityAIChatSessionResponse,
     SendActivityAIChatMessage,
     StartActivityAIChatSession,
 )
 from src.services.ai.schemas.editor import (
-    StartEditorAIChatSession,
     SendEditorAIChatMessage,
+    StartEditorAIChatSession,
 )
-from src.core.events.database import get_db_session
-from src.db.users import PublicUser
-from src.security.auth import get_authenticated_user
-from src.security.features_utils.usage import refund_ai_credit
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +142,7 @@ async def activity_chat_event_generator(
                 ai_model,
                 user_message,
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("GX Tutor follow-up generation failed")
             follow_ups = []
 
