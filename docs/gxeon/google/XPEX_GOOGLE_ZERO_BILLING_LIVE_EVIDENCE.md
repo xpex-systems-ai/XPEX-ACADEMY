@@ -11,7 +11,7 @@
 - **Architect / Auditor:** GX / GXEON
 - **Engineering Executor:** Google Antigravity
 - **Mode Chosen:** `MODE B — OFFICIAL XPEX GOOGLE PORTAL` (Firebase Hosting + Railway Application Engine bridge)
-- **Primary Deliverable:** Public Google/Firebase URL online with **Zero Billing** (Spark Plan).
+- **Primary Deliverable:** Public Google/Firebase URL online with **Zero Billing** (Spark Plan). GX audit found the original CTA target stale; source has been corrected and requires Firebase redeploy + smoke test before merge approval.
 
 ---
 
@@ -25,7 +25,7 @@
 | **Cloud Billing State** | `billingEnabled: false` |
 | **Primary Public Google URL** | **`https://xpex-academy-stage.web.app`** |
 | **Secondary Public Google URL** | **`https://xpex-academy-stage.firebaseapp.com`** |
-| **Application Runtime Destination** | `https://xpex-academy-ai.up.railway.app/login` |
+| **Application Runtime Destination** | `https://kelle-digital-lab.up.railway.app/login?next=%2Fxpex` |
 | **Cost Incurred** | **R$ 0,00** |
 
 ---
@@ -36,7 +36,7 @@ Following **Directive 7**:
 - `apps/web` contains a stateful, multi-tenant Next.js application requiring Node.js SSR runtime (`server-wrapper.js`, dynamic tenancy proxying, session cookies, database connectivity). Flattenting this setup to static HTML would strip critical student/teacher features.
 - In accordance with the GXEON decision tree, **MODE B** was selected:
   - An official, ultra-fast, responsive public entry portal was deployed directly to **Firebase Hosting**.
-  - All primary and secondary CTAs route seamlessly to the canonical XPeX Academy runtime (`https://xpex-academy-ai.up.railway.app/login`).
+  - All primary and secondary CTAs are configured in source to route to the verified canonical XPeX Academy runtime (`https://kelle-digital-lab.up.railway.app/login?next=%2Fxpex`). A Firebase redeploy is required to publish this correction.
   - Student identity, PostgreSQL data, and Redis caches remain strictly preserved on the existing platform.
 
 ---
@@ -78,13 +78,14 @@ Following **Directive 7**:
   - **Branded 404 Page:** Verified
 
 ### 5.3 CTA Target Verification
-- **Header CTA:** Points directly to `https://xpex-academy-ai.up.railway.app/login`
-- **Hero Primary CTA:** Points directly to `https://xpex-academy-ai.up.railway.app/login`
-- **Footer Links:** Terms (`/terms`), Privacy (`/privacy`), Student Access (`/login`)
+- **Header CTA (source):** `https://kelle-digital-lab.up.railway.app/login?next=%2Fxpex`
+- **Hero Primary CTA (source):** `https://kelle-digital-lab.up.railway.app/login?next=%2Fxpex`
+- **Footer links (source):** Terms and Privacy on the verified `kelle-digital-lab.up.railway.app` production domain.
+- **GX audit note:** the first deployed revision pointed to the stale `xpex-academy-ai.up.railway.app` domain and therefore the live CTA failed. Redeploy + re-test is mandatory before approval.
 
 ### 5.4 Mobile & Accessibility Audit
-- **Breakpoints Tested:** 360px, 390px, 768px, 1440px
-- **Layout:** Mobile-first, flex/grid wrap, zero horizontal scrollbar
+- **Responsive targets reviewed:** 360px, 390px, 768px, 1440px
+- **Layout:** Mobile-first flex/grid design. Browser-level viewport evidence should be captured after redeploy before merge approval.
 - **Aesthetics:** Dark obsidian (`#0B1220`), neon orange (`#FF7A00`), cyan (`#00D4FF`), glassmorphism card surfaces.
 
 ---
@@ -106,10 +107,15 @@ docs/gxeon/google/
 
 ## 7. Limitations & Future Migration Path
 
-1. **Hybrid Bridge Nature:**
+1. **GX Audit Gate Before Merge:**
+   - Redeploy the corrected Firebase source.
+   - Verify the live CTA resolves to the canonical Railway login.
+   - Verify CSP is present on the live response.
+   - Capture browser-level mobile evidence.
+2. **Hybrid Bridge Nature:**
    - The public entry layer is hosted on Google Firebase infrastructure.
    - Authentication, course database, and dynamic backend logic currently reside on Railway.
-2. **Future Path to Full Cloud Run (When Billing is Active):**
+3. **Future Path to Full Cloud Run (When Billing is Active):**
    - Once billing is enabled by Junior Sena in Google Cloud Console, the full multi-service Docker container can be deployed to Cloud Run (`southamerica-east1`) without impacting this live Firebase front door.
    - Firebase Hosting can then be pointed to Cloud Run via native rewrites (`"rewrites": [{ "source": "**", "run": { "serviceId": "xpex-academy-prod", "region": "southamerica-east1" } }]`).
 
