@@ -93,8 +93,6 @@ async def activity_chat_event_generator(
     ai_friendly_text: str,
     ai_model: str,
     org_id: int | None = None,
-    user_id: int | None = None,
-    course_uuid: str | None = None,
 ):
     """Convert async generator to SSE format with follow-up suggestions.
 
@@ -116,33 +114,19 @@ async def activity_chat_event_generator(
             full_response += chunk
             yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
 
-        # Save the message exchange to history with strict ownership metadata
-        save_message_to_history(
-            aichat_uuid,
-            user_message,
-            full_response,
-            user_id=user_id,
-            course_uuid=course_uuid,
-            org_id=org_id,
-            mode="course_only",
-        )
+        # Save the message exchange to history
+        save_message_to_history(aichat_uuid, user_message, full_response)
 
         # Send done event immediately (without waiting for follow-ups)
         yield f"data: {json.dumps({'type': 'done', 'aichat_uuid': aichat_uuid, 'activity_uuid': activity_uuid})}\n\n"
 
-        # Follow-up suggestions are optional enrichment. They must never turn a
-        # successfully delivered tutor answer into an AI_UNAVAILABLE failure or
-        # trigger a credit refund after the user already received the answer.
-        try:
-            follow_ups = await generate_follow_up_suggestions(
-                full_response,
-                ai_friendly_text[:1000],
-                ai_model,
-                user_message,
-            )
-        except Exception:
-            logger.warning("GX Tutor follow-up generation failed", exc_info=True)
-            follow_ups = []
+        # Generate follow-up suggestions and send as separate event
+        follow_ups = await generate_follow_up_suggestions(
+            full_response,
+            ai_friendly_text[:1000],
+            ai_model,
+            user_message
+        )
 
         if follow_ups:
             yield f"data: {json.dumps({'type': 'follow_ups', 'follow_up_suggestions': follow_ups})}\n\n"
@@ -157,10 +141,10 @@ async def activity_chat_event_generator(
     except Exception:
         stream_failed = True
         logger.exception("Error in activity_chat_event_generator")
-        yield f"data: {json.dumps({'type': 'error', 'code': 'AI_UNAVAILABLE', 'message': 'GX Tutor está temporariamente indisponível. Seu conteúdo da aula continua disponível normalmente.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': 'An internal error occurred while processing the AI chat request.'})}\n\n"
     finally:
         # Refund credit if the model produced nothing useful.
-        if org_id is not None and not full_response:
+        if org_id is not None and (stream_failed or not full_response):
             try:
                 refund_ai_credit(org_id, 1)
             except Exception:
@@ -213,15 +197,13 @@ async def api_ai_start_activity_chat_session_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
-            user_id=context.get("user_id"),
-            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        },
+        }
     )
 
 
@@ -271,15 +253,13 @@ async def api_ai_send_activity_chat_message_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
-            user_id=context.get("user_id"),
-            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        },
+        }
     )
 
 
