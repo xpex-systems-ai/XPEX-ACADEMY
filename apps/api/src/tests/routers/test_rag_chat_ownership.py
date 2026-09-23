@@ -100,6 +100,42 @@ class TestRagChatOwnership:
         assert resp.media_type == "text/event-stream"
         belongs.assert_called_once_with("chat_owned", 1)
 
+    async def test_provider_unavailable_refunds_reserved_credits_once(self):
+        course = SimpleNamespace(id=1, org_id=10, course_uuid="course_1")
+        db = _db_with_course(course, org_config=None)
+        current_user = MagicMock()
+
+        async def unavailable_stream():
+            yield "GX temporariamente indisponível."
+
+        with patch.object(
+            rag_router, "resolve_acting_user_id", return_value=1
+        ), patch.object(
+            rag_router, "is_org_member", new_callable=AsyncMock, return_value=True
+        ), patch(
+            "src.services.security.rate_limiting.enforce_ai_rate_limit"
+        ), patch.object(
+            rag_router, "reserve_ai_credit", new_callable=AsyncMock
+        ) as reserve, patch.object(
+            rag_router, "refund_ai_credit"
+        ) as refund, patch.object(
+            rag_router,
+            "get_chat_session_history",
+            return_value={"aichat_uuid": "new_chat", "message_history": []},
+        ), patch.object(
+            rag_router,
+            "query_course_rag_stream",
+            new_callable=AsyncMock,
+            return_value=(unavailable_stream(), [], True),
+        ):
+            resp = await rag_router.api_rag_chat(
+                MagicMock(), self._req(None), current_user, db
+            )
+
+        assert resp.media_type == "text/event-stream"
+        reserve.assert_awaited_once_with(10, db, amount=2)
+        refund.assert_called_once_with(10, 2)
+
     async def test_new_session_skips_ownership_check(self):
         """aichat_uuid None -> is_new_session True -> ownership check skipped."""
         course = SimpleNamespace(id=1, org_id=10)
