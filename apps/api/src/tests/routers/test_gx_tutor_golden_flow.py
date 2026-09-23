@@ -198,7 +198,7 @@ class TestGXTutorCreditSafety:
                 yield ""
             raise RuntimeError("Gemini provider network error")
 
-        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
+        with patch("src.security.features_utils.usage.refund_ai_credit") as mock_refund, patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router, "generate_follow_up_suggestions", new_callable=AsyncMock, return_value=[]
@@ -472,7 +472,7 @@ class TestGXTutorStreamSequenceAndDegradation:
             yield "Parte útil da resposta."
             raise RuntimeError("provider disconnected mid-stream")
 
-        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
+        with patch("src.security.features_utils.usage.refund_ai_credit") as mock_refund, patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router,
@@ -507,7 +507,7 @@ class TestGXTutorStreamSequenceAndDegradation:
         async def complete_stream():
             yield "Resposta completa."
 
-        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
+        with patch("src.security.features_utils.usage.refund_ai_credit") as mock_refund, patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router,
@@ -544,7 +544,7 @@ class TestGXTutorStreamSequenceAndDegradation:
             yield "Conceito 1"
             yield " explicado."
 
-        with patch.object(ai_router, "refund_ai_credit"), patch.object(
+        with patch("src.security.features_utils.usage.refund_ai_credit"), patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router,
