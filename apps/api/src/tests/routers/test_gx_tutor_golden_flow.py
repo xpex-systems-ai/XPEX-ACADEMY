@@ -286,6 +286,37 @@ class TestGXTutorSessionOwnership:
             )
             assert is_valid is False
 
+    def test_session_ownership_fails_closed_when_config_loader_breaks(self):
+        with patch.object(
+            gx_tutor_sessions,
+            "get_learnhouse_config",
+            side_effect=ValueError("invalid runtime config"),
+        ):
+            is_valid = gx_tutor_sessions.validate_activity_chat_session_ownership(
+                "chat_config_error",
+                user_id=1,
+                course_uuid="crs_1",
+                org_id=10,
+            )
+        assert is_valid is False
+
+    def test_session_ownership_fails_closed_on_invalid_json(self):
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = b"{not-json"
+        config = SimpleNamespace(
+            redis_config=SimpleNamespace(redis_connection_string="redis://test")
+        )
+        with patch.object(
+            gx_tutor_sessions, "get_learnhouse_config", return_value=config
+        ), patch.object(gx_tutor_sessions.redis, "from_url", return_value=mock_redis):
+            is_valid = gx_tutor_sessions.validate_activity_chat_session_ownership(
+                "chat_bad_json",
+                user_id=1,
+                course_uuid="crs_1",
+                org_id=10,
+            )
+        assert is_valid is False
+
     def test_session_ownership_allows_matching_user_course_org(self):
         mock_redis = MagicMock()
         mock_redis.get.return_value = json.dumps({
@@ -407,7 +438,7 @@ class TestGXTutorSessionOwnership:
 
 class TestGXTutorGroundedPromptAndInjectionSeparation:
     def test_prompt_identifies_gx_tutor_and_removes_unrestricted_knowledge(self):
-        system_prompt = ai_service._build_gx_tutor_system_prompt("Desenvolvimento Web", "Introdução ao React")
+        system_prompt = ai_service._build_gx_tutor_system_prompt()
 
         assert "GX Tutor" in system_prompt
         assert "PT-BR" in system_prompt
