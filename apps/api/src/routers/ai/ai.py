@@ -162,7 +162,7 @@ async def activity_chat_event_generator(
         # Refund credit if the model produced nothing useful.
         if org_id is not None and not full_response:
             try:
-                ai_usage.ai_usage.refund_ai_credit(org_id, 1)
+                ai_usage.refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
@@ -437,7 +437,7 @@ async def editor_chat_event_generator(
     finally:
         if org_id is not None and (stream_failed or not full_response):
             try:
-                ai_usage.ai_usage.refund_ai_credit(org_id, 1)
+                ai_usage.refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
