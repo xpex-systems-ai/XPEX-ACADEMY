@@ -198,7 +198,7 @@ class TestGXTutorCreditSafety:
                 yield ""
             raise RuntimeError("Gemini provider network error")
 
-        with patch("src.security.features_utils.usage.refund_ai_credit") as mock_refund, patch.object(
+        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router, "generate_follow_up_suggestions", new_callable=AsyncMock, return_value=[]
@@ -466,12 +466,85 @@ class TestGXTutorGroundedPromptAndInjectionSeparation:
 
 
 class TestGXTutorStreamSequenceAndDegradation:
+    async def test_partial_stream_failure_does_not_refund_delivered_output(self):
+        """A provider error after at least one chunk must not create a free AI response."""
+        async def partial_failure_stream():
+            yield "Parte útil da resposta."
+            raise RuntimeError("provider disconnected mid-stream")
+
+        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
+            ai_router, "save_message_to_history"
+        ), patch.object(
+            ai_router,
+            "generate_follow_up_suggestions",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            events = [
+                json.loads(chunk.replace("data: ", "").strip())
+                for chunk in [
+                    c async for c in ai_router.activity_chat_event_generator(
+                        partial_failure_stream(),
+                        aichat_uuid="chat_partial_fail",
+                        activity_uuid="act_1",
+                        user_message="Explique",
+                        ai_friendly_text="Contexto",
+                        ai_model="gemini-test",
+                        org_id=9,
+                        user_id=10,
+                        course_uuid="crs_1",
+                    )
+                ]
+                if chunk.startswith("data: ")
+            ]
+
+        assert any(event.get("type") == "chunk" for event in events)
+        assert any(event.get("type") == "error" for event in events)
+        mock_refund.assert_not_called()
+
+    async def test_follow_up_failure_does_not_invalidate_completed_answer(self):
+        """Optional follow-up generation is best-effort after a completed answer."""
+        async def complete_stream():
+            yield "Resposta completa."
+
+        with patch.object(ai_router, "refund_ai_credit") as mock_refund, patch.object(
+            ai_router, "save_message_to_history"
+        ), patch.object(
+            ai_router,
+            "generate_follow_up_suggestions",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("follow-up provider unavailable"),
+        ):
+            events = [
+                json.loads(chunk.replace("data: ", "").strip())
+                for chunk in [
+                    c async for c in ai_router.activity_chat_event_generator(
+                        complete_stream(),
+                        aichat_uuid="chat_followup_fail",
+                        activity_uuid="act_1",
+                        user_message="Explique",
+                        ai_friendly_text="Contexto",
+                        ai_model="gemini-test",
+                        org_id=9,
+                        user_id=10,
+                        course_uuid="crs_1",
+                    )
+                ]
+                if chunk.startswith("data: ")
+            ]
+
+        types = [event.get("type") for event in events]
+        assert "done" in types
+        assert "error" not in types
+        assert "follow_ups" not in types
+        mock_refund.assert_not_called()
+
     async def test_stream_sequence_emits_start_chunk_done_followups(self):
         async def fake_stream():
             yield "Conceito 1"
             yield " explicado."
 
-        with patch("src.security.features_utils.usage.refund_ai_credit"), patch.object(
+        with patch.object(ai_router, "refund_ai_credit"), patch.object(
             ai_router, "save_message_to_history"
         ), patch.object(
             ai_router,
