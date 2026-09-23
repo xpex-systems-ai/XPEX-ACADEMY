@@ -28,7 +28,6 @@ from src.services.courses.activities.utils import (
     serialize_activity_text_to_ai_comprehensible_text,
     structure_activity_content_by_type,
 )
-from src.services.security.rate_limiting import enforce_ai_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +172,8 @@ async def ai_start_activity_chat_session(
     )
 
     acting_user_id = resolve_acting_user_id(current_user)
+    from src.services.security.rate_limiting import enforce_ai_rate_limit
+
     enforce_ai_rate_limit(acting_user_id, org.id)
     await reserve_ai_credit(org.id, db_session)
 
@@ -243,6 +244,8 @@ async def ai_send_activity_chat_message(
             detail="Chat session not accessible",
         )
 
+    from src.services.security.rate_limiting import enforce_ai_rate_limit
+
     enforce_ai_rate_limit(acting_user_id, org.id)
     await reserve_ai_credit(org.id, db_session)
 
@@ -300,6 +303,8 @@ async def ai_start_activity_chat_session_stream(
     )
 
     acting_user_id = resolve_acting_user_id(current_user)
+    from src.services.security.rate_limiting import enforce_ai_rate_limit
+
     enforce_ai_rate_limit(acting_user_id, org.id)
     await reserve_ai_credit(org.id, db_session)
 
@@ -358,6 +363,8 @@ async def ai_send_activity_chat_message_stream(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chat session not accessible",
         )
+
+    from src.services.security.rate_limiting import enforce_ai_rate_limit
 
     enforce_ai_rate_limit(acting_user_id, org.id)
     await reserve_ai_credit(org.id, db_session)
