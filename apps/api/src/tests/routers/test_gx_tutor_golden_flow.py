@@ -12,8 +12,6 @@ H. Stream Sequence: start -> chunk(s) -> done -> optional follow_ups
 I. Provider Failure / Safe Degradation: provider exception -> structured AI_UNAVAILABLE error, credit refunded, no internal stack trace leaked
 """
 
-from types import SimpleNamespace
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import json
 from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
