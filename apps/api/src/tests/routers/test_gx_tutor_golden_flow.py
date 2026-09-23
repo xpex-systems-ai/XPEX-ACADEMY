@@ -213,8 +213,6 @@ class TestGXTutorCreditSafety:
                     ai_friendly_text="Contexto da aula",
                     ai_model="gemini-3.5-flash",
                     org_id=42,
-                    user_id=10,
-                    course_uuid="crs_1",
                 )
             ]
 
