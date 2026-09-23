@@ -2,7 +2,6 @@ import json
 import logging
 
 import redis
-
 from config.config import get_learnhouse_config
 
 logger = logging.getLogger(__name__)
