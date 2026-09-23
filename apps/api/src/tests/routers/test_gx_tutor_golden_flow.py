@@ -417,6 +417,43 @@ class TestGXTutorGroundedPromptAndInjectionSeparation:
 
 
 class TestGXTutorStreamSequenceAndDegradation:
+    async def test_follow_up_failure_does_not_fail_completed_stream_or_refund_credit(self):
+        """Optional follow-up generation cannot invalidate an answer already delivered."""
+        async def fake_stream():
+            yield "Resposta completa."
+
+        with patch("src.security.features_utils.usage.refund_ai_credit") as mock_refund, patch.object(
+            ai_router, "save_message_to_history"
+        ), patch.object(
+            ai_router,
+            "generate_follow_up_suggestions",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("follow-up provider unavailable"),
+        ):
+            events = [
+                json.loads(chunk.replace("data: ", "").strip())
+                for chunk in [
+                    c async for c in ai_router.activity_chat_event_generator(
+                        fake_stream(),
+                        aichat_uuid="chat_followup_fail",
+                        activity_uuid="act_1",
+                        user_message="Explique",
+                        ai_friendly_text="Contexto",
+                        ai_model="gemini-test",
+                        org_id=1,
+                        user_id=10,
+                        course_uuid="crs_1",
+                    )
+                ]
+                if chunk.startswith("data: ")
+            ]
+
+        types = [event.get("type") for event in events]
+        assert "done" in types
+        assert "error" not in types
+        assert "follow_ups" not in types
+        mock_refund.assert_not_called()
+
     async def test_stream_sequence_emits_start_chunk_done_followups(self):
         async def fake_stream():
             yield "Conceito 1"
