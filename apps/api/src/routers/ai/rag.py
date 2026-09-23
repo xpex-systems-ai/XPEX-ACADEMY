@@ -1,3 +1,4 @@
+# ruff: noqa: B008, I001, UP045
 """
 RAG (Retrieval-Augmented Generation) API router.
 
