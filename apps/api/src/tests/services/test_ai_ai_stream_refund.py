@@ -15,7 +15,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from src.services.ai import ai as ai_service
 from src.services.ai.schemas.ai import (
     SendActivityAIChatMessage,
@@ -55,11 +54,10 @@ class TestStartStreamRefund:
             ai_service, "save_chat_session_meta"
         ), patch.object(
             ai_service, "refund_ai_credit"
-        ) as refund:
-            with pytest.raises(RuntimeError, match="session store down"):
-                await ai_service.ai_start_activity_chat_session_stream(
-                    MagicMock(), chat_obj, current_user, db_session
-                )
+        ) as refund, pytest.raises(RuntimeError, match="session store down"):
+            await ai_service.ai_start_activity_chat_session_stream(
+                MagicMock(), chat_obj, current_user, db_session
+            )
 
         refund.assert_called_once_with(10)
 
@@ -120,11 +118,10 @@ class TestSendStreamRefund:
             ai_service, "save_chat_session_meta"
         ), patch.object(
             ai_service, "refund_ai_credit"
-        ) as refund:
-            with pytest.raises(RuntimeError, match="session store down"):
-                await ai_service.ai_send_activity_chat_message_stream(
-                    MagicMock(), chat_obj, MagicMock(), AsyncMock()
-                )
+        ) as refund, pytest.raises(RuntimeError, match="session store down"):
+            await ai_service.ai_send_activity_chat_message_stream(
+                MagicMock(), chat_obj, MagicMock(), AsyncMock()
+            )
 
         refund.assert_called_once_with(20)
 
