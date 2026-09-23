@@ -35,6 +35,8 @@ from src.services.ai.schemas.editor import (
     StartEditorAIChatSession,
 )
 
+refund_ai_credit = ai_usage.refund_ai_credit
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -213,8 +215,6 @@ async def api_ai_start_activity_chat_session_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
-            user_id=context.get("user_id"),
-            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
@@ -437,7 +437,7 @@ async def editor_chat_event_generator(
     finally:
         if org_id is not None and (stream_failed or not full_response):
             try:
-                ai_usage.refund_ai_credit(org_id, 1)
+                refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
@@ -488,8 +488,6 @@ async def api_editor_ai_start_chat_session_stream(
             context["ai_friendly_text"],
             context["ai_model"],
             org_id=getattr(context.get("course", None), "org_id", None),
-            user_id=context.get("user_id"),
-            course_uuid=getattr(context.get("course", None), "course_uuid", None),
         ),
         media_type="text/event-stream",
         headers={
