@@ -35,11 +35,13 @@ GEMINI
 ```
 
 ## FILES CHANGED
-- `deployment/firebase/firebase.json` (Hosting configuration, security headers, clean URLs)
+- `deployment/firebase/firebase.json` (Hosting configuration, hardened response headers, clean URLs)
 - `deployment/firebase/.firebaserc` (Project mapping)
 - `deployment/firebase/.gitignore`
 - `deployment/firebase/public/index.html` (Official dark premium AI-native portal)
 - `deployment/firebase/public/404.html` (Custom branded 404 handler)
+- `deployment/firebase/public/robots.txt`
+- `deployment/firebase/public/sitemap.xml`
 - `docs/gxeon/google/XPEX_GOOGLE_ZERO_BILLING_LIVE_EVIDENCE.md` (Audit and verification evidence)
 
 ## TESTS
@@ -51,13 +53,16 @@ GEMINI
 
 ## SECURITY
 - Zero secrets committed (no API keys, no tokens, no DB strings)
-- Security headers configured on Firebase Hosting: X-Content-Type-Options, X-Frame-Options, Content-Security-Policy, Permissions-Policy
+- Hardened response headers configured on Firebase Hosting, including CSP, HSTS, COOP, CORP, Permissions-Policy and Referrer-Policy
 - Authentication authority remains isolated on canonical backend
 
 ## GX AUDIT GATE
 - Initial live revision used a stale Railway CTA domain and failed the destination check.
-- Source has been corrected to the verified production domain.
-- Firebase redeploy + live CTA/CSP/mobile smoke evidence is required before merge approval.
+- Source was corrected to the verified production domain and the live CTA now resolves correctly.
+- Unrelated sale/M&A/Web3 artifacts that were later added to the same branch were removed from this PR.
+- Their pre-cleanup state is preserved separately on `archive/pr243-mna-web3-experiments-2026-09-23`.
+- The PR is again single-purpose: Firebase zero-billing public front door only.
+- Final Firebase redeploy is required to publish the latest hardened headers/SEO files and remove the previously published sale manifests before merge approval.
 
 ## LIMITATIONS
 - Zero-billing bridge: public front door on Google/Firebase, backend processing on existing runtime until Cloud Run billing activation.
