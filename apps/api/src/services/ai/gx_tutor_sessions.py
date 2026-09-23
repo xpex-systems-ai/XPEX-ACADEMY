@@ -18,12 +18,12 @@ def validate_activity_chat_session_ownership(
     Activity chat continuation fails closed unless Redis metadata exists and
     matches the authenticated user, course, and organization.
     """
-    config = get_learnhouse_config()
-    connection_string = config.redis_config.redis_connection_string
-    if not connection_string:
-        return False
-
     try:
+        config = get_learnhouse_config()
+        connection_string = config.redis_config.redis_connection_string
+        if not connection_string:
+            return False
+
         client = redis.from_url(
             connection_string,
             socket_connect_timeout=5,
@@ -42,6 +42,13 @@ def validate_activity_chat_session_ownership(
             and meta.get("course_uuid") == course_uuid
             and meta.get("org_id") == org_id
         )
-    except (redis.RedisError, json.JSONDecodeError, TypeError, UnicodeDecodeError):
+    except (
+        AttributeError,
+        TypeError,
+        UnicodeDecodeError,
+        ValueError,
+        json.JSONDecodeError,
+        redis.RedisError,
+    ):
         logger.exception("Failed to validate GX Tutor session ownership")
         return False
