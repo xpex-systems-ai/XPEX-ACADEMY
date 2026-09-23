@@ -1,27 +1,28 @@
 import logging
-from typing import Tuple, Dict, Any
-from fastapi import Depends, HTTPException, Request, status
+from typing import Any
+
+from fastapi import HTTPException, Request, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db.organization_config import OrganizationConfig
+
 from src.db.organizations import Organization
 from src.security.features_utils.usage import (
     refund_ai_credit,
     reserve_ai_credit,
 )
 from src.db.courses.courses import Course, CourseRead
-from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.db.courses.activities import Activity, ActivityRead
-from src.security.auth import get_current_user, resolve_acting_user_id
+from src.security.auth import resolve_acting_user_id
 from src.security.rbac import AccessAction, AccessContext, check_resource_access
 from src.services.security.rate_limiting import enforce_ai_rate_limit
 from src.services.ai.base import (
     ask_ai,
     get_chat_session_history,
+    save_chat_session_meta,
     save_message_to_history,
-    validate_activity_chat_session_ownership,
 )
+from src.services.ai.gx_tutor_sessions import validate_activity_chat_session_ownership
 from src.services.ai.llm import model_for_tier
 
 from src.services.ai.schemas.ai import (
@@ -60,7 +61,7 @@ async def _get_activity_and_course_info(
     activity_uuid: str,
     current_user: PublicUser,
     db_session: AsyncSession,
-) -> Tuple[ActivityRead, CourseRead, Organization, str, str]:
+) -> tuple[ActivityRead, CourseRead, Organization, str, str]:
     """
     Helper function to get activity, course, and organization info with AI model,
     enforcing canonical RBAC resource authorization before compute / credit reservation.
@@ -144,10 +145,11 @@ async def _get_activity_and_course_info(
     # Get Activity Content Blocks
     content = activity.content
     structured = structure_activity_content_by_type(content)
-    isEmpty = structured == []
+    is_empty = structured == []
     ai_friendly_text = serialize_activity_text_to_ai_comprehensible_text(
-        structured, course, activity, isActivityEmpty=isEmpty
+        structured, course, activity, isActivityEmpty=is_empty
     )
+    ai_friendly_text = _wrap_authorized_course_context(ai_friendly_text)
 
     # AI Model (provider-agnostic; resolved from AI config)
     ai_model = model_for_tier("standard")
@@ -158,8 +160,8 @@ async def _get_activity_and_course_info(
 async def ai_start_activity_chat_session(
     request: Request,
     chat_session_object: StartActivityAIChatSession,
-    current_user: PublicUser = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    current_user: PublicUser,
+    db_session: AsyncSession,
 ) -> ActivityAIChatSessionResponse:
     """
     Start a new AI Chat session with a Course Activity (GX Tutor)
@@ -183,7 +185,7 @@ async def ai_start_activity_chat_session(
             message,
             ai_model,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         refund_ai_credit(org.id)
         logger.error("AI service error in ai_start_activity_chat_session: %s", e)
         raise HTTPException(
@@ -215,8 +217,8 @@ async def ai_start_activity_chat_session(
 async def ai_send_activity_chat_message(
     request: Request,
     chat_session_object: SendActivityAIChatMessage,
-    current_user: PublicUser = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db_session),
+    current_user: PublicUser,
+    db_session: AsyncSession,
 ) -> ActivityAIChatSessionResponse:
     """
     Send a message in an existing AI Chat session with a Course Activity (GX Tutor)
@@ -253,7 +255,7 @@ async def ai_send_activity_chat_message(
             message,
             ai_model,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         refund_ai_credit(org.id)
         logger.error("AI service error in ai_send_activity_chat_message: %s", e)
         raise HTTPException(
@@ -286,7 +288,7 @@ async def ai_start_activity_chat_session_stream(
     chat_session_object: StartActivityAIChatSession,
     current_user: PublicUser,
     db_session: AsyncSession,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Start a new AI Chat session with streaming response (GX Tutor).
     Returns context needed for streaming.
@@ -302,7 +304,15 @@ async def ai_start_activity_chat_session_stream(
     try:
         chat_session = get_chat_session_history()
         message = _build_gx_tutor_system_prompt(course.name, activity.name)
-    except Exception:
+        save_chat_session_meta(
+            chat_session["aichat_uuid"],
+            acting_user_id,
+            chat_session_object.message[:50].strip() or "GX Tutor",
+            course_uuid=course.course_uuid,
+            mode="course_only",
+            org_id=org.id,
+        )
+    except Exception:  # noqa: BLE001
         refund_ai_credit(org.id)
         raise
 
@@ -324,7 +334,7 @@ async def ai_send_activity_chat_message_stream(
     chat_session_object: SendActivityAIChatMessage,
     current_user: PublicUser,
     db_session: AsyncSession,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Send a message in an existing AI Chat session with streaming response (GX Tutor).
     Returns context needed for streaming.
@@ -353,7 +363,7 @@ async def ai_send_activity_chat_message_stream(
     try:
         chat_session = get_chat_session_history(chat_session_object.aichat_uuid)
         message = _build_gx_tutor_system_prompt(course.name, activity.name)
-    except Exception:
+    except Exception:  # noqa: BLE001
         refund_ai_credit(org.id)
         raise
 
