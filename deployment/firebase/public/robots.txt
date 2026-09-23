@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xpex-academy-stage.web.app/sitemap.xml
