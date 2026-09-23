@@ -5,17 +5,13 @@ from fastapi import HTTPException, Request, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.organizations import Organization
-from src.security.features_utils.usage import (
-    refund_ai_credit,
-    reserve_ai_credit,
-)
-from src.db.courses.courses import Course, CourseRead
-from src.db.users import PublicUser
 from src.db.courses.activities import Activity, ActivityRead
+from src.db.courses.courses import Course, CourseRead
+from src.db.organizations import Organization
+from src.db.users import PublicUser
 from src.security.auth import resolve_acting_user_id
+from src.security.features_utils.usage import refund_ai_credit, reserve_ai_credit
 from src.security.rbac import AccessAction, AccessContext, check_resource_access
-from src.services.security.rate_limiting import enforce_ai_rate_limit
 from src.services.ai.base import (
     ask_ai,
     get_chat_session_history,
@@ -24,7 +20,6 @@ from src.services.ai.base import (
 )
 from src.services.ai.gx_tutor_sessions import validate_activity_chat_session_ownership
 from src.services.ai.llm import model_for_tier
-
 from src.services.ai.schemas.ai import (
     ActivityAIChatSessionResponse,
     SendActivityAIChatMessage,
@@ -34,8 +29,16 @@ from src.services.courses.activities.utils import (
     serialize_activity_text_to_ai_comprehensible_text,
     structure_activity_content_by_type,
 )
+from src.services.security.rate_limiting import enforce_ai_rate_limit
 
 logger = logging.getLogger(__name__)
+
+
+def _wrap_authorized_course_context(text: str) -> str:
+    """Mark serialized lesson material as untrusted authorized reference data."""
+    if not text:
+        return ""
+    return f"<authorized_course_context>\n{text}\n</authorized_course_context>"
 
 
 def _build_gx_tutor_system_prompt(course_name: str, activity_name: str) -> str:
@@ -312,7 +315,7 @@ async def ai_start_activity_chat_session_stream(
             mode="course_only",
             org_id=org.id,
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         refund_ai_credit(org.id)
         raise
 
@@ -363,7 +366,7 @@ async def ai_send_activity_chat_message_stream(
     try:
         chat_session = get_chat_session_history(chat_session_object.aichat_uuid)
         message = _build_gx_tutor_system_prompt(course.name, activity.name)
-    except Exception:  # noqa: BLE001
+    except Exception:
         refund_ai_credit(org.id)
         raise
 
