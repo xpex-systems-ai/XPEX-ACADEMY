@@ -235,8 +235,8 @@ class TestGXTutorCreditSafety:
             return_value=(activity, course, org, "gemini-3.5-flash", "context"),
         ), patch.object(
             ai_service, "validate_activity_chat_session_ownership", return_value=True
-        ), patch.object(
-            ai_service, "enforce_ai_rate_limit"
+        ), patch(
+            "src.services.security.rate_limiting.enforce_ai_rate_limit"
         ), patch.object(
             ai_service, "reserve_ai_credit", new_callable=AsyncMock
         ) as mock_reserve, patch.object(
