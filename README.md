@@ -1,22 +1,3 @@
-<div align="center">
-
-# 🏛️ ACQUISITION OPPORTUNITY: XPeX ACADEMY (FULL ASSET SALE)
-### **Turnkey AI-Native Learning Operating System with Gemini Integration**
-
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-xpex--academy--stage.web.app-00D4FF?style=for-the-badge&logo=google&logoColor=white)](https://xpex-academy-stage.web.app)
-[![Asking Price](https://img.shields.io/badge/Asking%20Price-$100,000%20USD-FF7A00?style=for-the-badge)](docs/gxeon/m_and_a/XPEX_ACADEMY_ACQUISITION_TEASER.md)
-[![Asset Status](https://img.shields.io/badge/Status-Available%20for%20Acquisition-22C55E?style=for-the-badge)](docs/gxeon/m_and_a/XPEX_ACADEMY_ACQUISITION_TEASER.md)
-[![Web3 Settlement](https://img.shields.io/badge/Wallet%20Settlement-100k%20USDC%20%2F%20USDT%20%2F%20ETH%20%2F%20SOL-627EEA?style=for-the-badge&logo=ethereum&logoColor=white)](docs/gxeon/m_and_a/WEB3_WALLET_AGENT_SALE_MANIFESTO.md)
-[![Escrow Ready](https://img.shields.io/badge/Transaction-Escrow.com%20%2F%20Safe.global-blue?style=for-the-badge)](https://app.acquire.com)
-
-**100% Proprietary Source Code • Full IP Rights • Turnkey Cloud Infrastructure • Web3 Wallet & Fiat Settlement Ready**
-
-[📄 View Confidential M&A Teaser](docs/gxeon/m_and_a/XPEX_ACADEMY_ACQUISITION_TEASER.md) • [⚡ Web3 & Agent Wallet Manifesto](docs/gxeon/m_and_a/WEB3_WALLET_AGENT_SALE_MANIFESTO.md) • [🤖 Agent Machine Spec (`agent-sale-spec.json`)](agent-sale-spec.json) • [🌐 Live Google Demo](https://xpex-academy-stage.web.app) • **Inquiries:** `jrsmidia8602@gmail.com`
-
----
-
-</div>
-
 <img width="1942" height="809" alt="XPeX Academy" src="https://github.com/user-attachments/assets/d9d2e286-8b72-432f-aeaa-f39b0e8f958d" />
 
 # XPeX Academy
