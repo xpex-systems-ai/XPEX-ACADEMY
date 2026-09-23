@@ -95,22 +95,38 @@ Following **Directive 7**:
 ```
 deployment/firebase/
 ├── .firebaserc
+├── .gitignore
 ├── firebase.json
 └── public/
     ├── 404.html
-    └── index.html
+    ├── index.html
+    ├── robots.txt
+    └── sitemap.xml
 docs/gxeon/google/
+├── PR_BODY.md
 └── XPEX_GOOGLE_ZERO_BILLING_LIVE_EVIDENCE.md
 ```
 
 ---
 
+### Scope Integrity
+
+This release is intentionally limited to the Firebase public entry layer. Unrelated M&A/Web3 acquisition material that was temporarily introduced into the same branch was removed from this PR. Its pre-cleanup snapshot is preserved separately at:
+
+`archive/pr243-mna-web3-experiments-2026-09-23`
+
+It is outside this release.
+
+---
+
 ## 7. Limitations & Future Migration Path
 
-1. **GX Audit Gate Before Merge:**
-   - Redeploy the corrected Firebase source.
+1. **GX Enterprise Gate Before Merge:**
+   - Redeploy the latest cleaned Firebase source.
+   - Confirm the removed sale `.well-known` manifests are no longer published.
    - Verify the live CTA resolves to the canonical Railway login.
-   - Verify CSP is present on the live response.
+   - Verify the latest hardened response headers are present.
+   - Verify `robots.txt` and `sitemap.xml` are live.
    - Capture browser-level mobile evidence.
 2. **Hybrid Bridge Nature:**
    - The public entry layer is hosted on Google Firebase infrastructure.
