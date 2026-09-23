@@ -14,12 +14,9 @@ LH_CONFIG = get_learnhouse_config()
 
 
 def _build_context_prompt(message_for_the_prompt: str, text_reference: str) -> str:
-    """Combine the feature system prompt with course-content context delimited as reference data."""
+    """Combine the feature system prompt with course-content context."""
     if text_reference:
-        return (
-            f"{message_for_the_prompt}\n\n"
-            f"<authorized_course_context>\n{text_reference}\n</authorized_course_context>"
-        )
+        return f"{message_for_the_prompt}\n\nCourse Content Context:\n{text_reference}"
     return message_for_the_prompt
 
 
@@ -217,35 +214,6 @@ def chat_session_belongs_to_user(aichat_uuid: str, user_id: int) -> bool:
         return meta.get("user_id") == user_id
     except Exception as e:
         logger.error("Failed to verify chat session ownership: %s", e, exc_info=True)
-        return False
-
-
-def validate_activity_chat_session_ownership(
-    aichat_uuid: str,
-    user_id: int,
-    course_uuid: str,
-    org_id: int,
-) -> bool:
-    """Strictly validate session continuation for activity / GX Tutor chats.
-
-    Fails closed: metadata MUST exist and match user_id, course_uuid, and org_id.
-    Missing metadata or any mismatch returns False.
-    """
-    r = _get_redis()
-    if not r:
-        return False
-    try:
-        meta_data = r.get(f"chat_meta:{aichat_uuid}")
-        if not meta_data:
-            return False
-        meta = json.loads(meta_data.decode("utf-8") if isinstance(meta_data, bytes) else meta_data)
-        return (
-            meta.get("user_id") == user_id
-            and meta.get("course_uuid") == course_uuid
-            and meta.get("org_id") == org_id
-        )
-    except Exception as e:
-        logger.error("Failed to validate activity chat session ownership: %s", e, exc_info=True)
         return False
 
 
