@@ -55,15 +55,21 @@ function AIActivityAsk(props: AIActivityAskProps) {
           <div
             onClick={handleOpenAI}
             style={{
-              backgroundColor: '#0B1220',
-              borderColor: 'rgba(255, 122, 0, 0.4)',
+              background:
+                'conic-gradient(from 32deg at 53.75% 50%, rgb(35, 40, 93) 4deg, rgba(20, 0, 52, 0.95) 59deg, rgba(164, 45, 238, 0.88) 281deg)',
             }}
-            className="rounded-full px-4 py-2 border hover:border-[#FF7A00] shadow-lg shadow-[#FF7A00]/10 flex items-center space-x-2 text-sm text-white hover:cursor-pointer transition duration-200 ease-out hover:scale-105"
+            className="rounded-full px-5 drop-shadow-md flex  items-center space-x-1.5 p-2.5 text-sm text-white hover:cursor-pointer transition delay-150 duration-300 ease-in-out hover:scale-105"
           >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[#FF7A00] to-[#00D4FF] flex items-center justify-center text-[10px] font-black text-[#0B1220]">
-              GX
-            </div>
-            <span className="text-xs font-bold tracking-wide">Abrir GX Tutor</span>
+            {' '}
+            <i>
+              <Image
+                className="outline outline-1 outline-neutral-200/20 rounded-md"
+                width={20}
+                src={learnhouseAI_icon}
+                alt=""
+              />
+            </i>{' '}
+            <i className="not-italic text-xs font-bold">{t('ai.ask_ai')}</i>
           </div>
         </div>
       )}
@@ -319,19 +325,25 @@ function ActivityChatMessageBox(props: ActivityChatMessageBoxProps) {
                   />
                 </div>
                 <div
-                  className={`flex space-x-2 items-center ${isInputDisabled ? 'animate-pulse' : ''}`}
+                  className={`flex space-x-2 items-center -ml-[100px] ${isInputDisabled ? 'animate-pulse' : ''
+                    }`}
                 >
-                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#FF7A00] to-[#00D4FF] flex items-center justify-center text-[11px] font-black text-[#0B1220]">
-                    GX
-                  </div>
-                  <span className="text-sm font-bold text-white tracking-wide">
-                    GX Tutor
+                  <Image
+                    className={`outline outline-1 outline-neutral-200/20 rounded-lg ${isInputDisabled ? 'animate-pulse' : ''
+                      }`}
+                    width={24}
+                    src={learnhouseAI_icon}
+                    alt=""
+                  />
+                  <span className="text-sm font-semibold text-white/70">
+                    {' '}
+                    AI
                   </span>
                 </div>
-                <div className="bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/25 py-0.5 px-3 flex space-x-1.5 rounded-full items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse"></span>
-                  <span className="text-xs font-semibold antialiased">
-                    AI Contextual
+                <div className="bg-white/5 text-white/40 py-0.5 px-3 flex space-x-1 rounded-full items-center">
+                  <FlaskConical size={14} />
+                  <span className="text-xs font-semibold antialiased ">
+                    {t('ai.experimental')}
                   </span>
                 </div>
               </div>
@@ -612,17 +624,20 @@ const AIMessagePlaceHolder = (props: {
               delay: 0.17,
             }}
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF7A00] to-[#00D4FF] flex items-center justify-center text-xl font-black text-[#0B1220] mx-auto shadow-lg shadow-[#FF7A00]/20">
-              GX
-            </div>
-            <p className="pt-3 text-2xl font-semibold text-white/90 flex justify-center space-x-2 items-center">
-              <span>{t('common.hello')},</span>
+            <Image
+              width={100}
+              className="mx-auto"
+              src={learnhouseAI_logo_black}
+              alt=""
+            />
+            <p className="pt-3 text-2xl font-semibold text-white/70 flex justify-center space-x-2 items-center">
+              <span className="items-center">{t('common.hello')}</span>
               <span className="capitalize flex space-x-2 items-center">
                 <UserAvatar rounded="rounded-lg" border="border-2" width={35} shadow="shadow-none" />
-                <span>{session.data.user.username}.</span>
+                <span>{session.data.user.username},</span>
               </span>
+              <span>{t('ai.how_can_we_help')}</span>
             </p>
-            <p className="text-sm text-neutral-400 mt-1">Como posso te ajudar nesta aula?</p>
           </motion.div>
           <motion.div
             initial={{ y: 20, opacity: 0, filter: 'blur(5px)' }}
@@ -914,17 +929,18 @@ function AISidePanelInline(props: AISidePanelProps) {
             <div
               className={`flex space-x-2 items-center ${isInputDisabled ? 'animate-pulse' : ''}`}
             >
-              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#FF7A00] to-[#00D4FF] flex items-center justify-center text-[11px] font-black text-[#0B1220]">
-                GX
-              </div>
-              <span className="text-sm font-bold text-white tracking-wide">
-                GX Tutor
-              </span>
+              <Image
+                className={`outline outline-1 outline-neutral-200/20 rounded-lg ${isInputDisabled ? 'animate-pulse' : ''}`}
+                width={24}
+                src={learnhouseAI_icon}
+                alt=""
+              />
+              <span className="text-sm font-semibold text-white/70">AI</span>
             </div>
-            <div className="bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/25 py-0.5 px-3 flex space-x-1.5 rounded-full items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse"></span>
+            <div className="bg-white/5 text-white/40 py-0.5 px-3 flex space-x-1 rounded-full items-center">
+              <FlaskConical size={14} />
               <span className="text-xs font-semibold antialiased">
-                AI Contextual
+                {t('ai.experimental')}
               </span>
             </div>
           </div>
