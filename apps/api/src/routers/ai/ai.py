@@ -130,13 +130,19 @@ async def activity_chat_event_generator(
         # Send done event immediately (without waiting for follow-ups)
         yield f"data: {json.dumps({'type': 'done', 'aichat_uuid': aichat_uuid, 'activity_uuid': activity_uuid})}\n\n"
 
-        # Generate follow-up suggestions and send as separate event
-        follow_ups = await generate_follow_up_suggestions(
-            full_response,
-            ai_friendly_text[:1000],
-            ai_model,
-            user_message,
-        )
+        # Follow-up suggestions are optional enrichment. They must never turn a
+        # successfully delivered tutor answer into an AI_UNAVAILABLE failure or
+        # trigger a credit refund after the user already received the answer.
+        try:
+            follow_ups = await generate_follow_up_suggestions(
+                full_response,
+                ai_friendly_text[:1000],
+                ai_model,
+                user_message,
+            )
+        except Exception:
+            logger.warning("GX Tutor follow-up generation failed", exc_info=True)
+            follow_ups = []
 
         if follow_ups:
             yield f"data: {json.dumps({'type': 'follow_ups', 'follow_up_suggestions': follow_ups})}\n\n"
@@ -154,7 +160,7 @@ async def activity_chat_event_generator(
         yield f"data: {json.dumps({'type': 'error', 'code': 'AI_UNAVAILABLE', 'message': 'GX Tutor está temporariamente indisponível. Seu conteúdo da aula continua disponível normalmente.'})}\n\n"
     finally:
         # Refund credit if the model produced nothing useful.
-        if org_id is not None and (stream_failed or not full_response):
+        if org_id is not None and not full_response:
             try:
                 refund_ai_credit(org_id, 1)
             except Exception:
