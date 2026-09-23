@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.core.events.database import get_db_session
 from src.db.users import PublicUser
 from src.security.auth import get_authenticated_user
-from src.security.features_utils.usage import refund_ai_credit
+from src.security.features_utils import usage as ai_usage
 from src.services.ai.ai import (
     ai_send_activity_chat_message,
     ai_send_activity_chat_message_stream,
@@ -162,7 +162,7 @@ async def activity_chat_event_generator(
         # Refund credit if the model produced nothing useful.
         if org_id is not None and not full_response:
             try:
-                refund_ai_credit(org_id, 1)
+                ai_usage.ai_usage.refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
@@ -437,7 +437,7 @@ async def editor_chat_event_generator(
     finally:
         if org_id is not None and (stream_failed or not full_response):
             try:
-                refund_ai_credit(org_id, 1)
+                ai_usage.ai_usage.refund_ai_credit(org_id, 1)
             except Exception:
                 logger.debug("AI credit refund failed", exc_info=True)
 
