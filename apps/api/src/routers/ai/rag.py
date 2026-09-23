@@ -256,8 +256,9 @@ async def api_rag_chat(
     # Get or create chat session
     chat_session = get_chat_session_history(chat_request.aichat_uuid)
 
-    # Perform RAG query with streaming
-    stream, sources, provider_unavailable = await query_course_rag_stream(
+    # Perform RAG query with streaming. Keep compatibility with older/mocked
+    # two-item returns while the service now also reports controlled degradation.
+    rag_query_result = await query_course_rag_stream(
         question=chat_request.message,
         org_id=org_id,
         db_session=db_session,
@@ -265,6 +266,11 @@ async def api_rag_chat(
         course_id=course_id,
         mode=chat_request.mode or "course_only",
     )
+    if len(rag_query_result) == 3:
+        stream, sources, provider_unavailable = rag_query_result
+    else:
+        stream, sources = rag_query_result
+        provider_unavailable = False
 
     if provider_unavailable:
         try:
