@@ -42,13 +42,9 @@ def validate_activity_chat_session_ownership(
             and meta.get("course_uuid") == course_uuid
             and meta.get("org_id") == org_id
         )
-    except (
-        AttributeError,
-        TypeError,
-        UnicodeDecodeError,
-        ValueError,
-        json.JSONDecodeError,
-        redis.RedisError,
-    ):
+    except Exception:  # noqa: BLE001
+        # Security boundary: continuation must fail closed for any malformed
+        # runtime configuration, Redis/client failure, decode error, or
+        # unexpected metadata shape. The exception is logged for operators.
         logger.exception("Failed to validate GX Tutor session ownership")
         return False
