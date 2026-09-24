@@ -80,7 +80,7 @@ export const XPEX_FEATURE_FLAG_DEFAULTS: Record<XpexFeatureFlagKey, boolean | st
   certificates_enabled: true,
   maintenance_mode: false,
   beta_features: false,
-  xara_model: 'gemini-1.5-flash',
+  xara_model: 'server-managed',
   ff_gxeon_command_center_enabled: true,
   ff_xara_copilot_enabled: true,
   ff_app_check_enforcement: false,
