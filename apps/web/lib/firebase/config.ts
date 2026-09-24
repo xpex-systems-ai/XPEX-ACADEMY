@@ -1,67 +1,70 @@
 /**
  * XPeX Academy × Firebase Fabric Foundation — Configuration
  * MISSION: XPEX-FIREBASE-FABRIC-FOUNDATION-001
- * 
+ *
  * Environment-driven configuration for Firebase Web SDK.
  * Public identifiers only — NO private keys, NO service accounts, NO backend secrets.
  */
 
 import type { FirebaseWebConfig, AppCheckMode } from './types'
 
-/**
- * Default public staging project identifiers (xpex-academy-stage).
- * Used when explicit environment variables are not injected.
- */
-const DEFAULT_STAGE_CONFIG: FirebaseWebConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyB0cH3Oq-Dg3qwMVCi_3m9kzqF_1CNDm3Q',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'xpex-academy-stage.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'xpex-academy-stage',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'xpex-academy-stage.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '364943107161',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:364943107161:web:bc3ab9a50a101115cc7d48',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-WCQ1XQE5ED',
-}
+const env = (name: string): string => process.env[name]?.trim() || ''
 
 /**
  * Returns the resolved Firebase Web configuration.
+ *
+ * IMPORTANT:
+ * No project-specific fallback is embedded in source. Each environment must
+ * explicitly inject its own NEXT_PUBLIC_FIREBASE_* identifiers. This prevents
+ * a production deployment from silently sending telemetry to staging.
  */
 export function getFirebaseConfig(): FirebaseWebConfig {
   return {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || DEFAULT_STAGE_CONFIG.apiKey,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || DEFAULT_STAGE_CONFIG.authDomain,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || DEFAULT_STAGE_CONFIG.projectId,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || DEFAULT_STAGE_CONFIG.storageBucket,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_STAGE_CONFIG.messagingSenderId,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || DEFAULT_STAGE_CONFIG.appId,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || DEFAULT_STAGE_CONFIG.measurementId,
+    apiKey: env('NEXT_PUBLIC_FIREBASE_API_KEY'),
+    authDomain: env('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
+    projectId: env('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
+    storageBucket: env('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'),
+    messagingSenderId: env('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
+    appId: env('NEXT_PUBLIC_FIREBASE_APP_ID'),
+    measurementId: env('NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID') || undefined,
   }
 }
 
 /**
- * Checks whether Firebase configuration has the minimum required identifiers.
+ * Firebase core is considered configured only when the minimum required
+ * public identifiers are explicitly provided by the deployment environment.
  */
 export function isFirebaseConfigured(): boolean {
   const config = getFirebaseConfig()
-  return Boolean(config.apiKey && config.projectId && config.appId)
+  return Boolean(
+    config.apiKey &&
+    config.authDomain &&
+    config.projectId &&
+    config.messagingSenderId &&
+    config.appId
+  )
 }
 
 /**
- * Resolves current App Check enforcement mode:
- * 'disabled' | 'observe' | 'enforce' (defaults to 'observe' for safe staged rollout)
+ * Resolves current App Check rollout mode:
+ * 'disabled' | 'observe' | 'enforce' (defaults to 'observe').
+ *
+ * NOTE: observe/enforce describe XPeX rollout policy. Actual Firebase resource
+ * enforcement remains a server/console configuration and is never implied by
+ * this client value alone.
  */
 export function getAppCheckMode(): AppCheckMode {
-  const raw = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_MODE?.toLowerCase()
+  const raw = env('NEXT_PUBLIC_FIREBASE_APPCHECK_MODE').toLowerCase()
   if (raw === 'enforce') return 'enforce'
   if (raw === 'disabled') return 'disabled'
   return 'observe'
 }
 
 /**
- * Returns current debug token if configured for dev/staging App Check.
+ * Returns the Firebase App Check debug-token setting for local development.
+ * Never invent a token. A real debug token must be injected explicitly.
  */
-export function getAppCheckDebugToken(): string | boolean | undefined {
-  if (process.env.NODE_ENV === 'development') {
-    return process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN || true
-  }
-  return process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN
+export function getAppCheckDebugToken(): string | undefined {
+  if (process.env.NODE_ENV !== 'development') return undefined
+  return env('NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN') || undefined
 }
