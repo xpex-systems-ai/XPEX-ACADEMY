@@ -9,7 +9,7 @@
 **Execution Authority:** Google Antigravity  
 **Architect / Auditor:** GX / GXEON  
 **Owner:** Junior Sena  
-**Status:** IMPLEMENTATION COMPLETE — AUDITED — STAGED — ZERO BILLING  
+**Status:** IMPLEMENTATION COMPLETE — GX HARDENED — PENDING FINAL CI GATE — ZERO BILLING  
 
 ---
 
@@ -36,7 +36,7 @@ In accordance with the **XPeX Firebase Fabric Manifesto V1**, Firebase is establ
 | **Canonical Web App ID** | `1:364943107161:web:bc3ab9a50a101115cc7d48` | Verified (`XPEX ACADEMY`) |
 | **Measurement ID** | `G-WCQ1XQE5ED` | Verified |
 | **Live Hosting Site** | `https://xpex-academy-stage.web.app` | Verified Live |
-| **Public API Key** | `AIzaSyB0cH3Oq-Dg3qwMVCi_3m9kzqF_1CNDm3Q` | Client SDK Identifier (Public) |
+| **Web Config** | Injected through `NEXT_PUBLIC_FIREBASE_*` environment variables | No project-specific fallback embedded in source |
 
 ---
 
@@ -66,11 +66,11 @@ apps/web/lib/firebase/
 {
   "ready": true,
   "environment": "production",
-  "projectId": "xpex-academy-stage",
+  "projectId": "<environment-provided>",
   "services": {
     "app": "available",
     "analytics": "available",
-    "appCheck": "available",
+    "appCheck": "configured",
     "remoteConfig": "available",
     "performance": "available",
     "messaging": "available",
@@ -120,7 +120,7 @@ All feature flags are strictly code-authoritative. If Remote Config cannot be fe
 In `apps/web/components/Xpex/XpexAuthenticatedShell.tsx`:
 - Fabric is loaded dynamically on client-side mount (`useEffect`).
 - Zero blocking on initial render or page load.
-- Sets tenant context via `setTelemetryTenantContext({ user_role: role, tenant_id: 'xpex-global' })`.
+- Sets tenant context from the authenticated shell organization context (`organizationSlug`) plus the authorized XPeX role.
 - Records initial proof metric: `trackStudentShellLoaded(role)`.
 
 ---
@@ -132,3 +132,17 @@ In `apps/web/components/Xpex/XpexAuthenticatedShell.tsx`:
    - Regression test suite: 23 / 23 tests passing.
 2. **SSR Safety:** Verified zero `window` / `document` crashes during build or Node execution.
 3. **Rollback Safety:** If Firebase is disabled or unreachable, `isFirebaseConfigured()` gracefully degrades all services to safe code defaults with zero student impact.
+
+
+---
+
+## 8. GX Hardening Audit — 2026-09-24
+
+GX architecture review identified and corrected four pre-merge blockers:
+
+1. **Environment isolation:** removed embedded `xpex-academy-stage` Firebase identifiers from client source. Deployments must now explicitly inject `NEXT_PUBLIC_FIREBASE_*` values, preventing production from silently reporting into staging.
+2. **App Check correctness:** removed the synthetic `CustomProvider`/fabricated debug-token path. App Check initializes only when a real reCAPTCHA site key is configured; debug mode uses the official global debug-token mechanism.
+3. **Dependency integrity:** restored all pre-existing package overrides that were accidentally dropped while adding Firebase and aligned the declared Firebase Web SDK to the version actually used by the clean staging install.
+4. **AI Logic gating:** the dormant Firebase AI Logic adapter now uses `ff_ai_logic_enabled` rather than the broad `beta_features` flag. The default XARA model remains `server-managed` because the live GXEON gateway is canonical.
+
+These corrections preserve Mission 001's non-destructive contract. App Check client initialization status must not be interpreted as Firebase resource enforcement; enforcement is controlled separately by Firebase/backend configuration.
