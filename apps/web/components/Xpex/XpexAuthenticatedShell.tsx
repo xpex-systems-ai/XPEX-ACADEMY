@@ -148,6 +148,20 @@ export function XpexTopbar({ role, displayName, organizationSlug, adminNavigatio
 
 export function XpexAuthenticatedShell({ role, allowedRoles, displayName, organizationSlug, adminAccess = false, adminNavigation = false, poloAccess, poloBranding, children }: { role: XpexRole; allowedRoles: XpexRole[]; displayName: string; organizationSlug: string; adminAccess?: boolean; adminNavigation?: boolean; poloAccess?: XpexPoloAccess | null; poloBranding?: PoloBranding; children: ReactNode }) {
   const [open, setOpen] = useState(false); const menuButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    import('@/lib/firebase').then(({ initFirebaseFabric, setTelemetryTenantContext, trackStudentShellLoaded }) => {
+      initFirebaseFabric().then(() => {
+        setTelemetryTenantContext({
+          tenant_id: organizationSlug,
+          user_role: role,
+        })
+        trackStudentShellLoaded(role, organizationSlug)
+      })
+    }).catch(() => {
+      // Non-blocking if Firebase is unconfigured or offline
+    })
+  }, [role, organizationSlug])
+
   useEffect(() => { if (!open) return; const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setOpen(false); menuButton.current?.focus() } }; document.addEventListener('keydown', closeOnEscape); return () => document.removeEventListener('keydown', closeOnEscape) }, [open])
   const themeStyle = !adminNavigation && (role === 'polo' || role === 'aluno') ? getPoloThemeStyle(poloBranding) : undefined
   return <div className="xpex-root xpex-authenticated" style={themeStyle}><a href="#conteudo-xpex" className="xpex-skip">Pular para o conteúdo</a>{open && <button className="xpex-drawer-backdrop" aria-label="Fechar navegação" onClick={() => setOpen(false)}/>}<XpexSidebar role={role} organizationSlug={organizationSlug} adminAccess={adminAccess} adminNavigation={adminNavigation} poloAccess={poloAccess} poloBranding={poloBranding} open={open} close={() => setOpen(false)}/><div className="xpex-workspace"><XpexTopbar role={role} displayName={displayName} organizationSlug={organizationSlug} adminNavigation={adminNavigation} openMenu={() => setOpen(true)} menuOpen={open} menuButtonRef={menuButton}/>{!adminNavigation && allowedRoles.length > 1 && <nav className="xpex-role-switcher" aria-label="Alternar papel autorizado">{allowedRoles.map(item => <Link key={item} href={`/xpex/${item}`} aria-current={item === role ? 'page' : undefined}>{roleLabels[item]}</Link>)}</nav>}<main id="conteudo-xpex" tabIndex={-1} className="xpex-content">{children}</main></div></div>
