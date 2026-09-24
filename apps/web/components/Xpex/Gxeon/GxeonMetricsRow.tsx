@@ -17,24 +17,26 @@ export function GxeonMetricsRow({
   overallProgress,
   gatewayHealth,
 }: GxeonMetricsRowProps) {
-  const isOnline = gatewayHealth?.status === 'ready'
-  const isDegraded = gatewayHealth?.status === 'unconfigured'
+  // This snapshot confirms server-side configuration readiness; it does not
+  // probe the upstream AI provider, so the UI must not claim live provider uptime.
+  const isConfigured = gatewayHealth?.status === 'ready'
+  const needsConfiguration = gatewayHealth?.status === 'unconfigured'
 
-  const statusTitle = isOnline
-    ? 'GX está online'
-    : isDegraded
-    ? 'GX em configuração'
+  const statusTitle = isConfigured
+    ? 'GX configurado'
+    : needsConfiguration
+    ? 'GX requer configuração'
     : 'GX temporariamente indisponível'
 
-  const statusSubtext = isOnline
-    ? 'Ambiente integrado e pronto para ajudar.'
-    : isDegraded
-    ? 'Credenciais em processo de ativação.'
+  const statusSubtext = isConfigured
+    ? 'Gateway configurado; disponibilidade é confirmada durante o uso.'
+    : needsConfiguration
+    ? 'A configuração do provedor ainda não está completa.'
     : 'Seu conteúdo da aula continua disponível.'
 
-  const statusDotClass = isOnline
+  const statusDotClass = isConfigured
     ? 'bg-[#00E69A] shadow-[0_0_12px_#00E69A]'
-    : isDegraded
+    : needsConfiguration
     ? 'bg-[#FBBF24] shadow-[0_0_12px_#FBBF24]'
     : 'bg-[#F87171] shadow-[0_0_12px_#F87171]'
 
