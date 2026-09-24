@@ -55,7 +55,7 @@ export default async function XpexAiLabProjectsPage() {
 
   const organizationSlug = learning.organization.slug
   const nativeWorkspaceAvailable = Boolean(organizationSlug && organizationSlug !== 'default')
-  const orgBase = nativeWorkspaceAvailable ? `/orgs/${organizationSlug}` : null
+  const orgBase = nativeWorkspaceAvailable ? `/orgs/${learning.organization.slug}` : null
   const courses = learning.data.courses
   const totalLessons = courses.reduce((sum, course) => sum + (course.total_lessons || 0), 0)
   const completedLessons = courses.reduce((sum, course) => sum + (course.completed_lessons || 0), 0)
@@ -81,7 +81,7 @@ export default async function XpexAiLabProjectsPage() {
             <div>
               <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-orange-400"><FolderKanban size={16}/> Project OS XPeX</span>
               <h2 className="mt-4 text-4xl font-black md:text-5xl">Do curso para um projeto demonstrável.</h2>
-              <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX e produza evidências reais. Recursos nativos de Boards e Library só aparecem como ação quando a organização possui uma rota própria válida.</p>
+              <p className="mt-4 max-w-3xl text-slate-300">Escolha um template, peça orientação ao GX e produza evidências reais. A XPeX não inventa conclusão de projeto: a evidência continua sendo produzida por você. Recursos nativos de Boards e Library só aparecem como ação quando a organização possui uma rota própria válida.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 {orgBase ? <Link href={`${orgBase}/boards`} className="xpex-primary"><FolderKanban size={17}/> Abrir Boards</Link> : <span className="xpex-secondary cursor-default opacity-60"><FolderKanban size={17}/> Boards indisponível neste Polo</span>}
                 {orgBase ? <Link href={`${orgBase}/library`} className="xpex-secondary"><LibraryBig size={17}/> Abrir Library</Link> : <span className="xpex-secondary cursor-default opacity-60"><LibraryBig size={17}/> Library indisponível neste Polo</span>}
@@ -151,7 +151,7 @@ export default async function XpexAiLabProjectsPage() {
               <h2 className="mt-1 text-2xl font-black">Aprender, construir e provar.</h2>
               <p className="mt-2 max-w-3xl text-slate-400">GX é mentor e copiloto. Boards e Library são usados somente quando a organização possui rota própria válida. Execução isolada de código, modelos e datasets privados continua fora deste bloco até existir sandbox, quota, autorização e observabilidade adequados.</p>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/5 px-4 py-2 text-sm font-black text-emerald-300"><ShieldCheck size={17}/> Sem links órfãos · sem bypass de ACL</span>
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/5 px-4 py-2 text-sm font-black text-emerald-300"><ShieldCheck size={17}/> Sem links órfãos · Sem bypass de ACL</span>
           </div>
         </section>
       </section>
