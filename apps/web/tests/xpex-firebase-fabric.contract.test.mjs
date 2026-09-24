@@ -19,6 +19,7 @@ const aiLogicSrc = fs.readFileSync(path.join(firebaseDir, 'ai-logic.ts'), 'utf8'
 const eventsSrc = fs.readFileSync(path.join(firebaseDir, 'events.ts'), 'utf8')
 const indexSrc = fs.readFileSync(path.join(firebaseDir, 'index.ts'), 'utf8')
 const shellSrc = fs.readFileSync(path.join(root, 'components/Xpex/XpexAuthenticatedShell.tsx'), 'utf8')
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 
 test('Firebase Fabric: Public facade exports all required contracts and functions', () => {
   assert.match(indexSrc, /getFirebaseFabricStatus/)
@@ -132,4 +133,35 @@ test('Firebase Fabric: Student Shell integrates telemetry without blocking user 
   // Preserves existing canonical architecture and links
   assert.match(shellSrc, /href:\s*'\/xpex\/gxeon'/)
   assert.match(shellSrc, /href:\s*'\/xpex\/ai-lab'/)
+})
+
+
+test('Firebase Fabric: deployment identity is explicit and cannot silently fall back to staging', () => {
+  assert.doesNotMatch(configSrc, /AIzaSy[A-Za-z0-9_-]+/)
+  assert.doesNotMatch(configSrc, /xpex-academy-stage/)
+  assert.match(configSrc, /NEXT_PUBLIC_FIREBASE_PROJECT_ID/)
+  assert.match(configSrc, /NEXT_PUBLIC_FIREBASE_APP_ID/)
+  assert.match(configSrc, /NEXT_PUBLIC_FIREBASE_API_KEY/)
+})
+
+test('Firebase Fabric: App Check never fabricates a token and requires a real provider config', () => {
+  assert.doesNotMatch(appCheckSrc, /CustomProvider/)
+  assert.doesNotMatch(appCheckSrc, /debug-token-staged/)
+  assert.match(appCheckSrc, /ReCaptchaV3Provider/)
+  assert.match(appCheckSrc, /NEXT_PUBLIC_FIREBASE_APPCHECK_RECAPTCHA_SITE_KEY/)
+})
+
+test('Firebase Fabric: dormant AI Logic uses its dedicated feature flag', () => {
+  assert.match(aiLogicSrc, /isFeatureEnabled\('ff_ai_logic_enabled'\)/)
+  assert.doesNotMatch(aiLogicSrc, /isFeatureEnabled\('beta_features'\)/)
+  assert.match(typesSrc, /xara_model:\s*'server-managed'/)
+})
+
+test('Firebase Fabric: package keeps existing security/type overrides while adding official SDK', () => {
+  assert.match(packageJson.dependencies.firebase, /^\^12\./)
+  assert.equal(packageJson.overrides['@types/react'], '19.2.17')
+  assert.equal(packageJson.overrides['@types/react-dom'], '19.2.3')
+  assert.equal(packageJson.overrides.jspdf, '>=4.2.1')
+  assert.equal(packageJson.overrides.dompurify, '>=3.2.4')
+  assert.equal(packageJson.overrides.postcss, '>=8.4.31')
 })
