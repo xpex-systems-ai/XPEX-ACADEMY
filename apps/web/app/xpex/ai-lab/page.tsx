@@ -61,6 +61,7 @@ export default async function XpexAiLabPage() {
   if (!learning) return <XpexStudentDenied />
 
   const organizationSlug = learning.organization.slug
+  // Native workspace route: /orgs/${learning.organization.slug}
   const nativeWorkspaceAvailable = Boolean(organizationSlug && organizationSlug !== 'default')
   const courses = learning.data.courses
   const totalLessons = courses.reduce((sum, course) => sum + (course.total_lessons || 0), 0)
@@ -103,6 +104,7 @@ export default async function XpexAiLabPage() {
 
             <div className="mt-7 flex flex-wrap gap-3">
               {continueCourse ? <Link href={continueCourse.target_href} className="xpex-primary"><Play size={18} fill="currentColor"/> Continuar aprendendo</Link> : null}
+              <Link href="/xpex/gxeon" className="xpex-primary bg-gradient-to-r from-orange-500 to-cyan-500 text-black font-extrabold"><Sparkles size={17}/> GXEON Command Center</Link>
               <Link href="/xpex/ai-lab/projects" className="xpex-secondary"><FolderKanban size={17}/> Projetos GX</Link>
               <a href="#gx-copilot" className="xpex-secondary"><Bot size={17}/> Falar com GX</a>
             </div>
@@ -186,7 +188,7 @@ export default async function XpexAiLabPage() {
             </div>
           </div>
           <div className="xpex-card overflow-hidden p-0 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
-            <Copilot orgslug={organizationSlug} />
+            <Copilot orgslug={learning.organization.slug} />
           </div>
         </section>
       </section>

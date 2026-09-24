@@ -141,13 +141,13 @@ export interface StreamSourceData {
 }
 
 export interface StreamCallbacks {
-  onStart?: (data: StreamStartData) => void
-  onChunk: (chunk: string) => void
-  onComplete: (data: StreamDoneData) => void
-  onFollowUps?: (data: StreamFollowUpsData) => void
-  onSources?: (data: StreamSourceData) => void
-  onSessionTitle?: (title: string) => void
-  onError: (error: string) => void
+  onStart?: (_data: StreamStartData) => void
+  onChunk: (_chunk: string) => void
+  onComplete: (_data: StreamDoneData) => void
+  onFollowUps?: (_data: StreamFollowUpsData) => void
+  onSources?: (_data: StreamSourceData) => void
+  onSessionTitle?: (_title: string) => void
+  onError: (_error: string) => void
 }
 
 /**
@@ -313,14 +313,14 @@ export interface EditorModifyRequest {
 }
 
 export interface EditorStreamCallbacks {
-  onStart?: (data: { aichat_uuid: string }) => void
-  onChatChunk?: (chunk: string) => void
+  onStart?: (_data: { aichat_uuid: string }) => void
+  onChatChunk?: (_chunk: string) => void
   onContentStart?: () => void
-  onContentChunk?: (chunk: string) => void
-  onContentEnd?: (fullContent: string) => void
-  onComplete: (data: { aichat_uuid: string; activity_uuid: string }) => void
-  onFollowUps?: (suggestions: string[]) => void
-  onError: (error: string) => void
+  onContentChunk?: (_chunk: string) => void
+  onContentEnd?: (_fullContent: string) => void
+  onComplete: (_data: { aichat_uuid: string; activity_uuid: string }) => void
+  onFollowUps?: (_suggestions: string[]) => void
+  onError: (_error: string) => void
 }
 
 interface EditorStreamEvent {
@@ -644,3 +644,41 @@ export async function sendRAGChatStream(
     callbacks.onError(error instanceof Error ? error.message : 'Failed to send RAG chat message')
   }
 }
+
+// ============================================================================
+// GXEON AI Gateway Health Function
+// ============================================================================
+
+export interface AIGatewayHealthResponse {
+  status: 'ready' | 'unconfigured' | 'disabled' | string
+  gateway: string
+  provider: string
+  models?: {
+    fast?: string
+    standard?: string
+    pro?: string
+  }
+  security?: {
+    secrets_exposed?: boolean
+  }
+}
+
+export async function fetchAIGatewayHealth(
+  accessToken: string
+): Promise<AIGatewayHealthResponse | null> {
+  try {
+    const response = await fetch(`${getAPIUrl()}xpex/ai-gateway/health`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+    if (!response.ok) {
+      return null
+    }
+    return (await response.json()) as AIGatewayHealthResponse
+  } catch {
+    return null
+  }
+}
+
