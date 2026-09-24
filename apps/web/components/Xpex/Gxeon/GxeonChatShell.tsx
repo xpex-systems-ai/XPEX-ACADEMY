@@ -120,8 +120,9 @@ export function GxeonChatShell({
           <button
             type="button"
             className="gxeon-action-icon-btn ml-1"
-            aria-label="Configurações do workspace GXEON"
-            title="Configurações do workspace GXEON"
+            aria-label="Configurações do workspace GXEON — em preparação"
+            title="Configurações do workspace GXEON — em preparação"
+            disabled
           >
             <Settings size={17} />
           </button>
@@ -231,16 +232,18 @@ export function GxeonChatShell({
                   <button
                     type="button"
                     className="gxeon-action-icon-btn"
-                    title="Resposta útil"
-                    aria-label="Resposta útil"
+                    title="Feedback da resposta — em preparação"
+                    aria-label="Feedback positivo — em preparação"
+                    disabled
                   >
                     <ThumbsUp size={14} />
                   </button>
                   <button
                     type="button"
                     className="gxeon-action-icon-btn"
-                    title="Resposta precisa de ajustes"
-                    aria-label="Resposta precisa de ajustes"
+                    title="Feedback da resposta — em preparação"
+                    aria-label="Feedback negativo — em preparação"
+                    disabled
                   >
                     <ThumbsDown size={14} />
                   </button>
@@ -271,9 +274,10 @@ export function GxeonChatShell({
         <div className="gxeon-input-wrapper">
           <button
             type="button"
-            className="gxeon-action-icon-btn text-slate-400 hover:text-white"
-            title="Anexar arquivo ou contexto"
-            aria-label="Anexar arquivo ou contexto"
+            className="gxeon-action-icon-btn text-slate-400"
+            title="Anexos — em preparação"
+            aria-label="Anexos — em preparação"
+            disabled
           >
             <Paperclip size={18} />
           </button>
