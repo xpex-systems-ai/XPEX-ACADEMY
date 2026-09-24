@@ -70,24 +70,26 @@ export function GxeonChatShell({
     setExpandedSources((prev) => ({ ...prev, [index]: !prev[index] }))
   }
 
-  // Derive status safely from gateway health
-  const isOnline = gatewayHealth?.status === 'ready'
-  const isDegraded = gatewayHealth?.status === 'unconfigured'
+  // The gateway health endpoint reports configuration readiness only.
+  // It intentionally does not call the upstream provider, so avoid claiming
+  // provider liveness from this snapshot.
+  const isConfigured = gatewayHealth?.status === 'ready'
+  const needsConfiguration = gatewayHealth?.status === 'unconfigured'
 
-  const statusClass = isOnline ? 'online' : isDegraded ? 'degraded' : 'offline'
-  const statusLabel = isOnline
-    ? 'GX está online'
-    : isDegraded
-    ? 'GX em configuração'
+  const statusClass = isConfigured ? 'online' : needsConfiguration ? 'degraded' : 'offline'
+  const statusLabel = isConfigured
+    ? 'GX configurado'
+    : needsConfiguration
+    ? 'GX requer configuração'
     : 'GX temporariamente indisponível'
 
-  // Safe provider badge (never hardcoded, defaults to "GXEON AI")
-  const providerBadge =
-    gatewayHealth?.provider?.toLowerCase() === 'google'
-      ? 'Gemini'
-      : gatewayHealth?.provider
-      ? gatewayHealth.provider.toUpperCase()
-      : 'GXEON AI'
+  // Keep provider branding intentionally narrow: only expose the public Gemini
+  // label for confirmed Google aliases. All other providers remain behind the
+  // provider-neutral GXEON AI identity.
+  const provider = gatewayHealth?.provider?.toLowerCase()
+  const providerBadge = provider === 'google' || provider === 'google-gla' || provider === 'gemini'
+    ? 'Gemini'
+    : 'GXEON AI'
 
   return (
     <section className="gxeon-chat-pane flex-1" aria-label="Área de conversação com o GXEON">
