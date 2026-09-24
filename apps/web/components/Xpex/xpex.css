@@ -70,3 +70,15 @@
 .xpex-polo-ready{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.16);border-radius:999px;color:var(--xpex-cyan);font-size:.68rem;font-weight:850;padding:.6rem .8rem;white-space:nowrap}
 @media(min-width:760px){.xpex-polo-section-lead{grid-template-columns:auto minmax(0,1fr) auto}.xpex-polo-capabilities{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:639px){.xpex-polo-section-footer{align-items:stretch;flex-direction:column}.xpex-polo-section-footer .xpex-primary{justify-content:center;width:100%}.xpex-polo-ready{text-align:center;white-space:normal}}
+
+/* GXEON Copilot active state */
+.xpex-authenticated .xpex-nav-item.xpex-nav-gxeon-active {
+  background: rgba(255, 122, 0, 0.14) !important;
+  border: 1px solid #FF7A00 !important;
+  box-shadow: 0 0 18px rgba(255, 122, 0, 0.28) !important;
+  color: #FFFFFF !important;
+}
+.xpex-authenticated .xpex-nav-item.xpex-nav-gxeon-active svg {
+  color: #FF7A00 !important;
+}
+

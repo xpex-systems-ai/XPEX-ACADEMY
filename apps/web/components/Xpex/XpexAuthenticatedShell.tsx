@@ -1,7 +1,7 @@
 'use client'
 
 import { signOut } from '@components/Contexts/AuthContext'
-import { Award, Bell, BookOpen, Bot, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
+import { Award, Bell, BookOpen, Bot, BrainCircuit, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -57,11 +57,32 @@ function StudentNavigation({ organizationSlug, adminAccess = false, onNavigate }
     { label: 'Meus Cursos', icon: BookOpen, href: '/xpex/courses' },
     { label: 'Trilhas', icon: Map, href: '/xpex/trails' },
     { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
+    { label: 'GXEON Copilot', icon: BrainCircuit, href: '/xpex/gxeon', isGxeon: true },
     { label: 'Laboratório de IA', icon: Bot, href: '/xpex/ai-lab' },
     { label: 'Comunidade', icon: Users, href: '/xpex/community' },
     { label: 'Certificados', icon: Award, href: '/xpex/certificates' },
   ]
-  return <nav className="xpex-role-nav" aria-label={`Navegação da área Aluno — ${organizationSlug}`}>{items.map(({ label, icon: Icon, href }) => { const current = pathname === href || pathname.startsWith(`${href}/`); return <Link key={label} href={href} aria-current={current ? 'page' : undefined} onClick={onNavigate} className={`xpex-nav-item ${current ? 'xpex-nav-active' : ''}`}><Icon aria-hidden="true" size={18}/><span>{label}</span></Link> })}{adminAccess && <AdminEntry onNavigate={onNavigate}/>}</nav>
+  return (
+    <nav className="xpex-role-nav" aria-label={`Navegação da área Aluno — ${organizationSlug}`}>
+      {items.map(({ label, icon: Icon, href, isGxeon }) => {
+        const current = pathname === href || pathname.startsWith(`${href}/`)
+        const gxeonClass = isGxeon && current ? 'xpex-nav-gxeon-active' : ''
+        return (
+          <Link
+            key={label}
+            href={href}
+            aria-current={current ? 'page' : undefined}
+            onClick={onNavigate}
+            className={`xpex-nav-item ${current ? 'xpex-nav-active' : ''} ${gxeonClass}`}
+          >
+            <Icon aria-hidden="true" size={18} />
+            <span>{label}</span>
+          </Link>
+        )
+      })}
+      {adminAccess && <AdminEntry onNavigate={onNavigate} />}
+    </nav>
+  )
 }
 
 export function XpexRoleNavigation({ role, organizationSlug, adminAccess = false, adminNavigation = false, poloAccess, onNavigate }: { role: XpexRole; organizationSlug: string; adminAccess?: boolean; adminNavigation?: boolean; poloAccess?: XpexPoloAccess | null; onNavigate?: () => void }) {
