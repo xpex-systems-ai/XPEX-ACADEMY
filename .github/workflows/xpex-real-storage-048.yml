@@ -1,0 +1,140 @@
+name: XPeX Final Real Storage 049
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/xpex-real-storage-048.yml"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: xpex-final-real-student-049-production
+  cancel-in-progress: true
+
+jobs:
+  provision-real-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      XPEX_RAILWAY_PROJECT_ID: 7b78507b-5a56-483a-a9e3-cfa31e40232b
+      XPEX_RAILWAY_ENVIRONMENT_ID: 9ee4cfd5-a18e-40dd-bf7c-30182b310770
+      XPEX_RAILWAY_SERVICE_ID: 30327dd8-dca1-474a-b39a-ae7ee9645ad2
+      XPEX_MEDIA_MOUNT: /data/xpex-media
+    steps:
+      - name: Install Railway CLI
+        shell: bash
+        run: npm install --global @railway/cli@latest
+
+      - name: Authorize Railway for this ephemeral runner and relay device link
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth_log="$RUNNER_TEMP/railway-auth.log"
+          rc_file="$RUNNER_TEMP/railway-auth.rc"
+          echo "XPEX_STORAGE_AUTH=WAITING_FOR_HUMAN_RAILWAY_OAUTH"
+          (
+            set +e
+            stdbuf -oL -eL railway login --browserless >"$auth_log" 2>&1
+            echo "$?" >"$rc_file"
+          ) &
+          auth_pid=$!
+
+          for _ in $(seq 1 60); do
+            if grep -Eqi 'sign in|verification|code|railway\.com' "$auth_log" 2>/dev/null; then
+              break
+            fi
+            if ! kill -0 "$auth_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          clean_excerpt="$(tail -n 20 "$auth_log" 2>/dev/null | sed -r 's/\x1B\[[0-9;]*[mK]//g')"
+          if [ -n "$clean_excerpt" ]; then
+            body=$(printf '### XPEX-FINAL-REAL-STUDENT-049 — Railway authorization required\n\nOpen the Railway sign-in URL/code below **now**. This runner is ephemeral and will continue automatically after authorization.\n\n```text\n%s\n```\n' "$clean_excerpt")
+            gh api "repos/$GITHUB_REPOSITORY/issues/${{ github.event.pull_request.number }}/comments" -f body="$body" >/dev/null
+            echo "XPEX_STORAGE_AUTH=DEVICE_LINK_RELAYED_TO_PR"
+          fi
+
+          wait "$auth_pid"
+          rc="$(cat "$rc_file" 2>/dev/null || echo 1)"
+          if [ "$rc" != "0" ]; then
+            echo "XPEX_STORAGE_AUTH=FAILED"
+            tail -n 30 "$auth_log" || true
+            exit "$rc"
+          fi
+          echo "XPEX_STORAGE_AUTH=AUTHORIZED"
+
+      - name: Link and verify exact production target before mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway whoami --json
+          railway link \
+            --project "$XPEX_RAILWAY_PROJECT_ID" \
+            --environment "$XPEX_RAILWAY_ENVIRONMENT_ID" \
+            --service "$XPEX_RAILWAY_SERVICE_ID" \
+            --json
+          status="$(railway status --json)"
+          printf '%s\n' "$status"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_PROJECT_ID"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_ENVIRONMENT_ID"
+          printf '%s' "$status" | grep -Fq "$XPEX_RAILWAY_SERVICE_ID"
+          echo "XPEX_STORAGE_TARGET=VERIFIED"
+
+      - name: Create exactly one durable media volume when absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(railway volume list --json)"
+          printf '%s\n' "$before"
+          if printf '%s' "$before" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=ALREADY_PRESENT"
+          else
+            railway volume add --mount-path "$XPEX_MEDIA_MOUNT" --json
+            echo "XPEX_STORAGE_VOLUME=CREATED"
+          fi
+
+      - name: Verify real mount before setting application variable
+        shell: bash
+        run: |
+          set -euo pipefail
+          after="$(railway volume list --json)"
+          printf '%s\n' "$after"
+          if ! printf '%s' "$after" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=VERIFY_FAILED"
+            exit 3
+          fi
+          echo "XPEX_STORAGE_VOLUME=VERIFIED"
+
+      - name: Activate XPeX durable media root
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway variable set "XPEX_DURABLE_MEDIA_ROOT=$XPEX_MEDIA_MOUNT"
+          echo "XPEX_DURABLE_MEDIA_ROOT=SET"
+
+      - name: Final read-back
+        shell: bash
+        run: |
+          set -euo pipefail
+          volumes="$(railway volume list --json)"
+          printf '%s\n' "$volumes"
+          vars="$(railway variable list --json)"
+          if ! printf '%s' "$volumes" | grep -Fq "$XPEX_MEDIA_MOUNT"; then
+            echo "XPEX_STORAGE_VOLUME=FINAL_VERIFY_FAILED"
+            exit 4
+          fi
+          if ! printf '%s' "$vars" | grep -Fq 'XPEX_DURABLE_MEDIA_ROOT'; then
+            echo "XPEX_DURABLE_MEDIA_ROOT=VERIFY_FAILED"
+            exit 5
+          fi
+          echo "XPEX_DURABLE_MEDIA_ROOT=VERIFIED"
+          echo "XPEX_STORAGE_049=READY_FOR_CANARY"
+
+# auth-refresh-2026-09-10-0900
