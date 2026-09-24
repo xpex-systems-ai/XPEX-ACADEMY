@@ -16,7 +16,7 @@ import { isFeatureEnabled } from './feature-flags'
  */
 export function getAILogicStatus(): FirebaseServiceStatus {
   // Check if future flag is toggled (defaults to false)
-  const isEnabled = isFeatureEnabled('beta_features')
+  const isEnabled = isFeatureEnabled('ff_ai_logic_enabled')
   return isEnabled ? 'configured' : 'disabled'
 }
 
