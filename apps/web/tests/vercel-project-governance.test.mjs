@@ -1,22 +1,11 @@
-import { describe, expect, test } from 'bun:test'
+import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
+import test, { describe } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(WEB_ROOT, '../..')
-const OFFICIAL_PROJECT_ID = 'prj_EvLi9wcPcy2p7op1ChdvI8kPksKV'
-const AUDITED_PREVIEW_BRANCHES = [
-  'feat/xpex-v6-002-polo-foundation',
-  'feat/xpex-v6-003-kelle-digital-lab-v1',
-]
-const QUARANTINED_PROJECT_IDS = [
-  'prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y',
-  'prj_lusVrpATbArDHBafb4VQAvh14TyE',
-  'prj_XCgo9X30sb5L4Pu2aEQBnQILXlix',
-  'prj_llFFgrz69J0emeMgZhVeZdAMlz8Z',
-]
 
 const configPaths = [
   join(REPO_ROOT, 'vercel.json'),
@@ -24,49 +13,40 @@ const configPaths = [
   join(WEB_ROOT, 'vercel.json'),
 ]
 
-const readIgnoreCommand = path => {
-  const config = JSON.parse(readFileSync(path, 'utf8'))
-  expect(typeof config.ignoreCommand).toBe('string')
-  return config.ignoreCommand
+const readConfig = path => {
+  return JSON.parse(readFileSync(path, 'utf8'))
 }
 
-const commandStatus = (command, projectId, { vercelEnv = 'production', gitRef = 'dev' } = {}) => spawnSync('sh', ['-c', command], {
-  env: {
-    ...process.env,
-    VERCEL_PROJECT_ID: projectId,
-    VERCEL_ENV: vercelEnv,
-    VERCEL_GIT_COMMIT_REF: gitRef,
-  },
-}).status
-
-describe('Vercel project governance', () => {
-  test('keeps the same canonical allowlist in every supported root directory', () => {
-    const commands = configPaths.map(readIgnoreCommand)
-    expect(new Set(commands).size).toBe(1)
-    expect(commands[0]).toContain(OFFICIAL_PROJECT_ID)
-    expect(commands[0]).toContain('feat/xpex-v6-*')
+describe('Vercel project governance: Legacy Decommission', () => {
+  test('keeps the decommission ignoreCommand synchronized across all root configurations', () => {
+    const commands = configPaths.map(p => readConfig(p).ignoreCommand)
+    assert.equal(new Set(commands).size, 1, 'All vercel.json ignoreCommands must match')
+    assert.match(commands[0], /exit 0/, 'ignoreCommand must exit with 0 to skip all Vercel builds')
+    assert.match(commands[0], /Vercel legacy decommissioned/, 'ignoreCommand must state decommission rationale')
   })
 
-  test('builds the official project and quarantines duplicates by default', () => {
+  test('enforces autoJobCancelation across all Vercel configuration files', () => {
     for (const path of configPaths) {
-      const command = readIgnoreCommand(path)
-      expect(commandStatus(command, OFFICIAL_PROJECT_ID)).toBe(1)
-      for (const projectId of QUARANTINED_PROJECT_IDS) {
-        expect(commandStatus(command, projectId)).toBe(0)
-      }
-      expect(commandStatus(command, 'prj_future_duplicate')).toBe(0)
+      const config = readConfig(path)
+      assert.equal(config.github?.autoJobCancelation, true, `${path} must have autoJobCancelation enabled`)
     }
   })
 
-  test('allows audited XPeX V6 preview branches through quarantine only in preview', () => {
+  test('confirms no active Vercel project ID is allowed to build', () => {
+    const quarantinedProjects = [
+      'prj_EvLi9wcPcy2p7op1ChdvI8kPksKV', // xpex-academy-ai (legacy)
+      'prj_EjFGUFVEUm6adcZhhjN4ujtIEj9y', // xpex-academy (duplicate)
+      'prj_lusVrpATbArDHBafb4VQAvh14TyE', // xpex-academy-536s (duplicate)
+      'prj_XCgo9X30sb5L4Pu2aEQBnQILXlix', // xpex-academy-3rb4 (duplicate)
+      'prj_llFFgrz69J0emeMgZhVeZdAMlz8Z', // xpex-academy-sfh6 (duplicate)
+    ]
+
     for (const path of configPaths) {
-      const command = readIgnoreCommand(path)
-      for (const projectId of QUARANTINED_PROJECT_IDS) {
-        for (const gitRef of AUDITED_PREVIEW_BRANCHES) {
-          expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef })).toBe(1)
-          expect(commandStatus(command, projectId, { vercelEnv: 'production', gitRef })).toBe(0)
-        }
-        expect(commandStatus(command, projectId, { vercelEnv: 'preview', gitRef: 'feat/other-branch' })).toBe(0)
+      const command = readConfig(path).ignoreCommand
+      // Ensure the command unconditionally exits with 0 regardless of project ID
+      assert.doesNotMatch(command, /exit 1/, `${path} must not exit 1 for any project ID`)
+      for (const projectId of quarantinedProjects) {
+        assert.doesNotMatch(command, new RegExp(projectId), `${path} should not allowlist ${projectId}`)
       }
     }
   })
