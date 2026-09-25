@@ -1,8 +1,10 @@
-import { describe, expect, test } from 'bun:test'
+import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import test, { describe } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
-const WEB_ROOT = join(import.meta.dir, '..')
+const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const HOBBY_MAX_DURATION = 300
 const MAX_DURATION_EXPORT = /export\s+const\s+maxDuration\s*=\s*([^\n;]+)/g
 
@@ -26,18 +28,20 @@ describe('Vercel Hobby function durations', () => {
       }
     }
 
-    expect(declarations.length).toBeGreaterThan(0)
+    assert.ok(declarations.length > 0, 'Should find maxDuration declarations')
     for (const declaration of declarations) {
-      expect(
+      assert.match(
         declaration.value,
+        /^\d+$/,
         `${declaration.path} must use a numeric maxDuration literal`,
-      ).toMatch(/^\d+$/)
+      )
 
       const duration = Number(declaration.value)
-      expect(
+      assert.equal(
         Number.isInteger(duration) && duration >= 1 && duration <= HOBBY_MAX_DURATION,
+        true,
         `${declaration.path} has Hobby-incompatible maxDuration ${declaration.value}`,
-      ).toBe(true)
+      )
     }
   })
 
@@ -47,7 +51,7 @@ describe('Vercel Hobby function durations', () => {
     try {
       configSource = await readFile(configPath, 'utf8')
     } catch (error) {
-      if (error?.code === 'ENOENT') return
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return
       throw error
     }
 
@@ -55,10 +59,11 @@ describe('Vercel Hobby function durations', () => {
     for (const [pattern, functionConfig] of Object.entries(config.functions ?? {})) {
       if (!Object.hasOwn(functionConfig, 'maxDuration')) continue
       const duration = functionConfig.maxDuration
-      expect(
+      assert.equal(
         Number.isInteger(duration) && duration >= 1 && duration <= HOBBY_MAX_DURATION,
+        true,
         `vercel.json functions[${pattern}] has Hobby-incompatible maxDuration ${duration}`,
-      ).toBe(true)
+      )
     }
   })
 })
