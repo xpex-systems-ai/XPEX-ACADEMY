@@ -2017,3 +2017,380 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   XPeX Pulse V3 — Command UI visual hardening
+   Reference direction: premium neon command center, without synthetic metrics.
+   ========================================================================== */
+
+.pulse-container {
+  position: relative;
+  isolation: isolate;
+  max-width: 1560px;
+  gap: 22px;
+  background:
+    radial-gradient(circle at 84% 5%, rgba(0, 212, 255, 0.09), transparent 25rem),
+    radial-gradient(circle at 12% 22%, rgba(255, 122, 0, 0.08), transparent 22rem),
+    linear-gradient(180deg, #040914 0%, #06101d 48%, #040812 100%);
+}
+
+.pulse-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.17;
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.pulse-hero-v3 {
+  min-height: 250px;
+  align-items: center;
+  padding: 34px 38px;
+  border-color: rgba(0, 212, 255, 0.24);
+  background:
+    linear-gradient(105deg, rgba(5, 12, 25, 0.96) 0%, rgba(7, 18, 34, 0.93) 54%, rgba(8, 17, 31, 0.88) 100%);
+  box-shadow:
+    0 20px 70px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 0 46px rgba(0, 212, 255, 0.055);
+}
+
+.pulse-hero-v3::after {
+  content: '';
+  position: absolute;
+  inset: auto -10% -70% 32%;
+  height: 210%;
+  transform: rotate(-10deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 122, 0, 0.12), rgba(0, 212, 255, 0.08), transparent);
+  filter: blur(26px);
+  pointer-events: none;
+}
+
+.pulse-hero-orbit {
+  position: absolute;
+  right: 6%;
+  border: 1px solid rgba(0, 212, 255, 0.16);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pulse-hero-orbit-one {
+  width: 220px;
+  height: 220px;
+  top: -68px;
+}
+
+.pulse-hero-orbit-two {
+  width: 310px;
+  height: 310px;
+  top: -112px;
+  right: 2%;
+  border-color: rgba(255, 122, 0, 0.12);
+}
+
+.pulse-title-stack {
+  display: grid;
+  gap: 7px;
+}
+
+.pulse-eyebrow {
+  color: #72e7ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.pulse-hero-title {
+  font-size: clamp(2.75rem, 6vw, 5.25rem);
+  letter-spacing: -0.055em;
+}
+
+.pulse-title-gradient {
+  background: linear-gradient(100deg, #ffffff 4%, #d8f7ff 34%, #ff8a1f 61%, #ff5f00 78%, #66e8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255, 122, 0, 0.12));
+}
+
+.pulse-hero-tagline {
+  max-width: 760px;
+  font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+  line-height: 1.65;
+  color: #b7c7da;
+}
+
+.pulse-hero-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.pulse-hero-capabilities span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(8, 22, 39, 0.72);
+  border: 1px solid rgba(0, 212, 255, 0.16);
+  color: #9fb6ca;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pulse-aside-card-v3 {
+  position: relative;
+  min-width: 300px;
+  padding: 20px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(10, 24, 43, 0.92), rgba(5, 12, 24, 0.86));
+  border: 1px solid rgba(0, 212, 255, 0.28);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05), 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.pulse-signal-bars {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 34px;
+  margin-left: auto;
+}
+
+.pulse-signal-bars span {
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ff8a1f, #00d4ff);
+  box-shadow: 0 0 9px rgba(0, 212, 255, 0.35);
+}
+
+.pulse-signal-bars span:nth-child(1) { height: 9px; }
+.pulse-signal-bars span:nth-child(2) { height: 17px; }
+.pulse-signal-bars span:nth-child(3) { height: 29px; }
+.pulse-signal-bars span:nth-child(4) { height: 22px; }
+.pulse-signal-bars span:nth-child(5) { height: 34px; }
+
+.pulse-command-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 212, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(5, 14, 27, 0.82);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(18px);
+}
+
+.pulse-command-kicker,
+.pulse-command-signals,
+.pulse-command-chip {
+  display: flex;
+  align-items: center;
+}
+
+.pulse-command-kicker {
+  gap: 8px;
+  color: #7eeaff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+.pulse-command-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #18e6ad;
+  box-shadow: 0 0 12px rgba(24, 230, 173, 0.8);
+}
+
+.pulse-command-signals {
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pulse-command-chip {
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  color: #8fa8bd;
+  font-size: 0.7rem;
+}
+
+.pulse-command-chip strong {
+  color: #e7f7ff;
+  font-weight: 800;
+}
+
+.pulse-toolbar,
+.pulse-main-player,
+.pulse-video-queue,
+.pulse-curated-section,
+.pulse-news-panel,
+.pulse-trends-panel,
+.pulse-tech-panel,
+.pulse-radar-panel,
+.pulse-xara-panel,
+.pulse-resource-card,
+.pulse-search-results,
+.pulse-student-progress-card {
+  backdrop-filter: blur(18px);
+}
+
+.pulse-news-panel,
+.pulse-trends-panel,
+.pulse-tech-panel,
+.pulse-radar-panel,
+.pulse-xara-panel,
+.pulse-resource-card,
+.pulse-search-results {
+  background: linear-gradient(155deg, rgba(10, 22, 40, 0.9), rgba(6, 13, 26, 0.9));
+  border-color: rgba(0, 212, 255, 0.13);
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.26),
+    inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.pulse-news-panel:hover,
+.pulse-trends-panel:hover,
+.pulse-tech-panel:hover,
+.pulse-radar-panel:hover,
+.pulse-xara-panel:hover,
+.pulse-resource-card:hover {
+  border-color: rgba(0, 212, 255, 0.32);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(0, 212, 255, 0.055);
+}
+
+.pulse-main-stage-grid {
+  gap: 18px;
+}
+
+.pulse-tri-column-grid,
+.pulse-dual-bottom-grid {
+  gap: 18px;
+}
+
+.pulse-category-pill.is-active,
+.pulse-action-btn-primary,
+.pulse-xara-send-btn {
+  box-shadow: 0 0 22px rgba(0, 212, 255, 0.17);
+}
+
+.pulse-category-pill.is-active {
+  border-color: rgba(255, 122, 0, 0.55);
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.2), rgba(0, 212, 255, 0.08));
+  color: #fff;
+}
+
+.pulse-panel-header {
+  border-bottom-color: rgba(0, 212, 255, 0.1);
+}
+
+.pulse-panel-title {
+  letter-spacing: -0.015em;
+}
+
+.pulse-curated-card,
+.pulse-news-item,
+.pulse-trend-row,
+.pulse-tech-card,
+.pulse-radar-topic-item,
+.pulse-result-card {
+  background: linear-gradient(150deg, rgba(8, 19, 35, 0.95), rgba(5, 11, 22, 0.94));
+  border-color: rgba(255, 255, 255, 0.065);
+}
+
+.pulse-curated-card:hover,
+.pulse-news-item:hover,
+.pulse-trend-row:hover,
+.pulse-tech-card:hover,
+.pulse-radar-topic-item:hover,
+.pulse-result-card:hover {
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
+.pulse-search-input:focus,
+.pulse-xara-input-field:focus {
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+}
+
+.pulse-footer-tagline {
+  color: #637d92;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 1024px) {
+  .pulse-command-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pulse-command-signals {
+    justify-content: flex-start;
+  }
+
+  .pulse-aside-card-v3 {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .pulse-hero-v3 {
+    min-height: auto;
+    padding: 24px 20px;
+  }
+
+  .pulse-hero-orbit {
+    opacity: 0.4;
+  }
+
+  .pulse-hero-title {
+    font-size: clamp(2.5rem, 14vw, 4.5rem);
+  }
+
+  .pulse-command-chip {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 430px) {
+  .pulse-container {
+    gap: 16px;
+  }
+
+  .pulse-hero-capabilities {
+    display: none;
+  }
+
+  .pulse-command-chip {
+    flex-basis: 100%;
+  }
+
+  .pulse-command-signals {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-sonar-sweep,
+  .pulse-radar-wave,
+  .pulse-spinner {
+    animation: none !important;
+  }
+}
