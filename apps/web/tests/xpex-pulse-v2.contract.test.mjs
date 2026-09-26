@@ -144,7 +144,7 @@ describe('XPeX Pulse V2 — Security & Privacy', () => {
       /sk-[A-Za-z0-9]{48}/,       // OpenAI secret key
       /ghp_[A-Za-z0-9]{36}/,      // GitHub personal token
       /gho_[A-Za-z0-9]{36}/,      // GitHub oauth token
-      /Bearer\s+[A-Za-z0-9_\-\.]{20,}/, // Hardcoded Bearer
+      /Bearer\s+[A-Za-z0-9_.-]{20,}/, // Hardcoded Bearer
     ]
 
     for (const filePath of files) {
@@ -176,7 +176,7 @@ describe('XPeX Pulse V2 — Security & Privacy', () => {
 
 describe('XPeX Pulse V2 — Truthfulness & Product Truth', () => {
   const service = readWebFile('services/pulse/pulse.ts')
-  const home = readWebFile('components/Xpex/Pulse/PulseHome.tsx')
+  const _home = readWebFile('components/Xpex/Pulse/PulseHome.tsx')
   const hero = readWebFile('components/Xpex/Pulse/PulseHero.tsx')
 
   it('does NOT use unverified "+XXX%" growth percentages in curated trends', () => {
