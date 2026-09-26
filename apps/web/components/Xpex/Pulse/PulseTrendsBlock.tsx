@@ -22,7 +22,6 @@ export function PulseTrendsBlock({ items, label = 'Curado' }: PulseTrendsBlockPr
       <div className="pulse-trends-list">
         {items.map((trend, index) => {
           const rank = trend.rank || index + 1
-          const score = trend.interestScore || 80
           return (
             <div key={trend.id} className="pulse-trend-row" tabIndex={0}>
               <div className="pulse-trend-rank-box" aria-hidden="true">
@@ -43,13 +42,14 @@ export function PulseTrendsBlock({ items, label = 'Curado' }: PulseTrendsBlockPr
                 </div>
 
                 <p className="pulse-trend-desc">{trend.description}</p>
-
-                <div className="pulse-trend-bar-track" aria-hidden="true">
-                  <div
-                    className="pulse-trend-bar-fill"
-                    style={{ width: `${Math.min(100, Math.max(10, score))}%` }}
-                  />
-                </div>
+                {typeof trend.interestScore === 'number' && (
+                  <div className="pulse-trend-bar-track" aria-hidden="true">
+                    <div
+                      className="pulse-trend-bar-fill"
+                      style={{ width: `${Math.min(100, Math.max(0, trend.interestScore))}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )
