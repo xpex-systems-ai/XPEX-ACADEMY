@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { askPulseXara } from '@services/pulse/pulse'
 import type { PulseXaraItem, PulseXaraMessage } from '@/types/pulse'
@@ -39,6 +39,10 @@ export function PulseXaraBlock({
   ])
   const [inputValue, setInputValue] = useState(initialPrompt || '')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (initialPrompt) setInputValue(initialPrompt)
+  }, [initialPrompt])
 
   const handleSend = async (text: string) => {
     const trimmed = text.trim()
