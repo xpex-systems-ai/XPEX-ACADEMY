@@ -50,6 +50,12 @@ export type XpexFeatureFlagKey =
   | 'xara_enabled'
   | 'xara_rag_enabled'
   | 'pulse_enabled'
+  | 'pulse_live_sources_enabled'
+  | 'pulse_youtube_api_enabled'
+  | 'pulse_news_enabled'
+  | 'pulse_trends_enabled'
+  | 'pulse_xara_enabled'
+  | 'pulse_personalization_enabled'
   | 'toolhub_enabled'
   | 'project_vault_enabled'
   | 'vision_studio_enabled'
@@ -71,6 +77,12 @@ export const XPEX_FEATURE_FLAG_DEFAULTS: Record<XpexFeatureFlagKey, boolean | st
   xara_enabled: true,
   xara_rag_enabled: true,
   pulse_enabled: true,
+  pulse_live_sources_enabled: false,
+  pulse_youtube_api_enabled: false,
+  pulse_news_enabled: true,
+  pulse_trends_enabled: true,
+  pulse_xara_enabled: true,
+  pulse_personalization_enabled: false,
   toolhub_enabled: false,
   project_vault_enabled: false,
   vision_studio_enabled: false,
@@ -113,8 +125,14 @@ export type XpexEventName =
   // Pulse
   | 'pulse_opened'
   | 'pulse_search'
+  | 'pulse_filter_selected'
   | 'pulse_content_started'
+  | 'pulse_content_completed'
   | 'pulse_content_saved'
+  | 'pulse_source_opened'
+  | 'pulse_xara_opened'
+  | 'pulse_xara_action'
+  | 'pulse_topic_followed'
   // Projects & Studios
   | 'project_created'
   | 'vision_job_started'

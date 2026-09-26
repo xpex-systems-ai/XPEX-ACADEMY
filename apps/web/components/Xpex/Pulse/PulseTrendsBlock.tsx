@@ -1,54 +1,59 @@
+'use client'
+
 import React from 'react'
-import { TrendingUp } from 'lucide-react'
 import type { PulseTrendItem } from '@/types/pulse'
 
 interface PulseTrendsBlockProps {
   items: PulseTrendItem[]
-  label: string
+  label?: string
 }
 
-const directionClass: Record<string, string> = {
-  'Em alta': 'em-alta',
-  'Emergindo': 'emergindo',
-  'Em observação': 'observacao',
-}
-
-/** Tendências de Mercado block — curated editorial observations, never fake % growth. */
-export function PulseTrendsBlock({ items, label }: PulseTrendsBlockProps) {
+export function PulseTrendsBlock({ items, label = 'Curado' }: PulseTrendsBlockProps) {
   return (
-    <section className="pulse-section" aria-labelledby="pulse-trends-heading">
-      <div className="pulse-section-header">
-        <div className="pulse-section-title-group">
-          <div className="pulse-section-icon orange" aria-hidden="true">
-            <TrendingUp size={16} />
-          </div>
-          <h2 id="pulse-trends-heading" className="pulse-section-title">
-            Tendências <span>de Mercado</span>
-          </h2>
+    <section className="pulse-trends-panel" aria-label="Tendências de Mercado e IA">
+      <div className="pulse-panel-header">
+        <div className="pulse-panel-title-wrap">
+          <span className="pulse-panel-accent-tag">MERCADO & CARREIRA</span>
+          <h3 className="pulse-panel-title">TENDÊNCIAS DE MERCADO</h3>
         </div>
-        <span className="pulse-section-label">{label}</span>
+        <span className="pulse-label-badge">{label}</span>
       </div>
 
-      <div className="pulse-grid-4">
-        {items.map((trend) => (
-          <div key={trend.id} className="pulse-card">
-            <div className="pulse-card-header">
-              <h3 className="pulse-card-title">{trend.title}</h3>
-              {trend.direction && (
-                <span
-                  className={`pulse-card-direction ${directionClass[trend.direction] ?? ''}`}
-                  aria-label={`Direção: ${trend.direction}`}
-                >
-                  {trend.direction}
-                </span>
-              )}
+      <div className="pulse-trends-list">
+        {items.map((trend, index) => {
+          const rank = trend.rank || index + 1
+          const score = trend.interestScore || 80
+          return (
+            <div key={trend.id} className="pulse-trend-row" tabIndex={0}>
+              <div className="pulse-trend-rank-box" aria-hidden="true">
+                <span className="pulse-trend-rank-num">0{rank}</span>
+              </div>
+
+              <div className="pulse-trend-content">
+                <div className="pulse-trend-head">
+                  <h4 className="pulse-trend-title">{trend.title}</h4>
+                  <div className="pulse-trend-badge-wrap">
+                    {trend.growthRateLabel && (
+                      <span className="pulse-growth-badge">{trend.growthRateLabel}</span>
+                    )}
+                    {trend.direction && (
+                      <span className="pulse-direction-chip">{trend.direction}</span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="pulse-trend-desc">{trend.description}</p>
+
+                <div className="pulse-trend-bar-track" aria-hidden="true">
+                  <div
+                    className="pulse-trend-bar-fill"
+                    style={{ width: `${Math.min(100, Math.max(10, score))}%` }}
+                  />
+                </div>
+              </div>
             </div>
-            <p className="pulse-card-desc">{trend.description}</p>
-            {trend.source && (
-              <span className="pulse-news-source">{trend.source}</span>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

@@ -1,99 +1,132 @@
 'use client'
 
-import React, { useState, type FormEvent } from 'react'
-import { Search, Play, Layers, Brain } from 'lucide-react'
-import { searchPulse } from '@services/pulse/pulse'
-import type { PulseItem } from '@/types/pulse'
-
-const CATEGORY_LABELS: Record<string, string> = {
-  videos: 'Vídeo',
-  news: 'Notícia',
-  trends: 'Tendência',
-  tech: 'Tecnologia',
-  radar: 'Radar XPeX',
-  xara: 'XARA',
-}
+import React, { useState, useTransition } from 'react'
+import { PULSE_CATEGORIES, searchPulse } from '@services/pulse/pulse'
+import type { PulseCategory, PulseItem } from '@/types/pulse'
 
 interface PulseToolbarProps {
+  activeCategory: PulseCategory
+  onCategoryChange: (_category: PulseCategory) => void
   onSearchActive: (_active: boolean) => void
   onResults: (_results: PulseItem[]) => void
-  onQuery: (_q: string) => void
+  onQuery: (_query: string) => void
 }
 
-export function PulseToolbar({ onSearchActive, onResults, onQuery }: PulseToolbarProps) {
+export function PulseToolbar({
+  activeCategory,
+  onCategoryChange,
+  onSearchActive,
+  onResults,
+  onQuery,
+}: PulseToolbarProps) {
   const [query, setQuery] = useState('')
+  const [, startTransition] = useTransition()
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    const trimmed = query.trim()
-    if (!trimmed) {
-      onSearchActive(false)
-      onResults([])
-      onQuery('')
-      return
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setQuery(val)
+    onQuery(val)
+
+    startTransition(() => {
+      if (val.trim()) {
+        const res = searchPulse(val, activeCategory)
+        onResults(res.items)
+        onSearchActive(true)
+      } else {
+        onResults([])
+        onSearchActive(false)
+      }
+    })
+  }
+
+  const handleCategoryClick = (catId: PulseCategory) => {
+    onCategoryChange(catId)
+    if (query.trim()) {
+      const res = searchPulse(query, catId)
+      onResults(res.items)
     }
-    const result = searchPulse(trimmed)
-    onResults(result.items)
-    onQuery(trimmed)
-    onSearchActive(true)
   }
 
   const handleClear = () => {
     setQuery('')
-    onSearchActive(false)
-    onResults([])
     onQuery('')
+    onResults([])
+    onSearchActive(false)
   }
 
   return (
-    <div className="pulse-toolbar">
-      <form className="pulse-search-form" onSubmit={handleSubmit} role="search">
-        <Search className="pulse-search-icon" size={16} aria-hidden="true" />
-        <span className="sr-only">Busca inteligente no Pulse</span>
+    <nav className="pulse-toolbar" id="pulse-toolbar" aria-label="Filtros e Busca do XPeX Pulse">
+      <div className="pulse-search-box">
+        <label htmlFor="pulse-search-input" className="sr-only">
+          Busque conteúdos no XPeX Pulse
+        </label>
+        <div className="pulse-search-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
         <input
-          className="pulse-search-input"
+          id="pulse-search-input"
           type="search"
+          className="pulse-search-input"
+          placeholder="Busque vídeos, notícias, tecnologias, criadores, temas..."
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            if (!e.target.value.trim()) handleClear()
-          }}
-          placeholder="Encontre vídeos, notícias e conteúdos..."
-          aria-label="Buscar no XPeX Pulse"
+          onChange={handleInputChange}
+          autoComplete="off"
+          aria-label="Campo de busca de conteúdos no Pulse"
         />
-      </form>
-
-      <div className="pulse-toolbar-features" aria-label="Recursos do Pulse">
-        <div className="pulse-feature-chip">
-          <Play size={12} aria-hidden="true" />
-          Player integrado
-        </div>
-        <div className="pulse-feature-chip">
-          <Layers size={12} aria-hidden="true" />
-          Canais curados
-        </div>
-        <div className="pulse-feature-chip">
-          <Brain size={12} aria-hidden="true" />
-          Trilhas personalizadas
-        </div>
+        {query && (
+          <button
+            type="button"
+            className="pulse-search-clear"
+            onClick={handleClear}
+            aria-label="Limpar busca"
+          >
+            ✕
+          </button>
+        )}
       </div>
-    </div>
+
+      <div className="pulse-categories-rail" role="tablist" aria-label="Categorias de conteúdo">
+        {PULSE_CATEGORIES.map((cat) => {
+          const isSelected = activeCategory === cat.id
+          return (
+            <button
+              key={cat.id}
+              role="tab"
+              aria-selected={isSelected}
+              className={`pulse-category-pill ${isSelected ? 'is-active' : ''}`}
+              onClick={() => handleCategoryClick(cat.id)}
+            >
+              <span>{cat.label}</span>
+              {typeof cat.count === 'number' && (
+                <span className="pulse-category-count" aria-hidden="true">
+                  {cat.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
   )
 }
 
 interface PulseSearchResultsViewProps {
   items: PulseItem[]
   query: string
+  onSelectItem?: (_item: PulseItem) => void
 }
 
-export function PulseSearchResultsView({ items, query }: PulseSearchResultsViewProps) {
+export function PulseSearchResultsView({ items, query, onSelectItem }: PulseSearchResultsViewProps) {
   if (items.length === 0) {
     return (
-      <section className="pulse-section" aria-live="polite">
-        <div className="pulse-search-empty">
-          <p>Nenhum resultado encontrado para <strong>&ldquo;{query}&rdquo;</strong></p>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.65 }}>
-            Tente outros termos: IA, Python, Web3, tendências...
+      <section className="pulse-search-results" aria-label="Resultados da busca">
+        <div className="pulse-empty-state">
+          <p className="pulse-empty-title">Nenhum resultado encontrado para &quot;{query}&quot;</p>
+          <p className="pulse-empty-desc">
+            Tente buscar por termos como &quot;IA&quot;, &quot;Agentes&quot;, &quot;Prompt&quot;, &quot;RAG&quot; ou &quot;Python&quot;.
           </p>
         </div>
       </section>
@@ -101,40 +134,48 @@ export function PulseSearchResultsView({ items, query }: PulseSearchResultsViewP
   }
 
   return (
-    <section className="pulse-section" aria-live="polite" aria-labelledby="pulse-search-heading">
-      <div className="pulse-section-header">
-        <h2 id="pulse-search-heading" className="pulse-section-title">
-          Resultados para <span>&ldquo;{query}&rdquo;</span>
+    <section className="pulse-search-results" aria-label={`Resultados para ${query}`}>
+      <div className="pulse-results-header">
+        <h2 className="pulse-results-title">
+          Resultados para <span className="pulse-query-highlight">&quot;{query}&quot;</span>
         </h2>
-        <span className="pulse-section-label">{items.length} encontrado{items.length !== 1 ? 's' : ''}</span>
+        <span className="pulse-results-count">{items.length} {items.length === 1 ? 'item' : 'itens'}</span>
       </div>
 
-      <div className="pulse-search-results">
-        {items.map((item) => {
-          const isExternal = item.url?.startsWith('http')
-          const Tag = isExternal ? 'a' : 'div'
-          const tagProps = isExternal
-            ? { href: item.url!, target: '_blank', rel: 'noopener noreferrer' }
-            : {}
-          return (
-            <Tag
-              key={item.id}
-              className="pulse-search-result-card"
-              {...tagProps}
-              onClick={() => {
-                import('@/lib/firebase').then(({ trackXpexEvent }) => {
-                  trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: item.category })
-                }).catch(() => {})
-              }}
-            >
-              <span className="pulse-search-badge">{CATEGORY_LABELS[item.category] ?? item.category}</span>
-              <div>
-                <p className="pulse-search-result-title">{item.title}</p>
-                <p className="pulse-search-result-desc">{item.description}</p>
-              </div>
-            </Tag>
-          )
-        })}
+      <div className="pulse-results-grid">
+        {items.map((item) => (
+          <article key={item.id} className="pulse-result-card">
+            <div className="pulse-result-badge-row">
+              <span className="pulse-chip-category">{item.category.toUpperCase()}</span>
+              <span className="pulse-label-badge">{item.label}</span>
+            </div>
+            <h3 className="pulse-result-title">{item.title}</h3>
+            <p className="pulse-result-desc">{item.description}</p>
+            {item.source && (
+              <span className="pulse-result-source">Fonte: {item.source}</span>
+            )}
+            <div className="pulse-result-actions">
+              {item.category === 'videos' && item.youtubeId ? (
+                <button
+                  type="button"
+                  className="pulse-action-btn-primary"
+                  onClick={() => onSelectItem?.(item)}
+                >
+                  Assistir no Player
+                </button>
+              ) : item.url ? (
+                <a
+                  href={item.url}
+                  target={item.url.startsWith('http') ? '_blank' : '_self'}
+                  rel={item.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="pulse-action-link"
+                >
+                  Ver Conteúdo →
+                </a>
+              ) : null}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   )
