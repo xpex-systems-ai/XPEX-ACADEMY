@@ -1,9 +1,13 @@
 /**
  * XPeX Pulse — Unified Source Registry & Ingestion Fabric
- * MISSION: XPEX-PULSE-LIVE-SOURCES-001
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002
  *
- * Implements the priority chain:
- * LIVE -> RECENT CACHE -> CURATED FALLBACK -> EMPTY STATE
+ * Implements the deterministic priority chain:
+ * 1. LIVE (if enabled & successful -> save cache, return 'Atualizado', live: true, sourceState: 'live')
+ * 2. FRESH CACHE (if live disabled/failed -> return 'Em cache', live: false, sourceState: 'fresh-cache')
+ * 3. STALE CACHE (if fresh cache expired -> return 'Em cache', live: false, sourceState: 'stale-cache')
+ * 4. CURATED FALLBACK (if cache empty -> return 'Curado', live: false, sourceState: 'curated')
+ * 5. EMPTY / UNAVAILABLE (if no fallback -> return 'Indisponível', live: false, sourceState: 'unavailable')
  */
 
 import 'server-only'
@@ -58,6 +62,7 @@ export class PulseSourceRegistry {
             label: 'Atualizado',
             live: true,
             fetchedAt: now,
+            sourceState: 'live',
           }
         }
       } catch {
@@ -65,7 +70,7 @@ export class PulseSourceRegistry {
       }
     }
 
-    // 2. RECENT CACHE check
+    // 2. FRESH CACHE check
     const cached = await pulseCache.get<PulseVideoItem[]>(this.CACHE_KEY_VIDEOS)
     if (cached && cached.length > 0) {
       return {
@@ -73,15 +78,29 @@ export class PulseSourceRegistry {
         label: 'Em cache',
         live: false,
         fetchedAt: now,
+        sourceState: 'fresh-cache',
       }
     }
 
-    // 3. CURATED FALLBACK
+    // 3. STALE CACHE fallback check
+    const stale = await pulseCache.getStaleFallback<PulseVideoItem[]>(this.CACHE_KEY_VIDEOS)
+    if (stale && stale.data && stale.data.length > 0) {
+      return {
+        items: stale.data,
+        label: 'Em cache',
+        live: false,
+        fetchedAt: now,
+        sourceState: 'stale-cache',
+      }
+    }
+
+    // 4. CURATED FALLBACK
     return {
       items: FALLBACK_VIDEOS,
       label: 'Curado',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 
@@ -114,6 +133,7 @@ export class PulseSourceRegistry {
             label: 'Atualizado',
             live: true,
             fetchedAt: now,
+            sourceState: 'live',
           }
         }
       } catch {
@@ -121,7 +141,7 @@ export class PulseSourceRegistry {
       }
     }
 
-    // 2. RECENT CACHE check
+    // 2. FRESH CACHE check
     const cached = await pulseCache.get<PulseNewsItem[]>(this.CACHE_KEY_NEWS)
     if (cached && cached.length > 0) {
       return {
@@ -129,15 +149,29 @@ export class PulseSourceRegistry {
         label: 'Em cache',
         live: false,
         fetchedAt: now,
+        sourceState: 'fresh-cache',
       }
     }
 
-    // 3. CURATED FALLBACK
+    // 3. STALE CACHE fallback check
+    const stale = await pulseCache.getStaleFallback<PulseNewsItem[]>(this.CACHE_KEY_NEWS)
+    if (stale && stale.data && stale.data.length > 0) {
+      return {
+        items: stale.data,
+        label: 'Em cache',
+        live: false,
+        fetchedAt: now,
+        sourceState: 'stale-cache',
+      }
+    }
+
+    // 4. CURATED FALLBACK
     return {
       items: FALLBACK_NEWS,
       label: 'Curado',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 
@@ -148,6 +182,7 @@ export class PulseSourceRegistry {
       label: 'Curado',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 
@@ -158,6 +193,7 @@ export class PulseSourceRegistry {
       label: 'Curado',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 
@@ -168,6 +204,7 @@ export class PulseSourceRegistry {
       label: 'Curado',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 
@@ -178,6 +215,7 @@ export class PulseSourceRegistry {
       label: 'Disponível',
       live: false,
       fetchedAt: now,
+      sourceState: 'curated',
     }
   }
 

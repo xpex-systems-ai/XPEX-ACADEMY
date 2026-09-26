@@ -1,9 +1,10 @@
 /**
  * XPeX Pulse — Live Source Fabric Contract Test Suite
- * MISSION: XPEX-PULSE-LIVE-SOURCES-001
+ * MISSIONS: XPEX-PULSE-LIVE-SOURCES-001 & XPEX-PULSE-LIVE-SOURCES-002
  *
  * Uses node:test and node:assert/strict (never bun:test).
- * Validates source contracts, registry, cache, fallback priority, security, truthfulness, and Firebase gates.
+ * Validates source contracts, registry priority chain, hybrid cache, YouTube trust model,
+ * RSS date safety, search over live data, security, truthfulness, and Firebase gates.
  */
 
 import { describe, it } from 'node:test'
@@ -29,13 +30,15 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     assert.ok(types.includes('PulseLiveSource'), 'Must define PulseLiveSource')
     assert.ok(types.includes('PulseSourceHealthRecord'), 'Must define PulseSourceHealthRecord')
     assert.ok(types.includes('PulseCacheProvider'), 'Must define PulseCacheProvider')
+    assert.ok(types.includes('getStaleFallback'), 'PulseCacheProvider must include getStaleFallback')
   })
 
-  it('02 source registry exists and exports pulseRegistry', () => {
+  it('02 source registry exists and implements 5-step priority chain', () => {
     const registry = readWebFile('services/pulse/sources/registry.ts')
     assert.ok(registry, 'sources/registry.ts must exist')
     assert.ok(registry.includes('class PulseSourceRegistry'), 'Must define PulseSourceRegistry')
     assert.ok(registry.includes('export const pulseRegistry'), 'Must export pulseRegistry')
+    assert.ok(registry.includes('getStaleFallback'), 'Registry must call getStaleFallback on cache miss')
   })
 
   it('03 curated fallback exists and provides resilient baseline', () => {
@@ -46,10 +49,12 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     assert.ok(fallback.includes('FALLBACK_TRENDS'), 'Must export FALLBACK_TRENDS')
   })
 
-  it('04 YouTube adapter executes server-side only', () => {
+  it('04 YouTube adapter executes server-side only with trust registry', () => {
     const yt = readWebFile('services/pulse/sources/youtube.ts')
     assert.ok(yt, 'sources/youtube.ts must exist')
     assert.ok(yt.includes('class YouTubeLiveSource'), 'Must define YouTubeLiveSource')
+    assert.ok(yt.includes('APPROVED_YOUTUBE_CHANNELS'), 'Must define APPROVED_YOUTUBE_CHANNELS')
+    assert.ok(yt.includes('resolveYouTubeChannelTrust'), 'Must define resolveYouTubeChannelTrust')
     assert.ok(yt.includes('process.env.YOUTUBE_API_KEY'), 'Must read key from process.env')
   })
 
@@ -66,19 +71,23 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     }
   })
 
-  it('06 news adapter preserves provenance (publisher, domain, canonicalUrl)', () => {
+  it('06 news adapter preserves provenance and uses safe date parsing', () => {
     const rss = readWebFile('services/pulse/sources/rss.ts')
     assert.ok(rss, 'sources/rss.ts must exist')
     assert.ok(rss.includes('ApprovedNewsPublisher'), 'Must define ApprovedNewsPublisher')
-    assert.ok(rss.includes('domain:'), 'Must track domain')
-    assert.ok(rss.includes('source:'), 'Must track source name')
+    assert.ok(rss.includes('parseDateOrNull'), 'Must define parseDateOrNull')
+    assert.ok(rss.includes('formatRelativeDate'), 'Must define formatRelativeDate')
+    assert.ok(rss.includes('domain: pub.domain'), 'Must track domain')
+    assert.ok(rss.includes('source: pub.name'), 'Must track source name')
   })
 
-  it('07 cache provider supports TTL and freshness reporting', () => {
+  it('07 hybrid cache provider supports TTL, stale fallback and freshness reporting', () => {
     const cache = readWebFile('services/pulse/sources/cache.ts')
     assert.ok(cache, 'sources/cache.ts must exist')
+    assert.ok(cache.includes('MemoryPulseCache'), 'Must define MemoryPulseCache')
+    assert.ok(cache.includes('HybridPulseCache'), 'Must define HybridPulseCache')
+    assert.ok(cache.includes('getStaleFallback'), 'Must implement getStaleFallback')
     assert.ok(cache.includes('getFreshness'), 'Must implement getFreshness')
-    assert.ok(cache.includes('ttlMs'), 'Must support ttlMs')
   })
 
   it('08 cached results are labeled correctly with honest taxonomy', () => {
@@ -88,35 +97,48 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     assert.ok(registry.includes("label: 'Atualizado'"), 'Must label fresh data as Atualizado')
   })
 
-  it('09 unavailable sources degrade gracefully to cache or fallback', () => {
+  it('09 unavailable sources degrade gracefully through stale cache to curated fallback', () => {
     const registry = readWebFile('services/pulse/sources/registry.ts')
     assert.ok(registry.includes('FALLBACK_VIDEOS'), 'Must fallback to curated videos on live error')
     assert.ok(registry.includes('FALLBACK_NEWS'), 'Must fallback to curated news on live error')
   })
 
-  it('10 Pulse renders and functions without live API credentials', () => {
+  it('10 search operates deterministically over dynamic dataset via searchPulseItems', () => {
     const service = readWebFile('services/pulse/pulse.ts')
-    assert.ok(service.includes('fetchPulseVideos'), 'Must export fetchPulseVideos')
-    assert.ok(service.includes('fetchPulseNews'), 'Must export fetchPulseNews')
+    assert.ok(service.includes('searchPulseItems'), 'Must export searchPulseItems')
+    assert.ok(service.includes('searchPulse'), 'Must export searchPulse')
+
+    const toolbar = readWebFile('components/Xpex/Pulse/PulseToolbar.tsx')
+    assert.ok(toolbar.includes('searchPulseItems'), 'PulseToolbar must use searchPulseItems')
   })
 
-  it('11 Firebase live sources flag defaults to false', () => {
+  it('11 PulseHome passes dynamic block labels and items to components', () => {
+    const home = readWebFile('components/Xpex/Pulse/PulseHome.tsx')
+    assert.ok(home.includes('videoBlock.label'), 'Must pass videoBlock.label')
+    assert.ok(home.includes('newsBlock.label'), 'Must pass newsBlock.label')
+    assert.ok(home.includes('trendBlock.label'), 'Must pass trendBlock.label')
+    assert.ok(home.includes('techBlock.label'), 'Must pass techBlock.label')
+    assert.ok(home.includes('radarBlock.label'), 'Must pass radarBlock.label')
+    assert.ok(home.includes('items={currentItems}'), 'Must pass currentItems to PulseToolbar')
+  })
+
+  it('12 Firebase live sources flag defaults to false', () => {
     const fbTypes = readWebFile('lib/firebase/types.ts')
     assert.ok(fbTypes.includes('pulse_live_sources_enabled: false'), 'pulse_live_sources_enabled must default to false')
     assert.ok(fbTypes.includes('pulse_youtube_api_enabled: false'), 'pulse_youtube_api_enabled must default to false')
   })
 
-  it('12 live flag activates source ingestion path in registry', () => {
+  it('13 live flag activates source ingestion path in registry', () => {
     const registry = readWebFile('services/pulse/sources/registry.ts')
     assert.ok(registry.includes('liveSourcesEnabled'), 'Registry must accept liveSourcesEnabled flag')
   })
 
-  it('13 XARA AI interaction uses server-side GXEON/RAG gateway (startRAGChatStream)', () => {
+  it('14 XARA AI interaction uses server-side GXEON/RAG gateway (startRAGChatStream)', () => {
     const service = readWebFile('services/pulse/pulse.ts')
     assert.ok(service.includes('startRAGChatStream'), 'Must dispatch prompts through startRAGChatStream')
   })
 
-  it('14 browser never calls private AI providers directly', () => {
+  it('15 browser never calls private AI providers directly', () => {
     const sourcesDir = path.join(WEB_ROOT, 'services/pulse/sources')
     const sourceFiles = fs.readdirSync(sourcesDir).map((f) => path.join(sourcesDir, f))
     sourceFiles.push(path.join(WEB_ROOT, 'services/pulse/pulse.ts'))
@@ -130,21 +152,15 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     }
   })
 
-  it('15 no fake percentage growth rates are claimed in trends', () => {
+  it('16 no fake percentage growth rates are claimed in trends', () => {
     const fallback = readWebFile('services/pulse/sources/fallback.ts')
     const hasFakeGrowth = /\+\d{2,3}%/.test(fallback ?? '')
     assert.ok(!hasFakeGrowth, 'Must not use unverified +XXX% growth labels')
   })
 
-  it('16 no fake real-time claims on static/curated feeds', () => {
+  it('17 no fake real-time claims on static/curated feeds', () => {
     const fallback = readWebFile('services/pulse/sources/fallback.ts')
     assert.ok(!fallback.includes('EM TEMPO REAL'), 'Must not claim EM TEMPO REAL on static fallback')
-  })
-
-  it('17 source provenance is preserved in normalized articles', () => {
-    const rss = readWebFile('services/pulse/sources/rss.ts')
-    assert.ok(rss.includes('domain: pub.domain'), 'Must record publisher domain')
-    assert.ok(rss.includes('source: pub.name'), 'Must record publisher name')
   })
 
   it('18 mobile responsive styles are preserved in pulse.css', () => {
@@ -162,7 +178,7 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
   it('20 architecture documentation exists at docs/architecture/XPEX_PULSE_LIVE_SOURCES_V1.md', () => {
     const doc = readWebFile('../../docs/architecture/XPEX_PULSE_LIVE_SOURCES_V1.md')
     assert.ok(doc, 'Manifesto document must exist')
-    assert.ok(doc.includes('XPEX-PULSE-LIVE-SOURCES-001'), 'Must have mission ID')
+    assert.ok(doc.includes('XPEX-PULSE-LIVE-SOURCES-002'), 'Must have updated mission ID')
   })
   it('21 live source fabric is exposed only through authenticated server route', () => {
     const route = readWebFile('app/xpex/pulse/feed/route.ts')

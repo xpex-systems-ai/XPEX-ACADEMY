@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useTransition } from 'react'
-import { PULSE_CATEGORIES, searchPulse } from '@services/pulse/pulse'
+import { PULSE_CATEGORIES, searchPulse, searchPulseItems } from '@services/pulse/pulse'
 import type { PulseCategory, PulseItem } from '@/types/pulse'
 
 interface PulseToolbarProps {
   activeCategory: PulseCategory
+  items?: PulseItem[]
   onCategoryChange: (_category: PulseCategory) => void
   onSearchActive: (_active: boolean) => void
   onResults: (_results: PulseItem[]) => void
@@ -14,6 +15,7 @@ interface PulseToolbarProps {
 
 export function PulseToolbar({
   activeCategory,
+  items,
   onCategoryChange,
   onSearchActive,
   onResults,
@@ -22,6 +24,13 @@ export function PulseToolbar({
   const [query, setQuery] = useState('')
   const [, startTransition] = useTransition()
 
+  const executeSearch = (searchQuery: string, category: PulseCategory) => {
+    if (items && items.length > 0) {
+      return searchPulseItems(items, searchQuery, category)
+    }
+    return searchPulse(searchQuery, category)
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setQuery(val)
@@ -29,7 +38,7 @@ export function PulseToolbar({
 
     startTransition(() => {
       if (val.trim()) {
-        const res = searchPulse(val, activeCategory)
+        const res = executeSearch(val, activeCategory)
         onResults(res.items)
         onSearchActive(true)
       } else {
@@ -42,7 +51,7 @@ export function PulseToolbar({
   const handleCategoryClick = (catId: PulseCategory) => {
     onCategoryChange(catId)
     if (query.trim()) {
-      const res = searchPulse(query, catId)
+      const res = executeSearch(query, catId)
       onResults(res.items)
     }
   }

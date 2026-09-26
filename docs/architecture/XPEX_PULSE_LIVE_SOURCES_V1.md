@@ -1,15 +1,15 @@
 # XPEX ACADEMY — LIVE SOURCE FABRIC MANIFESTO & ARCHITECTURE
-**MISSION ID:** `XPEX-PULSE-LIVE-SOURCES-001`  
+**MISSION ID:** `XPEX-PULSE-LIVE-SOURCES-002`  
 **PROGRAM:** XPeX Academy — AI-Native Learning, Intelligence & Creation Platform  
 **PRODUCT:** XPeX Pulse  
 **AUTHORITY:** XPeX Core / GXEON Engine  
-**STATUS:** PRODUCTION-GRADE / STAGED LIVE FABRIC
+**STATUS:** PRODUCTION-GRADE / MERGE-READY LIVE SOURCE FABRIC
 
 ---
 
 ## 1. Executive Summary & Vision
 
-XPeX Pulse transforms student discovery from a static video feed into the **official live intelligence layer** of XPeX Academy. By combining server-side live source adapters, multi-tier caching, provenance tracking, and authenticated GXEON contextual routing, Pulse provides students with continuous access to verified AI technologies, news, trends, and learning opportunities without compromising performance, privacy, or truthfulness.
+XPeX Pulse transforms student discovery from a static video feed into the **official live intelligence layer** of XPeX Academy. By combining server-side live source adapters, hybrid caching (process-local L1 + pluggable distributed L2), source provenance tracking, and authenticated GXEON contextual routing, Pulse provides students with continuous access to verified AI technologies, news, trends, and learning opportunities without compromising performance, privacy, or truthfulness.
 
 ```
 +-------------------------------------------------------------------------+
@@ -20,34 +20,37 @@ XPeX Pulse transforms student discovery from a static video feed into the **offi
                                     ▼
 +-------------------------------------------------------------------------+
 |                     XPEX LIVE SOURCE FABRIC                             |
-|  - YouTubeLiveSource (Server API / No scraping / youtube-nocookie)      |
+|  - YouTubeLiveSource (Approved Channels Registry / No scraping)         |
 |  - NewsFeedLiveSource (XML/Atom Parser / Strict Provenance)             |
-|  - Normalization Engine (Provider Schema -> XPeX Domain Model)         |
+|  - Normalization Engine (Provider Schema -> XPeX Domain Model)          |
 +-------------------------------------------------------------------------+
                                     │
                                     ▼
 +-------------------------------------------------------------------------+
-|                  PROVIDER-NEUTRAL CACHE LAYER                           |
-|  - MemoryPulseCache (TTL: 15m News, 1h Videos, 2h Catalog)              |
+|                     HYBRID CACHE ARCHITECTURE                           |
+|  - L1 MemoryPulseCache (Process-local, resilient against cold starts)    |
+|  - L2 SharedPulseCache (Pluggable Redis/KV distributed driver)           |
 |  - Freshness Inspector (Calculates age & stale-while-revalidate state)  |
 +-------------------------------------------------------------------------+
                                     │
                                     ▼
 +-------------------------------------------------------------------------+
 |                     PULSE SOURCE REGISTRY                               |
-|  Priority Chain:                                                        |
-|  1. LIVE (if enabled & healthy)                                         |
-|  2. RECENT CACHE (if within valid window -> labeled 'Em cache')         |
-|  3. CURATED FALLBACK (Manual curation -> labeled 'Curado')             |
-|  4. EMPTY STATE (Never crash / graceful degradation)                    |
+|  Deterministic Priority Chain:                                          |
+|  1. LIVE (if enabled & healthy -> labeled 'Atualizado')                 |
+|  2. FRESH CACHE (if within valid TTL window -> labeled 'Em cache')      |
+|  3. STALE CACHE (stale fallback -> labeled 'Em cache')                  |
+|  4. CURATED FALLBACK (Manual curation baseline -> labeled 'Curado')     |
+|  5. EMPTY / UNAVAILABLE (Graceful degradation -> labeled 'Indisponível') |
 +-------------------------------------------------------------------------+
                                     │
                                     ▼
 +-------------------------------------------------------------------------+
 |                     XPEX PULSE UI (CLIENT)                              |
-|  - PulseMainPlayer & VideoQueue                                         |
+|  - PulseMainPlayer & VideoQueue (Dynamic live block labels)             |
 |  - PulseNewsBlock & TrendsBlock & TechBlock                             |
 |  - Radar XPeX Sonar Visualizer                                          |
+|  - Real-time search across active dataset (searchPulseItems)            |
 |  - XARA Copilot Bridge -> Railway /xpex/ai-gateway                      |
 +-------------------------------------------------------------------------+
 ```
@@ -59,24 +62,28 @@ XPeX Pulse transforms student discovery from a static video feed into the **offi
 1. **Zero Client Secrets:** No `YOUTUBE_API_KEY`, AI provider tokens, or internal database secrets are ever shipped to browser bundles.
 2. **Server-Side Ingestion Only:** External API calls and feed parsers execute strictly server-side.
 3. **Official YouTube Embeds:** No video streaming proxies or media re-hosting. All video embeds use `https://www.youtube-nocookie.com/embed/...` with strict referrer policies.
-4. **Honest Label Taxonomy:**
+4. **YouTube Trust Registry:** Matches discovered items against `APPROVED_YOUTUBE_CHANNELS` to classify provenance as `official`, `institutional`, or `curated`.
+5. **Verified Metadata Only:** No fabricated dates or synthetic `"Hoje"` tags. Unverified dates remain `null`, and estimated read times are clearly defined as estimates.
+6. **Honest Label Taxonomy:**
    - **`Curado`**: Hand-curated by XPeX editorial team.
    - **`Atualizado`**: Freshly fetched from upstream within active TTL.
-   - **`Em cache`**: Served from valid local cache.
+   - **`Em cache`**: Served from valid local cache or stale fallback.
    - **`Indisponível`**: Upstream unreachable and fallback not applicable.
    - **`Em preparação`**: Upcoming feature / pipeline in training.
    - **`Ao Vivo`**: Reserved exclusively for active live streams.
-5. **No Fabricated Metrics:** No fake percentage growth (e.g. `+240%`) without verified telemetry; qualitative signals (`Forte tração`, `Em alta`, `Emergindo`) and interest ranks are used.
+7. **No Fabricated Metrics:** No fake percentage growth (e.g. `+240%`) without verified telemetry; qualitative signals (`Forte tração`, `Em alta`, `Emergindo`) and interest scores are used.
 
 ---
 
-## 3. Cache Architecture & Invalidation
+## 3. Cache Architecture & Fallback Flow
 
-The `PulseCacheProvider` abstraction enables provider-neutral caching:
+The `HybridPulseCache` orchestrates L1 and optional L2 caching:
 - **Videos**: 3600s (1 hour) TTL.
 - **News Feeds**: 900s (15 minutes) TTL.
 - **Trends & Technologies**: 7200s (2 hours) TTL.
-- **Degraded Upstream Resilience**: If an external provider times out or fails, the last known cache entry is returned with the label `'Em cache'`, ensuring 100% uptime for students.
+- **L1 Cache**: Process-local memory cache (`MemoryPulseCache`). In serverless/SSR environments, this operates safely as best-effort per instance and is fully resilient against cold starts.
+- **L2 Cache**: Pluggable distributed shared cache (`SharedPulseCache`) for multi-replica fleets (Redis/KV).
+- **Stale Fallback**: When upstream live feeds are unreachable or disabled, the registry inspects fresh cache, then stale cache, and finally curated fallback, ensuring 100% uptime for students with truthful labeling.
 
 ---
 

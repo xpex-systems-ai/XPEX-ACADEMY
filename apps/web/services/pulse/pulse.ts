@@ -1,10 +1,10 @@
 /**
  * XPeX Pulse — Unified Intelligence & Media Service
- * MISSION: XPEX-PULSE-LIVE-SOURCES-001
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002
  *
  * Integrates the Live Source Fabric with honest labeling taxonomy:
  * Labels: Curado | Atualizado | Disponível | Em cache | Indisponível | Em preparação | Ao Vivo
- * Priority: LIVE -> RECENT CACHE -> CURATED FALLBACK -> EMPTY STATE.
+ * Priority: LIVE -> FRESH CACHE -> STALE CACHE -> CURATED FALLBACK -> EMPTY STATE.
  * Zero client secrets, server-side external adapters, SSR-safe.
  */
 
@@ -102,22 +102,18 @@ export async function fetchStudentPulseProgress(_studentDisplayName?: string): P
 }
 
 /**
- * Filter and search Pulse items across all registered sources.
+ * Pure search algorithm operating deterministically over any provided PulseItem array.
  */
-export function searchPulse(query: string, categoryFilter: PulseCategory = 'all'): PulseSearchResult {
+export function searchPulseItems(
+  items: PulseItem[],
+  query: string,
+  categoryFilter: PulseCategory = 'all'
+): PulseSearchResult {
   const q = query.trim().toLowerCase()
-  const all: PulseItem[] = [
-    ...FALLBACK_VIDEOS,
-    ...FALLBACK_NEWS,
-    ...FALLBACK_TRENDS,
-    ...FALLBACK_TECH,
-    ...FALLBACK_RADAR,
-    ...FALLBACK_XARA,
-  ]
 
-  let filtered = all
+  let filtered = items
   if (categoryFilter !== 'all') {
-    filtered = all.filter((item) => {
+    filtered = items.filter((item) => {
       if (categoryFilter === 'videos') return item.category === 'videos'
       if (categoryFilter === 'news') return item.category === 'news'
       if (categoryFilter === 'trends') return item.category === 'trends'
@@ -173,6 +169,21 @@ export function searchPulse(query: string, categoryFilter: PulseCategory = 'all'
     totalCount: matched.length,
     matchedCategory: categoryFilter,
   }
+}
+
+/**
+ * Filter and search Pulse items across static fallback dataset (backwards compatibility).
+ */
+export function searchPulse(query: string, categoryFilter: PulseCategory = 'all'): PulseSearchResult {
+  const all: PulseItem[] = [
+    ...FALLBACK_VIDEOS,
+    ...FALLBACK_NEWS,
+    ...FALLBACK_TRENDS,
+    ...FALLBACK_TECH,
+    ...FALLBACK_RADAR,
+    ...FALLBACK_XARA,
+  ]
+  return searchPulseItems(all, query, categoryFilter)
 }
 
 /**

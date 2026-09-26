@@ -88,6 +88,7 @@ export interface PulseFreshnessReport {
 
 export interface PulseCacheProvider {
   get: <T>(_key: string) => Promise<T | null>
+  getStaleFallback: <T>(_key: string) => Promise<{ data: T; label: PulseContentLabel } | null>
   set: <T>(_key: string, _value: T, _ttlSeconds: number, _label?: PulseContentLabel) => Promise<void>
   invalidate: (_key: string) => Promise<void>
   getFreshness: (_key: string) => Promise<PulseFreshnessReport | null>

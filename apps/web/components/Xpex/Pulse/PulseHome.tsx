@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { PulseHero } from './PulseHero'
 import { PulseToolbar, PulseSearchResultsView } from './PulseToolbar'
 import { PulseMainPlayer } from './PulseMainPlayer'
@@ -24,6 +24,7 @@ import {
   fetchPulseResourceCards,
 } from '@services/pulse/pulse'
 import type {
+  PulseBlockResult,
   PulseVideoItem,
   PulseNewsItem,
   PulseTrendItem,
@@ -52,13 +53,46 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
     liveSources: false,
     youtubeApi: false,
   })
-  const [videos, setVideos] = useState<PulseVideoItem[]>([])
+
+  const [videoBlock, setVideoBlock] = useState<PulseBlockResult<PulseVideoItem>>({
+    items: [],
+    label: 'Curado',
+    live: false,
+    fetchedAt: '',
+  })
   const [activeVideo, setActiveVideo] = useState<PulseVideoItem | null>(null)
-  const [news, setNews] = useState<PulseNewsItem[]>([])
-  const [trends, setTrends] = useState<PulseTrendItem[]>([])
-  const [tech, setTech] = useState<PulseTechItem[]>([])
-  const [radar, setRadar] = useState<PulseRadarItem[]>([])
-  const [xara, setXara] = useState<PulseXaraItem[]>([])
+
+  const [newsBlock, setNewsBlock] = useState<PulseBlockResult<PulseNewsItem>>({
+    items: [],
+    label: 'Curado',
+    live: false,
+    fetchedAt: '',
+  })
+  const [trendBlock, setTrendBlock] = useState<PulseBlockResult<PulseTrendItem>>({
+    items: [],
+    label: 'Curado',
+    live: false,
+    fetchedAt: '',
+  })
+  const [techBlock, setTechBlock] = useState<PulseBlockResult<PulseTechItem>>({
+    items: [],
+    label: 'Curado',
+    live: false,
+    fetchedAt: '',
+  })
+  const [radarBlock, setRadarBlock] = useState<PulseBlockResult<PulseRadarItem>>({
+    items: [],
+    label: 'Curado',
+    live: false,
+    fetchedAt: '',
+  })
+  const [xaraBlock, setXaraBlock] = useState<PulseBlockResult<PulseXaraItem>>({
+    items: [],
+    label: 'Disponível',
+    live: false,
+    fetchedAt: '',
+  })
+
   const [progress, setProgress] = useState<PulseStudentProgress | undefined>(undefined)
   const [resourceCards, setResourceCards] = useState<PulseResourceCard[]>([])
 
@@ -68,7 +102,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
   const [searchQuery, setSearchQuery] = useState('')
   const [xaraPromptRequest, setXaraPromptRequest] = useState<string | undefined>(undefined)
 
-  // Resolve Firebase Remote Config feature gate
+  // Resolve Firebase Remote Config feature gates
   useEffect(() => {
     let mounted = true
 
@@ -81,6 +115,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
         const xaraEnabled = isFeatureEnabled('pulse_xara_enabled')
         const liveSourcesEnabled = isFeatureEnabled('pulse_live_sources_enabled')
         const youtubeApiEnabled = isFeatureEnabled('pulse_youtube_api_enabled')
+
         if (!mounted) return
         setPulseEnabled(enabled)
         setModuleFlags({
@@ -103,7 +138,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
     }
   }, [])
 
-  // Load all Pulse V2 data modules
+  // Load all Pulse V2 data modules with honest block metadata
   useEffect(() => {
     if (pulseEnabled !== true) return
 
@@ -146,15 +181,15 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
       }
 
       if (!mounted) return
-      setVideos(v.items)
+      setVideoBlock(v)
       if (v.items.length > 0) {
         setActiveVideo(v.items.find((item) => item.isFeatured) || v.items[0])
       }
-      setNews(n.items)
-      setTrends(tr.items)
-      setTech(te.items)
-      setRadar(r.items)
-      setXara(x.items)
+      setNewsBlock(n)
+      setTrendBlock(tr)
+      setTechBlock(te)
+      setRadarBlock(r)
+      setXaraBlock(x)
       setProgress(p)
       setResourceCards(res)
     }
@@ -164,6 +199,16 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
       mounted = false
     }
   }, [pulseEnabled, displayName, moduleFlags.liveSources, moduleFlags.youtubeApi, moduleFlags.news])
+
+  // Unified dataset for real-time search across all currently loaded blocks
+  const currentItems = useMemo<PulseItem[]>(() => [
+    ...videoBlock.items,
+    ...newsBlock.items,
+    ...trendBlock.items,
+    ...techBlock.items,
+    ...radarBlock.items,
+    ...xaraBlock.items,
+  ], [videoBlock, newsBlock, trendBlock, techBlock, radarBlock, xaraBlock])
 
   const handleSelectVideo = useCallback((video: PulseVideoItem) => {
     setActiveVideo(video)
@@ -248,6 +293,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
 
       <PulseToolbar
         activeCategory={activeCategory}
+        items={currentItems}
         onCategoryChange={handleCategoryChange}
         onSearchActive={handleSearchActive}
         onResults={setSearchResults}
@@ -279,9 +325,9 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
             </div>
 
             <div className="pulse-stage-right-col">
-              {videos.length > 0 && (
+              {videoBlock.items.length > 0 && (
                 <PulseVideoQueue
-                  videos={videos}
+                  videos={videoBlock.items}
                   activeVideoId={activeVideo?.id || ''}
                   onSelectVideo={handleSelectVideo}
                 />
@@ -290,10 +336,10 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
           </section>
 
           {/* Curated Videos Carousel / Grid */}
-          {videos.length > 0 && (
+          {videoBlock.items.length > 0 && (
             <PulseCuratedVideos
-              items={videos}
-              label="Curado"
+              items={videoBlock.items}
+              label={videoBlock.label}
               onSelectVideo={handleSelectVideo}
             />
           )}
@@ -301,26 +347,34 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
           {/* Tri-Column Intelligence Hub */}
           <section className="pulse-tri-column-grid" aria-label="Central de Notícias, Tendências e Tecnologias">
             <div className="pulse-tri-col">
-              {moduleFlags.news && news.length > 0 && <PulseNewsBlock items={news} label="Curado" />}
+              {moduleFlags.news && newsBlock.items.length > 0 && (
+                <PulseNewsBlock items={newsBlock.items} label={newsBlock.label} />
+              )}
             </div>
             <div className="pulse-tri-col">
-              {moduleFlags.trends && trends.length > 0 && <PulseTrendsBlock items={trends} label="Curado" />}
+              {moduleFlags.trends && trendBlock.items.length > 0 && (
+                <PulseTrendsBlock items={trendBlock.items} label={trendBlock.label} />
+              )}
             </div>
             <div className="pulse-tri-col">
-              {tech.length > 0 && <PulseTechBlock items={tech} label="Curado" />}
+              {techBlock.items.length > 0 && (
+                <PulseTechBlock items={techBlock.items} label={techBlock.label} />
+              )}
             </div>
           </section>
 
           {/* Radar + XARA Bridge Row */}
           <section className="pulse-dual-bottom-grid" aria-label="Radar e Mentor Pedagógico XARA">
             <div className="pulse-dual-col">
-              {radar.length > 0 && <PulseRadarBlock items={radar} label="Curado" />}
+              {radarBlock.items.length > 0 && (
+                <PulseRadarBlock items={radarBlock.items} label={radarBlock.label} />
+              )}
             </div>
             <div className="pulse-dual-col">
               {moduleFlags.xara && (
                 <PulseXaraBlock
-                  items={xara}
-                  label="Disponível"
+                  items={xaraBlock.items}
+                  label={xaraBlock.label}
                   accessToken={accessToken}
                   organizationSlug={organizationSlug}
                   activeVideoTitle={activeVideo?.title}

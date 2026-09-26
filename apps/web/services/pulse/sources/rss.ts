@@ -1,10 +1,15 @@
 /**
  * XPeX Pulse — Server-Side Trusted News & Feeds Ingestion
- * MISSION: XPEX-PULSE-LIVE-SOURCES-001
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002
  *
  * Ingests authoritative technology/AI news and research feeds.
  * Retains complete source provenance (publisher, domain, canonicalUrl).
  * Normalized to XPeX PulseNewsItem domain contract.
+ *
+ * Truthfulness:
+ * - Dates: Validated via parseDateOrNull. Unparseable/missing dates remain null.
+ * - Relative time: Computed from verified timestamps only (no fabricated "Hoje").
+ * - Read time: Derived as estimatedReadTimeMinutes without claiming upstream metric.
  */
 
 import 'server-only'
@@ -53,6 +58,31 @@ export const APPROVED_NEWS_PUBLISHERS: ApprovedNewsPublisher[] = [
     trustLevel: 'institutional',
   },
 ]
+
+export function parseDateOrNull(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') return null
+  const parsed = Date.parse(value.trim())
+  if (Number.isNaN(parsed)) return null
+  return new Date(parsed).toISOString()
+}
+
+export function formatRelativeDate(isoDateString?: string | null): string | undefined {
+  if (!isoDateString) return undefined
+  const timestamp = Date.parse(isoDateString)
+  if (Number.isNaN(timestamp)) return undefined
+
+  const diffMs = Date.now() - timestamp
+  if (diffMs < 0) return 'Recente'
+
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffHours < 1) return 'Recente'
+  if (diffHours < 24) return `há ${diffHours}h`
+  if (diffDays === 1) return 'ontem'
+  if (diffDays < 7) return `há ${diffDays} dias`
+  return undefined
+}
 
 export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
   id = 'src-news-feeds'
@@ -115,19 +145,22 @@ export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
     const item = raw as Partial<PulseNewsItem>
     if (!item.title) return null
 
+    const validDate = parseDateOrNull(item.publishedAt)
+
     return {
       id: item.id || `news-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title: item.title,
       description: item.description || '',
       category: 'news',
       label: 'Atualizado',
-      publishedAt: item.publishedAt || new Date().toISOString(),
+      publishedAt: validDate,
       url: item.url || null,
       youtubeId: null,
       source: item.source || 'Fonte Especializada',
       domain: item.domain || 'xpex.academy',
-      readTimeMinutes: item.readTimeMinutes || 4,
-      publishedRelative: 'Hoje',
+      readTimeMinutes: item.readTimeMinutes,
+      estimatedReadTimeMinutes: item.estimatedReadTimeMinutes ?? (item.description ? Math.max(2, Math.min(8, Math.round(item.description.length / 100))) : undefined),
+      publishedRelative: formatRelativeDate(validDate),
     }
   }
 
@@ -147,7 +180,8 @@ export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
       const title = titleMatch ? titleMatch[2].replace(/<[^>]+>/g, '').trim() : null
       const desc = descMatch ? descMatch[2].replace(/<[^>]+>/g, '').trim().substring(0, 180) : ''
       const link = linkMatch ? (linkMatch[1] || linkMatch[0]).trim() : null
-      const pubDate = dateMatch ? new Date(dateMatch[1].trim()).toISOString() : new Date().toISOString()
+      const rawDate = dateMatch ? dateMatch[1].trim() : null
+      const pubDate = parseDateOrNull(rawDate)
 
       if (title) {
         items.push({
@@ -162,7 +196,8 @@ export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
           source: pub.name,
           domain: pub.domain,
           readTimeMinutes: Math.max(3, Math.min(8, Math.round((desc.length + title.length) / 50))),
-          publishedRelative: 'Recente',
+          estimatedReadTimeMinutes: Math.max(3, Math.min(8, Math.round((desc.length + title.length) / 50))),
+          publishedRelative: formatRelativeDate(pubDate),
         })
       }
     }

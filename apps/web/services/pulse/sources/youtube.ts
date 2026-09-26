@@ -1,11 +1,15 @@
 /**
  * XPeX Pulse — Server-Side YouTube Live Discovery Adapter
- * MISSION: XPEX-PULSE-LIVE-SOURCES-001
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002
  *
- * Discovers official YouTube learning content via official API when configured.
+ * Discovers approved YouTube learning content via official API when configured.
  * Does NOT proxy streams or download media.
  * Uses official embed IDs and youtube-nocookie.com.
  * Gracefully degrades if YOUTUBE_API_KEY is missing or disabled.
+ *
+ * Trust Model:
+ * Matches discovered items against APPROVED_YOUTUBE_CHANNELS registry to classify
+ * provenance as 'official', 'institutional', or 'curated'.
  */
 
 import 'server-only'
@@ -13,8 +17,30 @@ import 'server-only'
 import type {
   PulseLiveSource,
   PulseSourceHealthRecord,
+  PulseSourceTrustLevel,
 } from './types'
 import type { PulseVideoItem } from '@/types/pulse'
+
+export interface ApprovedYouTubeChannel {
+  channelId?: string
+  channelTitle: string
+  trustLevel: 'official' | 'institutional' | 'curated'
+}
+
+export const APPROVED_YOUTUBE_CHANNELS: ApprovedYouTubeChannel[] = [
+  { channelTitle: 'Google DeepMind', trustLevel: 'official' },
+  { channelTitle: 'OpenAI', trustLevel: 'official' },
+  { channelTitle: 'Anthropic', trustLevel: 'official' },
+  { channelTitle: 'Microsoft Developer', trustLevel: 'official' },
+  { channelTitle: 'MIT OpenCourseWare', trustLevel: 'institutional' },
+  { channelTitle: 'Stanford Online', trustLevel: 'institutional' },
+  { channelTitle: 'XPeX Academy', trustLevel: 'official' },
+  { channelTitle: 'freeCodeCamp.org', trustLevel: 'curated' },
+  { channelTitle: 'Fireship', trustLevel: 'curated' },
+  { channelTitle: 'Two Minute Papers', trustLevel: 'curated' },
+  { channelTitle: 'Lex Fridman', trustLevel: 'curated' },
+  { channelTitle: 'Yannic Kilcher', trustLevel: 'curated' },
+]
 
 export const APPROVED_YOUTUBE_TOPICS = [
   'artificial intelligence',
@@ -31,11 +57,26 @@ export const APPROVED_YOUTUBE_TOPICS = [
   'AI productivity',
 ]
 
+export function resolveYouTubeChannelTrust(channelTitle?: string): {
+  trustLevel: PulseSourceTrustLevel
+  isApproved: boolean
+} {
+  if (!channelTitle) return { trustLevel: 'curated', isApproved: false }
+  const titleLower = channelTitle.toLowerCase().trim()
+  const matched = APPROVED_YOUTUBE_CHANNELS.find(
+    (c) => c.channelTitle.toLowerCase() === titleLower || titleLower.includes(c.channelTitle.toLowerCase())
+  )
+  if (matched) {
+    return { trustLevel: matched.trustLevel, isApproved: true }
+  }
+  return { trustLevel: 'curated', isApproved: false }
+}
+
 export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
   id = 'src-youtube-live'
   name = 'YouTube Official Live Discovery'
   kind = 'youtube' as const
-  trustLevel = 'official' as const
+  trustLevel: PulseSourceTrustLevel = 'curated'
   enabled = true
   refreshStrategy = {
     ttlSeconds: 3600, // 1 hour cache
@@ -118,6 +159,8 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
     if (!videoId) return null
 
     const snippet = obj.snippet || {}
+    const channelTitle = snippet.channelTitle || 'Canal Curado'
+    const trustInfo = resolveYouTubeChannelTrust(channelTitle)
 
     return {
       id: `yt-live-${videoId}`,
@@ -125,13 +168,13 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
       description: snippet.description || '',
       category: 'videos',
       label: 'Atualizado',
-      publishedAt: snippet.publishedAt || null,
+      publishedAt: snippet.publishedAt ? new Date(snippet.publishedAt).toISOString() : null,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       youtubeId: videoId,
-      channelName: snippet.channelTitle || 'Canal Curado',
+      channelName: channelTitle,
       durationLabel: undefined, // left undefined if not supplied by search endpoint
       viewsCountLabel: undefined, // never invent fake views
-      source: `YouTube / ${snippet.channelTitle || 'Oficial'}`,
+      source: trustInfo.isApproved ? `YouTube / ${channelTitle}` : `YouTube / ${channelTitle} (${trustInfo.trustLevel})`,
       thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url,
       thumbnailAlt: snippet.title ? `Thumbnail de ${snippet.title}` : undefined,
     }
