@@ -8,7 +8,6 @@
  * Zero client secrets, server-side external adapters, SSR-safe.
  */
 
-import { pulseRegistry } from './sources/registry'
 import {
   FALLBACK_VIDEOS,
   FALLBACK_QUEUE_ITEMS,
@@ -37,7 +36,6 @@ import type {
   PulseResourceCard,
   PulseXaraMessage,
 } from '@/types/pulse'
-import type { PulseSourceHealthRecord } from './sources/types'
 
 // Re-export static datasets for backwards compatibility and offline test coverage
 export const CURATED_VIDEOS = FALLBACK_VIDEOS
@@ -62,40 +60,36 @@ export const PULSE_CATEGORIES: PulseCategoryFilter[] = [
 
 // ─── Public Async Fetchers (Powered by Registry) ─────────────────────────────
 
-export async function fetchPulseVideos(liveSourcesEnabled = false): Promise<PulseBlockResult<PulseVideoItem>> {
-  return pulseRegistry.getVideos(liveSourcesEnabled)
+export async function fetchPulseVideos(_liveSourcesEnabled = false): Promise<PulseBlockResult<PulseVideoItem>> {
+  return { items: FALLBACK_VIDEOS, label: 'Curado', live: false, fetchedAt: new Date().toISOString() }
 }
 
-export async function fetchPulseVideoQueue(liveSourcesEnabled = false): Promise<PulseVideoQueueItem[]> {
-  return pulseRegistry.getVideoQueue(liveSourcesEnabled)
+export async function fetchPulseVideoQueue(_liveSourcesEnabled = false): Promise<PulseVideoQueueItem[]> {
+  return FALLBACK_QUEUE_ITEMS
 }
 
-export async function fetchPulseNews(liveSourcesEnabled = false): Promise<PulseBlockResult<PulseNewsItem>> {
-  return pulseRegistry.getNews(liveSourcesEnabled)
+export async function fetchPulseNews(_liveSourcesEnabled = false): Promise<PulseBlockResult<PulseNewsItem>> {
+  return { items: FALLBACK_NEWS, label: 'Curado', live: false, fetchedAt: new Date().toISOString() }
 }
 
 export async function fetchPulseTrends(): Promise<PulseBlockResult<PulseTrendItem>> {
-  return pulseRegistry.getTrends()
+  return { items: FALLBACK_TRENDS, label: 'Curado', live: false, fetchedAt: new Date().toISOString() }
 }
 
 export async function fetchPulseTech(): Promise<PulseBlockResult<PulseTechItem>> {
-  return pulseRegistry.getTech()
+  return { items: FALLBACK_TECH, label: 'Curado', live: false, fetchedAt: new Date().toISOString() }
 }
 
 export async function fetchPulseRadar(): Promise<PulseBlockResult<PulseRadarItem>> {
-  return pulseRegistry.getRadar()
+  return { items: FALLBACK_RADAR, label: 'Curado', live: false, fetchedAt: new Date().toISOString() }
 }
 
 export async function fetchPulseXara(): Promise<PulseBlockResult<PulseXaraItem>> {
-  return pulseRegistry.getXara()
+  return { items: FALLBACK_XARA, label: 'Disponível', live: false, fetchedAt: new Date().toISOString() }
 }
 
 export async function fetchPulseResourceCards(): Promise<PulseResourceCard[]> {
-  return pulseRegistry.getResourceCards()
-}
-
-export async function getPulseSourcesHealth(): Promise<PulseSourceHealthRecord[]> {
-  return pulseRegistry.getHealthReport()
+  return FALLBACK_RESOURCE_CARDS
 }
 
 /**
