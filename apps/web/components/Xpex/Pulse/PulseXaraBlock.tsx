@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { askPulseXara } from '@services/pulse/pulse'
 import type { PulseXaraItem, PulseXaraMessage } from '@/types/pulse'
@@ -8,6 +8,8 @@ import type { PulseXaraItem, PulseXaraMessage } from '@/types/pulse'
 interface PulseXaraBlockProps {
   items: PulseXaraItem[]
   label?: string
+  accessToken: string
+  organizationSlug: string
   activeVideoTitle?: string
   initialPrompt?: string
 }
@@ -15,6 +17,8 @@ interface PulseXaraBlockProps {
 export function PulseXaraBlock({
   items,
   label = 'Disponível',
+  accessToken,
+  organizationSlug,
   activeVideoTitle,
   initialPrompt,
 }: PulseXaraBlockProps) {
@@ -36,6 +40,10 @@ export function PulseXaraBlock({
   const [inputValue, setInputValue] = useState(initialPrompt || '')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (initialPrompt) setInputValue(initialPrompt)
+  }, [initialPrompt])
+
   const handleSend = async (text: string) => {
     const trimmed = text.trim()
     if (!trimmed || loading) return
@@ -54,7 +62,7 @@ export function PulseXaraBlock({
     ])
 
     try {
-      const reply = await askPulseXara(trimmed, activeVideoTitle)
+      const reply = await askPulseXara(trimmed, activeVideoTitle, accessToken, organizationSlug)
       setMessages((prev) => [...prev, reply])
 
       // Telemetry
