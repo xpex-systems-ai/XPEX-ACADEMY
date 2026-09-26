@@ -38,7 +38,15 @@ export function PulseRadarBlock({ items, label }: PulseRadarBlockProps) {
             </div>
             <p className="pulse-card-desc">{item.description}</p>
             {item.url && (
-              <Link href={item.url} className="pulse-card-link">
+              <Link
+                href={item.url}
+                className="pulse-card-link"
+                onClick={() => {
+                  import('@/lib/firebase').then(({ trackXpexEvent }) => {
+                    trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: 'radar' })
+                  }).catch(() => {})
+                }}
+              >
                 Explorar <ArrowRight size={13} aria-hidden="true" />
               </Link>
             )}

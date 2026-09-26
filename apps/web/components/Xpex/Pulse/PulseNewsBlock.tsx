@@ -32,6 +32,11 @@ export function PulseNewsBlock({ items, label }: PulseNewsBlockProps) {
             rel="noopener noreferrer"
             className="pulse-news-card"
             aria-label={`Leia: ${item.title} — fonte: ${item.source ?? item.domain}`}
+            onClick={() => {
+              import('@/lib/firebase').then(({ trackXpexEvent }) => {
+                trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: 'news' })
+              }).catch(() => {})
+            }}
           >
             <div className="pulse-news-icon" aria-hidden="true">
               <Newspaper size={16} />

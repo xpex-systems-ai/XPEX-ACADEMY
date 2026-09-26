@@ -121,6 +121,11 @@ export function PulseSearchResultsView({ items, query }: PulseSearchResultsViewP
               key={item.id}
               className="pulse-search-result-card"
               {...tagProps}
+              onClick={() => {
+                import('@/lib/firebase').then(({ trackXpexEvent }) => {
+                  trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: item.category })
+                }).catch(() => {})
+              }}
             >
               <span className="pulse-search-badge">{CATEGORY_LABELS[item.category] ?? item.category}</span>
               <div>

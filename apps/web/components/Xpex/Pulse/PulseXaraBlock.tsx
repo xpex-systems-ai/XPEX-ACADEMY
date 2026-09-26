@@ -50,7 +50,15 @@ export function PulseXaraBlock({ items, label }: PulseXaraBlockProps) {
             <h3 className="pulse-card-title">{item.title}</h3>
             <p className="pulse-card-desc">{item.description}</p>
             {item.url && item.label !== 'Em preparação' ? (
-              <Link href={item.url} className="pulse-card-link">
+              <Link
+                href={item.url}
+                className="pulse-card-link"
+                onClick={() => {
+                  import('@/lib/firebase').then(({ trackXpexEvent }) => {
+                    trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: 'xara' })
+                  }).catch(() => {})
+                }}
+              >
                 Começar <ArrowRight size={13} aria-hidden="true" />
               </Link>
             ) : (
