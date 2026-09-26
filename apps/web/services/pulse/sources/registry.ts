@@ -6,6 +6,8 @@
  * LIVE -> RECENT CACHE -> CURATED FALLBACK -> EMPTY STATE
  */
 
+import 'server-only'
+
 import { youtubeLiveSource } from './youtube'
 import { newsFeedLiveSource } from './rss'
 import { pulseCache } from './cache'
