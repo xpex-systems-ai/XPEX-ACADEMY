@@ -8,6 +8,8 @@
  * Tech/Trends: controlled refresh (e.g. 2h)
  */
 
+import 'server-only'
+
 import type {
   PulseCacheProvider,
   PulseCacheEntry,
