@@ -38,12 +38,18 @@ import type {
 import './pulse.css'
 
 interface PulseHomeProps {
+  accessToken: string
   displayName?: string
   organizationSlug?: string
 }
 
-export function PulseHome({ displayName = 'Aluno XPeX', organizationSlug: _organizationSlug }: PulseHomeProps) {
+export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizationSlug = 'default' }: PulseHomeProps) {
   const [pulseEnabled, setPulseEnabled] = useState<boolean | null>(null)
+  const [moduleFlags, setModuleFlags] = useState({
+    news: true,
+    trends: true,
+    xara: true,
+  })
   const [videos, setVideos] = useState<PulseVideoItem[]>([])
   const [activeVideo, setActiveVideo] = useState<PulseVideoItem | null>(null)
   const [news, setNews] = useState<PulseNewsItem[]>([])
@@ -68,8 +74,12 @@ export function PulseHome({ displayName = 'Aluno XPeX', organizationSlug: _organ
       .then(async ({ initFirebaseFabric, isFeatureEnabled, trackXpexEvent }) => {
         await initFirebaseFabric()
         const enabled = isFeatureEnabled('pulse_enabled')
+        const newsEnabled = isFeatureEnabled('pulse_news_enabled')
+        const trendsEnabled = isFeatureEnabled('pulse_trends_enabled')
+        const xaraEnabled = isFeatureEnabled('pulse_xara_enabled')
         if (!mounted) return
         setPulseEnabled(enabled)
+        setModuleFlags({ news: newsEnabled, trends: trendsEnabled, xara: xaraEnabled })
         if (enabled) {
           trackXpexEvent('pulse_opened', {})
         }
@@ -256,10 +266,10 @@ export function PulseHome({ displayName = 'Aluno XPeX', organizationSlug: _organ
           {/* Tri-Column Intelligence Hub */}
           <section className="pulse-tri-column-grid" aria-label="Central de Notícias, Tendências e Tecnologias">
             <div className="pulse-tri-col">
-              {news.length > 0 && <PulseNewsBlock items={news} label="Atualizado" />}
+              {moduleFlags.news && news.length > 0 && <PulseNewsBlock items={news} label="Curado" />}
             </div>
             <div className="pulse-tri-col">
-              {trends.length > 0 && <PulseTrendsBlock items={trends} label="Curado" />}
+              {moduleFlags.trends && trends.length > 0 && <PulseTrendsBlock items={trends} label="Curado" />}
             </div>
             <div className="pulse-tri-col">
               {tech.length > 0 && <PulseTechBlock items={tech} label="Curado" />}
@@ -272,12 +282,16 @@ export function PulseHome({ displayName = 'Aluno XPeX', organizationSlug: _organ
               {radar.length > 0 && <PulseRadarBlock items={radar} label="Curado" />}
             </div>
             <div className="pulse-dual-col">
-              <PulseXaraBlock
-                items={xara}
-                label="Disponível"
-                activeVideoTitle={activeVideo?.title}
-                initialPrompt={xaraPromptRequest}
-              />
+              {moduleFlags.xara && (
+                <PulseXaraBlock
+                  items={xara}
+                  label="Disponível"
+                  accessToken={accessToken}
+                  organizationSlug={organizationSlug}
+                  activeVideoTitle={activeVideo?.title}
+                  initialPrompt={xaraPromptRequest}
+                />
+              )}
             </div>
           </section>
 
