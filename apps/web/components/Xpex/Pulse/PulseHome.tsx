@@ -37,11 +37,12 @@ interface PulseHomeProps {
 /**
  * PulseHome — root client component for /xpex/pulse.
  *
- * Loads all content blocks from the curated adapter.
- * Handles search activation / results overlay.
- * Fires Firebase Analytics events via dynamic import (non-blocking).
+ * Loads curated V1 content only when the Firebase Fabric feature gate allows it.
+ * Remote Config can disable Pulse without a code deployment; if Firebase is
+ * unavailable, the code-authoritative default remains the safe fallback.
  */
 export function PulseHome({ displayName: _displayName, organizationSlug: _organizationSlug }: PulseHomeProps) {
+  const [pulseEnabled, setPulseEnabled] = useState<boolean | null>(null)
   const [videos, setVideos] = useState<PulseVideoItem[]>([])
   const [news, setNews] = useState<PulseNewsItem[]>([])
   const [trends, setTrends] = useState<PulseTrendItem[]>([])
@@ -53,15 +54,34 @@ export function PulseHome({ displayName: _displayName, organizationSlug: _organi
   const [searchResults, setSearchResults] = useState<PulseItem[]>([])
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Fire pulse_opened analytics event (non-blocking)
+  // Resolve the Firebase Remote Config feature gate before loading the product.
   useEffect(() => {
-    import('@/lib/firebase').then(({ trackXpexEvent }) => {
-      trackXpexEvent('pulse_opened', {})
-    }).catch(() => { /* Firebase optional */ })
+    let mounted = true
+
+    import('@/lib/firebase')
+      .then(async ({ initFirebaseFabric, isFeatureEnabled, trackXpexEvent }) => {
+        await initFirebaseFabric()
+        const enabled = isFeatureEnabled('pulse_enabled')
+        if (!mounted) return
+        setPulseEnabled(enabled)
+        if (enabled) {
+          trackXpexEvent('pulse_opened', {})
+        }
+      })
+      .catch(() => {
+        // Firebase is optional for availability. Fall back to the code default.
+        if (mounted) setPulseEnabled(true)
+      })
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  // Load all blocks
+  // Load curated blocks only after the feature gate resolves enabled.
   useEffect(() => {
+    if (pulseEnabled !== true) return
+
     let mounted = true
     async function loadAll() {
       const [v, n, tr, te, r, x] = await Promise.all([
@@ -80,46 +100,64 @@ export function PulseHome({ displayName: _displayName, organizationSlug: _organi
       setRadar(r.items)
       setXara(x.items)
     }
+
     loadAll()
-    return () => { mounted = false }
-  }, [])
+    return () => {
+      mounted = false
+    }
+  }, [pulseEnabled])
 
   const handleSearchActive = (active: boolean) => {
     setSearchActive(active)
     if (!active) {
       setSearchResults([])
       setSearchQuery('')
-    } else {
-      // Fire pulse_search event
-      import('@/lib/firebase').then(({ trackXpexEvent }) => {
-        trackXpexEvent('pulse_search', {})
-      }).catch(() => { /* Firebase optional */ })
+      return
     }
+
+    import('@/lib/firebase').then(({ trackXpexEvent }) => {
+      trackXpexEvent('pulse_search', {})
+    }).catch(() => { /* Firebase optional */ })
+  }
+
+  if (pulseEnabled === null) {
+    return (
+      <div className="pulse-container" aria-live="polite">
+        <div className="pulse-status-notice" role="status">
+          Preparando o XPeX Pulse…
+        </div>
+      </div>
+    )
+  }
+
+  if (!pulseEnabled) {
+    return (
+      <div className="pulse-container" aria-live="polite">
+        <div className="pulse-status-notice" role="status">
+          XPeX Pulse está temporariamente indisponível neste ambiente.
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="pulse-container">
-      {/* 1. Hero */}
       <PulseHero />
 
-      {/* 2. Toolbar + Search */}
       <PulseToolbar
         onSearchActive={handleSearchActive}
         onResults={setSearchResults}
         onQuery={setSearchQuery}
       />
 
-      {/* 3. Search results overlay (replaces content blocks when active) */}
       {searchActive ? (
         <PulseSearchResultsView items={searchResults} query={searchQuery} />
       ) : (
         <>
-          {/* 4. Vídeos Curados */}
           {videos.length > 0 && (
             <PulseVideoBlock items={videos} label="Curado" />
           )}
 
-          {/* 5. Notícias + Tendências side-by-side sections */}
           {news.length > 0 && (
             <PulseNewsBlock items={news} label="Curado" />
           )}
@@ -128,12 +166,10 @@ export function PulseHome({ displayName: _displayName, organizationSlug: _organi
             <PulseTrendsBlock items={trends} label="Curado" />
           )}
 
-          {/* 6. Tecnologias Emergentes */}
           {tech.length > 0 && (
             <PulseTechBlock items={tech} label="Curado" />
           )}
 
-          {/* 7. Radar XPeX + Aprenda com XARA */}
           {radar.length > 0 && (
             <PulseRadarBlock items={radar} label="Curado" />
           )}
@@ -142,7 +178,6 @@ export function PulseHome({ displayName: _displayName, organizationSlug: _organi
             <PulseXaraBlock items={xara} label="Curado" />
           )}
 
-          {/* 8. Footer tagline */}
           <div className="pulse-footer-tagline" aria-label="Tagline XPeX Pulse">
             Mais conhecimento. Mais oportunidades. Um futuro real.
           </div>
