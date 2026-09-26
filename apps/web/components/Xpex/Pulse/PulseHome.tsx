@@ -291,6 +291,19 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
     <div className="pulse-container">
       <PulseHero />
 
+      <section className="pulse-command-strip" aria-label="Estado atual do XPeX Pulse">
+        <div className="pulse-command-kicker">
+          <span className="pulse-command-led" aria-hidden="true" />
+          <span>INTELLIGENCE FABRIC</span>
+        </div>
+        <div className="pulse-command-signals">
+          <span className="pulse-command-chip"><strong>Vídeos</strong>{videoBlock.label}</span>
+          <span className="pulse-command-chip"><strong>Notícias</strong>{newsBlock.label}</span>
+          <span className="pulse-command-chip"><strong>Radar</strong>{radarBlock.label}</span>
+          <span className="pulse-command-chip"><strong>XARA</strong>{moduleFlags.xara ? xaraBlock.label : 'Standby'}</span>
+        </div>
+      </section>
+
       <PulseToolbar
         activeCategory={activeCategory}
         items={currentItems}
