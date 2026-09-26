@@ -1,16 +1,17 @@
 /**
  * XPeX Pulse — Unified Source Registry & Ingestion Fabric
- * MISSION: XPEX-PULSE-LIVE-SOURCES-002
+ * MISSION: XPEX-PULSE-RELEASE-PATCH-001
  *
- * Implements the deterministic priority chain:
- * 1. LIVE (if enabled & successful -> save cache, return 'Atualizado', live: true, sourceState: 'live')
- * 2. FRESH CACHE (if live disabled/failed -> return 'Em cache', live: false, sourceState: 'fresh-cache')
- * 3. STALE CACHE (if fresh cache expired -> return 'Em cache', live: false, sourceState: 'stale-cache')
- * 4. CURATED FALLBACK (if cache empty -> return 'Curado', live: false, sourceState: 'curated')
- * 5. EMPTY / UNAVAILABLE (if no fallback -> return 'Indisponível', live: false, sourceState: 'unavailable')
+ * Feature Flag Kill Switch & Priority Chain:
+ * - If liveSourcesEnabled === false:
+ *     Bypass all caches immediately and return Curated Fallback directly (sourceState: 'curated').
+ * - If liveSourcesEnabled === true:
+ *     1. LIVE fetch (if success -> save cache, return 'Atualizado', live: true, sourceState: 'live')
+ *     2. FRESH CACHE (if live fails -> return 'Em cache', live: false, sourceState: 'fresh-cache')
+ *     3. STALE CACHE (if fresh cache expired -> return 'Em cache', live: false, sourceState: 'stale-cache')
+ *     4. CURATED FALLBACK (if cache empty -> return 'Curado', live: false, sourceState: 'curated')
+ *     5. EMPTY / UNAVAILABLE (if no fallback -> return 'Indisponível', live: false, sourceState: 'unavailable')
  */
-
-import 'server-only'
 
 import { youtubeLiveSource } from './youtube'
 import { newsFeedLiveSource } from './rss'
@@ -51,23 +52,32 @@ export class PulseSourceRegistry {
   async getVideos(liveSourcesEnabled = false): Promise<PulseBlockResult<PulseVideoItem>> {
     const now = new Date().toISOString()
 
-    // 1. LIVE attempt if feature flag allows
-    if (liveSourcesEnabled) {
-      try {
-        const liveItems = await youtubeLiveSource.fetch()
-        if (liveItems && liveItems.length > 0) {
-          await pulseCache.set(this.CACHE_KEY_VIDEOS, liveItems, 3600, 'Atualizado')
-          return {
-            items: liveItems,
-            label: 'Atualizado',
-            live: true,
-            fetchedAt: now,
-            sourceState: 'live',
-          }
-        }
-      } catch {
-        // Fall through to cache/fallback
+    // 0. FEATURE FLAG KILL SWITCH: When OFF, return Curated Fallback directly with zero live-derived cache
+    if (!liveSourcesEnabled) {
+      return {
+        items: FALLBACK_VIDEOS,
+        label: 'Curado',
+        live: false,
+        fetchedAt: now,
+        sourceState: 'curated',
       }
+    }
+
+    // 1. LIVE attempt when feature flag is ON
+    try {
+      const liveItems = await youtubeLiveSource.fetch()
+      if (liveItems && liveItems.length > 0) {
+        await pulseCache.set(this.CACHE_KEY_VIDEOS, liveItems, 3600, 'Atualizado')
+        return {
+          items: liveItems,
+          label: 'Atualizado',
+          live: true,
+          fetchedAt: now,
+          sourceState: 'live',
+        }
+      }
+    } catch {
+      // Fall through to cache/fallback on live fetch error
     }
 
     // 2. FRESH CACHE check
@@ -110,7 +120,7 @@ export class PulseSourceRegistry {
       id: v.id,
       title: v.title,
       channelName: v.channelName,
-      durationLabel: v.durationLabel ?? '—',
+      durationLabel: v.durationLabel,
       youtubeId: v.youtubeId,
       category: v.category,
       viewsCountLabel: v.viewsCountLabel,
@@ -122,23 +132,32 @@ export class PulseSourceRegistry {
   async getNews(liveSourcesEnabled = false): Promise<PulseBlockResult<PulseNewsItem>> {
     const now = new Date().toISOString()
 
-    // 1. LIVE attempt
-    if (liveSourcesEnabled) {
-      try {
-        const liveItems = await newsFeedLiveSource.fetch()
-        if (liveItems && liveItems.length > 0) {
-          await pulseCache.set(this.CACHE_KEY_NEWS, liveItems, 900, 'Atualizado')
-          return {
-            items: liveItems,
-            label: 'Atualizado',
-            live: true,
-            fetchedAt: now,
-            sourceState: 'live',
-          }
-        }
-      } catch {
-        // Fall through
+    // 0. FEATURE FLAG KILL SWITCH: When OFF, return Curated Fallback directly with zero live-derived cache
+    if (!liveSourcesEnabled) {
+      return {
+        items: FALLBACK_NEWS,
+        label: 'Curado',
+        live: false,
+        fetchedAt: now,
+        sourceState: 'curated',
       }
+    }
+
+    // 1. LIVE attempt when feature flag is ON
+    try {
+      const liveItems = await newsFeedLiveSource.fetch()
+      if (liveItems && liveItems.length > 0) {
+        await pulseCache.set(this.CACHE_KEY_NEWS, liveItems, 900, 'Atualizado')
+        return {
+          items: liveItems,
+          label: 'Atualizado',
+          live: true,
+          fetchedAt: now,
+          sourceState: 'live',
+        }
+      }
+    } catch {
+      // Fall through on live error
     }
 
     // 2. FRESH CACHE check

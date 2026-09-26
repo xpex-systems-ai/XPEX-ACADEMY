@@ -78,7 +78,7 @@ export interface PulseVideoQueueItem {
   id: string
   title: string
   channelName: string
-  durationLabel: string
+  durationLabel?: string
   youtubeId: string
   thumbnailUrl?: string
   category: string

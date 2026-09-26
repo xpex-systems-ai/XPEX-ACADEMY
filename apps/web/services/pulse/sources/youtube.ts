@@ -1,14 +1,15 @@
 /**
  * XPeX Pulse — Server-Side YouTube Live Discovery Adapter
- * MISSION: XPEX-PULSE-LIVE-SOURCES-002-HARDENING
+ * MISSION: XPEX-PULSE-RELEASE-PATCH-001
  *
  * Discovers approved YouTube learning content via official API when configured.
  * Does NOT proxy streams or download media.
  * Uses official embed IDs and youtube-nocookie.com.
  * Gracefully degrades if YOUTUBE_API_KEY is missing or disabled.
  *
- * Trust Model & Hardened Policies:
- * - Discovered videos are strictly filtered against the APPROVED_YOUTUBE_CHANNELS registry.
+ * Trust Model & Exact Matching:
+ * - Approved channels matched strictly by exact channelId or exact normalized channelTitle.
+ * - Substring matching is strictly rejected.
  * - Non-approved channels are rejected during normalization.
  * - Dates are parsed safely via parseYouTubeDateOrNull (returns null on malformed dates).
  * - Never fabricates duration or view metrics.
@@ -28,18 +29,18 @@ export interface ApprovedYouTubeChannel {
 }
 
 export const APPROVED_YOUTUBE_CHANNELS: ApprovedYouTubeChannel[] = [
-  { channelTitle: 'Google DeepMind', trustLevel: 'official' },
-  { channelTitle: 'OpenAI', trustLevel: 'official' },
-  { channelTitle: 'Anthropic', trustLevel: 'official' },
-  { channelTitle: 'Microsoft Developer', trustLevel: 'official' },
-  { channelTitle: 'MIT OpenCourseWare', trustLevel: 'institutional' },
-  { channelTitle: 'Stanford Online', trustLevel: 'institutional' },
+  { channelId: 'UCsM1Z5hYQ7eY6X5B_x8Wcug', channelTitle: 'Google DeepMind', trustLevel: 'official' },
+  { channelId: 'UCXZCJLdBC09xxGZ6gcdrc6A', channelTitle: 'OpenAI', trustLevel: 'official' },
+  { channelId: 'UC_x5XG1OV2P6uZZ5FSM9Ttw', channelTitle: 'Anthropic', trustLevel: 'official' },
+  { channelId: 'UCsMica-v34IrmSK3fG6WkJw', channelTitle: 'Microsoft Developer', trustLevel: 'official' },
+  { channelId: 'UCEBb1b_L6zDS3xTUrIALZOw', channelTitle: 'MIT OpenCourseWare', trustLevel: 'institutional' },
+  { channelId: 'UC-enRRXlky02Vb_GcxN5e9Q', channelTitle: 'Stanford Online', trustLevel: 'institutional' },
   { channelTitle: 'XPeX Academy', trustLevel: 'official' },
-  { channelTitle: 'freeCodeCamp.org', trustLevel: 'curated' },
-  { channelTitle: 'Fireship', trustLevel: 'curated' },
-  { channelTitle: 'Two Minute Papers', trustLevel: 'curated' },
-  { channelTitle: 'Lex Fridman', trustLevel: 'curated' },
-  { channelTitle: 'Yannic Kilcher', trustLevel: 'curated' },
+  { channelId: 'UC8butISFwT-Wl7EV0hUK0BQ', channelTitle: 'freeCodeCamp.org', trustLevel: 'curated' },
+  { channelId: 'UCsBjURrP6874ICbLq75H97Q', channelTitle: 'Fireship', trustLevel: 'curated' },
+  { channelId: 'UCbfYPyITQ-BRhECbknY2hUA', channelTitle: 'Two Minute Papers', trustLevel: 'curated' },
+  { channelId: 'UCSHZKyawb77ixDdsGog4iWA', channelTitle: 'Lex Fridman', trustLevel: 'curated' },
+  { channelId: 'UCZHmQk67mSJgfCCTTDtxFxA', channelTitle: 'Yannic Kilcher', trustLevel: 'curated' },
 ]
 
 export const APPROVED_YOUTUBE_TOPICS = [
@@ -64,19 +65,37 @@ export function parseYouTubeDateOrNull(value?: string | null): string | null {
   return new Date(parsed).toISOString()
 }
 
-export function resolveYouTubeChannelTrust(channelTitle?: string): {
+export function resolveYouTubeChannelTrust(
+  channelTitle?: string,
+  channelId?: string
+): {
   trustLevel: PulseSourceTrustLevel
   isApproved: boolean
   matchedChannel?: ApprovedYouTubeChannel
 } {
-  if (!channelTitle) return { trustLevel: 'curated', isApproved: false }
-  const titleLower = channelTitle.toLowerCase().trim()
-  const matched = APPROVED_YOUTUBE_CHANNELS.find(
-    (c) => c.channelTitle.toLowerCase() === titleLower || titleLower.includes(c.channelTitle.toLowerCase())
-  )
+  const titleLower = channelTitle?.toLowerCase().trim()
+  const idTrimmed = channelId?.trim()
+
+  if (!titleLower && !idTrimmed) {
+    return { trustLevel: 'curated', isApproved: false }
+  }
+
+  const matched = APPROVED_YOUTUBE_CHANNELS.find((c) => {
+    // 1. Exact channelId matching if channelId is present
+    if (idTrimmed && c.channelId && idTrimmed === c.channelId) {
+      return true
+    }
+    // 2. Exact normalized title matching (no substring/partial match)
+    if (titleLower && titleLower === c.channelTitle.toLowerCase().trim()) {
+      return true
+    }
+    return false
+  })
+
   if (matched) {
     return { trustLevel: matched.trustLevel, isApproved: true, matchedChannel: matched }
   }
+
   return { trustLevel: 'curated', isApproved: false }
 }
 
@@ -158,6 +177,7 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
         title?: string
         description?: string
         channelTitle?: string
+        channelId?: string
         publishedAt?: string
         thumbnails?: { high?: { url?: string }; medium?: { url?: string } }
       }
@@ -168,9 +188,10 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
 
     const snippet = obj.snippet || {}
     const channelTitle = snippet.channelTitle || ''
-    const trustInfo = resolveYouTubeChannelTrust(channelTitle)
+    const channelId = snippet.channelId || ''
+    const trustInfo = resolveYouTubeChannelTrust(channelTitle, channelId)
 
-    // Enforce channel trust filter: only allow approved channels into the curated live feed
+    // Enforce strict channel trust filter: only allow exact-matched approved channels
     if (!trustInfo.isApproved) {
       return null
     }
