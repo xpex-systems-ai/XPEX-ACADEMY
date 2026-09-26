@@ -27,6 +27,7 @@ import type {
   PulseResourceCard,
   PulseXaraMessage,
 } from '@/types/pulse'
+import { startRAGChatStream, type StreamDoneData } from '@services/ai/ai'
 
 // ─── Categories & Filters Taxonomy ──────────────────────────────────────────
 
@@ -46,63 +47,61 @@ export const PULSE_CATEGORIES: PulseCategoryFilter[] = [
 export const CURATED_VIDEOS: PulseVideoItem[] = [
   {
     id: 'v-001',
-    title: 'Como a IA está mudando o mercado de trabalho (e como se preparar)',
+    title: 'Transformers e como LLMs funcionam — visão visual',
     description: 'Análise aprofundada sobre as transformações do mercado profissional, automação com IA generativa e habilidades essenciais para os próximos 5 anos.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-06-12',
     url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
     youtubeId: 'wjZofJX0v4M',
-    channelName: 'TechFlow Brasil',
-    durationLabel: '18:42',
-    source: 'YouTube / TechFlow Brasil',
+    channelName: '3Blue1Brown',
+    durationLabel: '27 min',
+    source: 'YouTube / 3Blue1Brown',
     thumbnailAlt: 'Visualização futurista sobre o futuro do trabalho e IA',
     isFeatured: true,
     queueOrder: 1,
   },
   {
     id: 'v-002',
-    title: 'Agentes de IA na Prática: Construindo Sistemas Autônomos',
+    title: 'What’s Next for AI Agentic Workflows — Andrew Ng',
     description: 'Como criar arquiteturas multiagente com memória, planejamento e execução de ferramentas complexas no mundo real.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-05-20',
     url: 'https://www.youtube.com/watch?v=sal78ACtGTc',
     youtubeId: 'sal78ACtGTc',
-    channelName: 'Andrej Karpathy',
-    durationLabel: '1h 08m',
-    source: 'YouTube / Andrej Karpathy',
+    channelName: 'Sequoia Capital',
+    source: 'YouTube / Sequoia Capital',
     thumbnailAlt: 'Diagrama de fluxo de agentes de IA autônomos',
     isFeatured: false,
     queueOrder: 2,
   },
   {
     id: 'v-003',
-    title: 'DeepSeek R1 vs OpenAI o3: A Nova Era dos Modelos de Raciocínio',
+    title: 'Machine Learning for Everybody — Full Course',
     description: 'Comparativo técnico entre as principais arquiteturas de reasoning por reforço (RL) e suas aplicações em engenharia.',
     category: 'videos',
-    label: 'Atualizado',
+    label: 'Curado',
     publishedAt: '2024-08-10',
     url: 'https://www.youtube.com/watch?v=i_LwzRVP7bg',
     youtubeId: 'i_LwzRVP7bg',
-    channelName: 'AI Explained',
-    durationLabel: '24:15',
-    source: 'YouTube / AI Explained',
+    channelName: 'freeCodeCamp.org',
+    source: 'YouTube / freeCodeCamp.org',
     thumbnailAlt: 'Gráfico comparativo de benchmarks de modelos de raciocínio',
     isFeatured: false,
     queueOrder: 3,
   },
   {
     id: 'v-004',
-    title: 'Do Zero ao Deploy de um Agente RAG Corporativo',
-    description: 'Tutorial completo de arquitetura RAG com embeddings híbridos, rerankers e vetorização em larga escala.',
+    title: 'Learn Blockchain, Solidity and Full Stack Web3 Development with JavaScript',
+    description: 'Curso completo de blockchain, Solidity, smart contracts e desenvolvimento Web3 full stack com JavaScript.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-04-15',
     url: 'https://www.youtube.com/watch?v=gyMwXuJrbJQ',
     youtubeId: 'gyMwXuJrbJQ',
     channelName: 'freeCodeCamp.org',
-    durationLabel: '4h 23m',
+
     source: 'YouTube / freeCodeCamp.org',
     thumbnailAlt: 'Tutorial em código de pipeline RAG em Python',
     isFeatured: false,
@@ -110,32 +109,31 @@ export const CURATED_VIDEOS: PulseVideoItem[] = [
   },
   {
     id: 'v-005',
-    title: 'Engenharia de Contexto e Prompts para Desenvolvedores Sênior',
+    title: 'Transformers e como LLMs funcionam — revisão visual',
     description: 'Técnicas avançadas para estruturação de contexto, chain-of-thought e orquestração de APIs de LLM sem alucinações.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-03-22',
     url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
     youtubeId: 'wjZofJX0v4M',
-    channelName: 'XPeX Masterclass',
-    durationLabel: '42:10',
-    source: 'XPeX Academy / YouTube',
+    channelName: '3Blue1Brown',
+    durationLabel: '27 min',
+    source: 'YouTube / 3Blue1Brown',
     thumbnailAlt: 'Banner de aula sobre engenharia de contexto',
     isFeatured: false,
     queueOrder: 5,
   },
   {
     id: 'v-006',
-    title: 'Modelos de Visão e Vídeo Generativo em Alta Resolução',
+    title: 'What’s Next for AI Agentic Workflows — revisão',
     description: 'Como funcionam os modelos de difusão de vídeo espaço-temporais e o estado da arte na geração sintética.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-07-05',
     url: 'https://www.youtube.com/watch?v=sal78ACtGTc',
     youtubeId: 'sal78ACtGTc',
-    channelName: 'Two Minute Papers',
-    durationLabel: '12:45',
-    source: 'YouTube / Two Minute Papers',
+    channelName: 'Sequoia Capital',
+    source: 'YouTube / Sequoia Capital',
     thumbnailAlt: 'Simulação computacional de geração de vídeo neural',
     isFeatured: false,
     queueOrder: 6,
@@ -450,7 +448,7 @@ export async function fetchPulseVideoQueue(): Promise<PulseVideoQueueItem[]> {
 export async function fetchPulseNews(): Promise<PulseBlockResult<PulseNewsItem>> {
   return {
     items: CURATED_NEWS,
-    label: 'Atualizado',
+    label: 'Curado',
     live: false,
     fetchedAt: NOW,
   }
@@ -583,64 +581,93 @@ export function searchPulse(query: string, categoryFilter: PulseCategory = 'all'
  */
 export async function askPulseXara(
   prompt: string,
-  contextVideoTitle?: string
+  contextVideoTitle: string | undefined,
+  accessToken: string,
+  organizationSlug: string
 ): Promise<PulseXaraMessage> {
   const trimmed = prompt.trim()
-  const fallbackMessage: PulseXaraMessage = {
-    id: `msg-${Date.now()}`,
-    role: 'xara',
-    content: contextVideoTitle
-      ? `Com base no conteúdo "${contextVideoTitle}": Acelere seu aprendizado conectando este conceito à sua trilha prática no XPeX AI Lab. Deseja que eu elabore um resumo dos pontos-chave ou crie um exercício prático?`
-      : `Olá! Sou a XARA, sua mentora de IA na XPeX Academy. Estou pronta para ajudá-lo a conectar tendências, vídeos e projetos em um plano de estudo prático. O que gostaria de explorar agora?`,
-    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    actionSuggestions: [
-      'Resumir este conteúdo',
-      'Criar trilha personalizada',
-      'Sugerir próximos vídeos',
-    ],
-    linkedUrl: '/xpex/trails',
-  }
+  const timestamp = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
   if (!trimmed) {
-    return fallbackMessage
-  }
-
-  try {
-    const res = await fetch('/xpex/ai-gateway', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: trimmed,
-        context: {
-          feature: 'pulse_v2',
-          videoTitle: contextVideoTitle,
-        },
-      }),
-    })
-
-    if (res.ok) {
-      const data = await res.json()
-      if (data.response || data.text) {
-        return {
-          id: `msg-${Date.now()}`,
-          role: 'xara',
-          content: data.response || data.text,
-          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          actionSuggestions: ['Explorar no AI Lab', 'Ver trilha recomendada'],
-          linkedUrl: '/xpex/trails',
-        }
-      }
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'xara',
+      content: 'Olá! Sou a XARA, sua mentora de IA na XPeX Academy. O que você gostaria de explorar?',
+      timestamp: timestamp(),
+      actionSuggestions: ['Resumir este conteúdo', 'Criar trilha personalizada', 'Sugerir próximos vídeos'],
+      linkedUrl: '/xpex/trails',
     }
-  } catch {
-    // Network or server offline — safe graceful fallback
   }
 
-  return {
-    id: `msg-${Date.now()}`,
-    role: 'system',
-    content: 'A XARA não conseguiu acessar o GXEON neste momento. O conteúdo continua disponível, mas resumos e recomendações geradas por IA ficam temporariamente indisponíveis.',
-    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    actionSuggestions: ['Tentar novamente mais tarde'],
-    linkedUrl: '/xpex/gxeon',
-  }
+  const contextualMessage = contextVideoTitle
+    ? `Contexto do XPeX Pulse: o aluno está vendo o vídeo "${contextVideoTitle}".\n\nPergunta do aluno: ${trimmed}`
+    : trimmed
+
+  return await new Promise<PulseXaraMessage>((resolve) => {
+    let responseText = ''
+    let settled = false
+
+    const finish = (message: PulseXaraMessage) => {
+      if (settled) return
+      settled = true
+      resolve(message)
+    }
+
+    const timeout = window.setTimeout(() => {
+      finish({
+        id: `msg-${Date.now()}`,
+        role: 'system',
+        content: 'A XARA não conseguiu concluir a resposta neste momento. O conteúdo continua disponível normalmente.',
+        timestamp: timestamp(),
+        actionSuggestions: ['Tentar novamente'],
+        linkedUrl: '/xpex/gxeon',
+      })
+    }, 30000)
+
+    startRAGChatStream(
+      contextualMessage,
+      accessToken,
+      {
+        onChunk: (chunk: string) => {
+          responseText += chunk
+        },
+        onComplete: (_data: StreamDoneData) => {
+          window.clearTimeout(timeout)
+          finish({
+            id: `msg-${Date.now()}`,
+            role: 'xara',
+            content: responseText || 'O GXEON concluiu a análise, mas não retornou conteúdo textual.',
+            timestamp: timestamp(),
+            actionSuggestions: ['Explorar no AI Lab', 'Ver trilha relacionada'],
+            linkedUrl: '/xpex/trails',
+          })
+        },
+        onError: () => {
+          window.clearTimeout(timeout)
+          finish({
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: 'A XARA não conseguiu acessar o GXEON neste momento. Tente novamente em instantes.',
+            timestamp: timestamp(),
+            actionSuggestions: ['Tentar novamente'],
+            linkedUrl: '/xpex/gxeon',
+          })
+        },
+      },
+      undefined,
+      'general',
+      organizationSlug
+    ).catch(() => {
+      window.clearTimeout(timeout)
+      finish({
+        id: `msg-${Date.now()}`,
+        role: 'system',
+        content: 'A XARA não conseguiu acessar o GXEON neste momento. Tente novamente em instantes.',
+        timestamp: timestamp(),
+        actionSuggestions: ['Tentar novamente'],
+        linkedUrl: '/xpex/gxeon',
+      })
+    })
+  })
 }
+
