@@ -1,22 +1,19 @@
 /**
- * XPeX Pulse — Hybrid Cache Layer (L1 Memory + Pluggable L2 Shared)
- * MISSION: XPEX-PULSE-LIVE-SOURCES-002
+ * XPeX Pulse — Cache Layer (L1 Process-Local Memory Cache)
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002-HARDENING
  *
- * Architecture & Truthfulness:
- * - L1 (MemoryPulseCache): Ultra-fast, process-local memory cache. In serverless/SSR environments,
- *   this is best-effort per instance and is safely resilient against cold starts.
- * - L2 (SharedPulseCache): Pluggable distributed cache (e.g. Redis / KV) for multi-replica fleets.
- *   Gracefully no-ops when external cache environment is unconfigured.
- * - HybridPulseCache: Orchestrates L1 read-through with L2 fallback, providing high resilience
- *   and graceful degradation under network partitions.
+ * Cache Truthfulness & Architecture:
+ * - Current Mode: Explicit L1 in-memory process-local cache (MemoryPulseCache).
+ * - Serverless/SSR Behavior: Best-effort per instance. State resets on cold starts,
+ *   and gracefully falls back to fresh fetch, stale cache, or curated baselines.
+ * - Distributed L2: No active Redis/KV client is installed in apps/web. The SharedPulseCache
+ *   class is preserved as a pluggable architectural contract stub without claiming active L2.
  *
  * Variable TTLs:
  * - Videos: 1 hour (3600s)
  * - News: 15 minutes (900s)
  * - Tech/Trends: 2 hours (7200s)
  */
-
-import 'server-only'
 
 import type {
   PulseCacheProvider,
@@ -90,35 +87,26 @@ export class MemoryPulseCache implements PulseCacheProvider {
 }
 
 /**
- * Pluggable L2 Shared Cache Provider interface/stub.
- * Ready for Redis / Cloud KV connection strings when provisioned.
+ * Pluggable L2 Shared Cache Provider interface contract stub.
+ * Explicitly unconfigured until a shared distributed driver is provisioned.
  */
 export class SharedPulseCache implements PulseCacheProvider {
-  private isConfigured = false
-
-  constructor() {
-    if (typeof process !== 'undefined' && process.env?.REDIS_URL) {
-      this.isConfigured = true
-    }
-  }
+  readonly isConfigured = false
 
   async get<T>(_key: string): Promise<T | null> {
-    if (!this.isConfigured) return null
-    // External distributed cache driver implementation goes here
     return null
   }
 
   async getStaleFallback<T>(_key: string): Promise<{ data: T; label: PulseContentLabel; ageMs: number } | null> {
-    if (!this.isConfigured) return null
     return null
   }
 
   async set<T>(_key: string, _value: T, _ttlSeconds: number, _label?: PulseContentLabel): Promise<void> {
-    if (!this.isConfigured) return
+    // No-op in L1-only mode
   }
 
   async invalidate(_key: string): Promise<void> {
-    if (!this.isConfigured) return
+    // No-op in L1-only mode
   }
 
   async getFreshness(_key: string): Promise<PulseFreshnessReport | null> {
@@ -126,12 +114,13 @@ export class SharedPulseCache implements PulseCacheProvider {
   }
 
   async clear(): Promise<void> {
-    if (!this.isConfigured) return
+    // No-op in L1-only mode
   }
 }
 
 /**
- * Hybrid Cache orchestrating L1 (local memory) and L2 (shared/remote).
+ * Hybrid Cache orchestrating L1 (local memory) with optional pluggable L2.
+ * In current deployment, runs in deterministic L1-only mode.
  */
 export class HybridPulseCache implements PulseCacheProvider {
   private l1: MemoryPulseCache
@@ -143,16 +132,15 @@ export class HybridPulseCache implements PulseCacheProvider {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    // 1. Try L1 memory cache
     const l1Data = await this.l1.get<T>(key)
     if (l1Data !== null) return l1Data
 
-    // 2. Try L2 shared cache
-    const l2Data = await this.l2.get<T>(key)
-    if (l2Data !== null) {
-      // Backfill L1
-      await this.l1.set(key, l2Data, 300, 'Em cache')
-      return l2Data
+    if (this.l2.isConfigured) {
+      const l2Data = await this.l2.get<T>(key)
+      if (l2Data !== null) {
+        await this.l1.set(key, l2Data, 300, 'Em cache')
+        return l2Data
+      }
     }
 
     return null
@@ -164,9 +152,11 @@ export class HybridPulseCache implements PulseCacheProvider {
       return { data: l1Stale.data, label: l1Stale.label }
     }
 
-    const l2Stale = await this.l2.getStaleFallback<T>(key)
-    if (l2Stale !== null) {
-      return { data: l2Stale.data, label: l2Stale.label }
+    if (this.l2.isConfigured) {
+      const l2Stale = await this.l2.getStaleFallback<T>(key)
+      if (l2Stale !== null) {
+        return { data: l2Stale.data, label: l2Stale.label }
+      }
     }
 
     return null
@@ -178,17 +168,17 @@ export class HybridPulseCache implements PulseCacheProvider {
     ttlSeconds: number,
     label: PulseContentLabel = 'Atualizado'
   ): Promise<void> {
-    await Promise.allSettled([
-      this.l1.set(key, value, ttlSeconds, label),
-      this.l2.set(key, value, ttlSeconds, label),
-    ])
+    await this.l1.set(key, value, ttlSeconds, label)
+    if (this.l2.isConfigured) {
+      await this.l2.set(key, value, ttlSeconds, label)
+    }
   }
 
   async invalidate(key: string): Promise<void> {
-    await Promise.allSettled([
-      this.l1.invalidate(key),
-      this.l2.invalidate(key),
-    ])
+    await this.l1.invalidate(key)
+    if (this.l2.isConfigured) {
+      await this.l2.invalidate(key)
+    }
   }
 
   async getFreshness(key: string): Promise<PulseFreshnessReport | null> {
@@ -196,10 +186,10 @@ export class HybridPulseCache implements PulseCacheProvider {
   }
 
   async clear(): Promise<void> {
-    await Promise.allSettled([
-      this.l1.clear(),
-      this.l2.clear(),
-    ])
+    await this.l1.clear()
+    if (this.l2.isConfigured) {
+      await this.l2.clear()
+    }
   }
 }
 

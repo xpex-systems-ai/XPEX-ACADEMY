@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Vision
 
-XPeX Pulse transforms student discovery from a static video feed into the **official live intelligence layer** of XPeX Academy. By combining server-side live source adapters, hybrid caching (process-local L1 + pluggable distributed L2), source provenance tracking, and authenticated GXEON contextual routing, Pulse provides students with continuous access to verified AI technologies, news, trends, and learning opportunities without compromising performance, privacy, or truthfulness.
+XPeX Pulse transforms student discovery from a static video feed into the **official live intelligence layer** of XPeX Academy. By combining server-side live source adapters, hybrid caching (process-local L1 + pluggable distributed L2 contract), source provenance tracking, and authenticated GXEON contextual routing, Pulse provides students with continuous access to verified AI technologies, news, trends, and learning opportunities without compromising performance, privacy, or truthfulness.
 
 ```
 +-------------------------------------------------------------------------+
@@ -28,8 +28,8 @@ XPeX Pulse transforms student discovery from a static video feed into the **offi
                                     ▼
 +-------------------------------------------------------------------------+
 |                     HYBRID CACHE ARCHITECTURE                           |
-|  - L1 MemoryPulseCache (Process-local, resilient against cold starts)    |
-|  - L2 SharedPulseCache (Pluggable Redis/KV distributed driver)           |
+|  - L1 MemoryPulseCache (Process-local best-effort cache)                |
+|  - L2 SharedPulseCache (Pluggable distributed cache contract stub)      |
 |  - Freshness Inspector (Calculates age & stale-while-revalidate state)  |
 +-------------------------------------------------------------------------+
                                     │
@@ -81,9 +81,9 @@ The `HybridPulseCache` orchestrates L1 and optional L2 caching:
 - **Videos**: 3600s (1 hour) TTL.
 - **News Feeds**: 900s (15 minutes) TTL.
 - **Trends & Technologies**: 7200s (2 hours) TTL.
-- **L1 Cache**: Process-local memory cache (`MemoryPulseCache`). In serverless/SSR environments, this operates safely as best-effort per instance and is fully resilient against cold starts.
-- **L2 Cache**: Pluggable distributed shared cache (`SharedPulseCache`) for multi-replica fleets (Redis/KV).
-- **Stale Fallback**: When upstream live feeds are unreachable or disabled, the registry inspects fresh cache, then stale cache, and finally curated fallback, ensuring 100% uptime for students with truthful labeling.
+- **L1 Cache**: Process-local memory cache (`MemoryPulseCache`). In serverless/SSR environments, this operates as best-effort per instance with graceful fallback.
+- **L2 Cache**: Pluggable distributed shared cache contract stub (`SharedPulseCache`) ready for when multi-replica drivers are provisioned.
+- **Stale Fallback**: When upstream live feeds are unreachable or disabled, the registry inspects fresh cache, then stale cache, and finally curated fallback, providing reliable graceful degradation with truthful labeling.
 
 ---
 

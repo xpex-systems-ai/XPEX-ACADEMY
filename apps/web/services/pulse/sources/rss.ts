@@ -1,6 +1,6 @@
 /**
  * XPeX Pulse — Server-Side Trusted News & Feeds Ingestion
- * MISSION: XPEX-PULSE-LIVE-SOURCES-002
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002-HARDENING
  *
  * Ingests authoritative technology/AI news and research feeds.
  * Retains complete source provenance (publisher, domain, canonicalUrl).
@@ -9,10 +9,9 @@
  * Truthfulness:
  * - Dates: Validated via parseDateOrNull. Unparseable/missing dates remain null.
  * - Relative time: Computed from verified timestamps only (no fabricated "Hoje").
- * - Read time: Derived as estimatedReadTimeMinutes without claiming upstream metric.
+ * - Read time: readTimeMinutes is undefined unless supplied by an authentic upstream source.
+ *   Derived text length metrics are assigned exclusively to estimatedReadTimeMinutes.
  */
-
-import 'server-only'
 
 import type {
   PulseLiveSource,
@@ -158,7 +157,7 @@ export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
       youtubeId: null,
       source: item.source || 'Fonte Especializada',
       domain: item.domain || 'xpex.academy',
-      readTimeMinutes: item.readTimeMinutes,
+      readTimeMinutes: typeof item.readTimeMinutes === 'number' ? item.readTimeMinutes : undefined,
       estimatedReadTimeMinutes: item.estimatedReadTimeMinutes ?? (item.description ? Math.max(2, Math.min(8, Math.round(item.description.length / 100))) : undefined),
       publishedRelative: formatRelativeDate(validDate),
     }
@@ -195,7 +194,7 @@ export class NewsFeedLiveSource implements PulseLiveSource<PulseNewsItem> {
           youtubeId: null,
           source: pub.name,
           domain: pub.domain,
-          readTimeMinutes: Math.max(3, Math.min(8, Math.round((desc.length + title.length) / 50))),
+          readTimeMinutes: undefined, // Never populate readTimeMinutes from derived text length
           estimatedReadTimeMinutes: Math.max(3, Math.min(8, Math.round((desc.length + title.length) / 50))),
           publishedRelative: formatRelativeDate(pubDate),
         })

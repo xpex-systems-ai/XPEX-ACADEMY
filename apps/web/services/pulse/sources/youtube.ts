@@ -1,18 +1,18 @@
 /**
  * XPeX Pulse — Server-Side YouTube Live Discovery Adapter
- * MISSION: XPEX-PULSE-LIVE-SOURCES-002
+ * MISSION: XPEX-PULSE-LIVE-SOURCES-002-HARDENING
  *
  * Discovers approved YouTube learning content via official API when configured.
  * Does NOT proxy streams or download media.
  * Uses official embed IDs and youtube-nocookie.com.
  * Gracefully degrades if YOUTUBE_API_KEY is missing or disabled.
  *
- * Trust Model:
- * Matches discovered items against APPROVED_YOUTUBE_CHANNELS registry to classify
- * provenance as 'official', 'institutional', or 'curated'.
+ * Trust Model & Hardened Policies:
+ * - Discovered videos are strictly filtered against the APPROVED_YOUTUBE_CHANNELS registry.
+ * - Non-approved channels are rejected during normalization.
+ * - Dates are parsed safely via parseYouTubeDateOrNull (returns null on malformed dates).
+ * - Never fabricates duration or view metrics.
  */
-
-import 'server-only'
 
 import type {
   PulseLiveSource,
@@ -57,9 +57,17 @@ export const APPROVED_YOUTUBE_TOPICS = [
   'AI productivity',
 ]
 
+export function parseYouTubeDateOrNull(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') return null
+  const parsed = Date.parse(value.trim())
+  if (Number.isNaN(parsed)) return null
+  return new Date(parsed).toISOString()
+}
+
 export function resolveYouTubeChannelTrust(channelTitle?: string): {
   trustLevel: PulseSourceTrustLevel
   isApproved: boolean
+  matchedChannel?: ApprovedYouTubeChannel
 } {
   if (!channelTitle) return { trustLevel: 'curated', isApproved: false }
   const titleLower = channelTitle.toLowerCase().trim()
@@ -67,7 +75,7 @@ export function resolveYouTubeChannelTrust(channelTitle?: string): {
     (c) => c.channelTitle.toLowerCase() === titleLower || titleLower.includes(c.channelTitle.toLowerCase())
   )
   if (matched) {
-    return { trustLevel: matched.trustLevel, isApproved: true }
+    return { trustLevel: matched.trustLevel, isApproved: true, matchedChannel: matched }
   }
   return { trustLevel: 'curated', isApproved: false }
 }
@@ -159,8 +167,15 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
     if (!videoId) return null
 
     const snippet = obj.snippet || {}
-    const channelTitle = snippet.channelTitle || 'Canal Curado'
+    const channelTitle = snippet.channelTitle || ''
     const trustInfo = resolveYouTubeChannelTrust(channelTitle)
+
+    // Enforce channel trust filter: only allow approved channels into the curated live feed
+    if (!trustInfo.isApproved) {
+      return null
+    }
+
+    const publishedAt = parseYouTubeDateOrNull(snippet.publishedAt)
 
     return {
       id: `yt-live-${videoId}`,
@@ -168,13 +183,13 @@ export class YouTubeLiveSource implements PulseLiveSource<PulseVideoItem> {
       description: snippet.description || '',
       category: 'videos',
       label: 'Atualizado',
-      publishedAt: snippet.publishedAt ? new Date(snippet.publishedAt).toISOString() : null,
+      publishedAt,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       youtubeId: videoId,
-      channelName: channelTitle,
+      channelName: channelTitle || 'Canal Curado',
       durationLabel: undefined, // left undefined if not supplied by search endpoint
       viewsCountLabel: undefined, // never invent fake views
-      source: trustInfo.isApproved ? `YouTube / ${channelTitle}` : `YouTube / ${channelTitle} (${trustInfo.trustLevel})`,
+      source: `YouTube / ${channelTitle || 'Canal Curado'}`,
       thumbnailUrl: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url,
       thumbnailAlt: snippet.title ? `Thumbnail de ${snippet.title}` : undefined,
     }
