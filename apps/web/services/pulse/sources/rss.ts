@@ -7,6 +7,8 @@
  * Normalized to XPeX PulseNewsItem domain contract.
  */
 
+import 'server-only'
+
 import type {
   PulseLiveSource,
   PulseSourceHealthRecord,
