@@ -101,16 +101,10 @@ export async function getPulseSourcesHealth(): Promise<PulseSourceHealthRecord[]
 /**
  * Truthful student progress summary calculation.
  */
-export async function fetchStudentPulseProgress(_studentDisplayName?: string): Promise<PulseStudentProgress> {
-  return {
-    completionPercentage: 75,
-    activeTrailsCount: 3,
-    watchedVideosCount: 28,
-    contentHoursCompleted: 12,
-    achievementsCount: 6,
-    level: 12,
-    xp: 2450,
-  }
+export async function fetchStudentPulseProgress(_studentDisplayName?: string): Promise<PulseStudentProgress | undefined> {
+  // Academic progress remains authoritative in the student-learning backend.
+  // Until that source is wired into Pulse, return no synthetic metrics.
+  return undefined
 }
 
 /**
@@ -250,15 +244,15 @@ export async function askPulseXara(
     }
   }
 
-  // Contextualized offline fallback
+  // Do not fabricate summaries when GXEON is unavailable.
   if (trimmed.toLowerCase().includes('resumir') || trimmed.toLowerCase().includes('resumo')) {
     return {
       id: `msg-${Date.now()}`,
-      role: 'xara',
-      content: `Resumo inteligente: O conteúdo destaca como a automação com IA está redesenhando as competências exigidas pelo mercado. Os três pilares fundamentais são: 1. Domínio de agentes autônomos; 2. Engenharia de contexto e RAG; 3. Capacidade de orquestrar ferramentas em vez de apenas codificar manualmente.`,
+      role: 'system',
+      content: 'A XARA não conseguiu acessar o GXEON para resumir este conteúdo agora. O vídeo continua disponível normalmente e você pode tentar novamente em instantes.',
       timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      actionSuggestions: ['Criar exercício prático', 'Acessar trilha de IA'],
-      linkedUrl: '/xpex/trails',
+      actionSuggestions: ['Tentar novamente', 'Abrir GXEON Copilot'],
+      linkedUrl: '/xpex/gxeon',
     }
   }
 
