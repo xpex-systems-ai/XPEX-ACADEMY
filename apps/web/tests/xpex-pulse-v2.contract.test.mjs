@@ -125,6 +125,9 @@ describe('XPeX Pulse V2 — Firebase Fabric Integration', () => {
 
   it('PulseHome dynamically checks isFeatureEnabled at runtime', () => {
     assert.ok(homeContent.includes("isFeatureEnabled('pulse_enabled')"), 'PulseHome must check pulse_enabled gate')
+    assert.ok(homeContent.includes("isFeatureEnabled('pulse_news_enabled')"), 'PulseHome must check pulse_news_enabled gate')
+    assert.ok(homeContent.includes("isFeatureEnabled('pulse_trends_enabled')"), 'PulseHome must check pulse_trends_enabled gate')
+    assert.ok(homeContent.includes("isFeatureEnabled('pulse_xara_enabled')"), 'PulseHome must check pulse_xara_enabled gate')
     assert.ok(homeContent.includes("trackXpexEvent('pulse_opened'"), 'PulseHome must track pulse_opened event')
   })
 })
@@ -157,9 +160,10 @@ describe('XPeX Pulse V2 — Security & Privacy', () => {
     }
   })
 
-  it('routes XARA AI requests exclusively through Railway AI Gateway (/xpex/ai-gateway)', () => {
+  it('routes XARA AI requests through the authenticated GXEON/RAG client contract', () => {
     const service = readWebFile('services/pulse/pulse.ts')
-    assert.ok(service.includes('/xpex/ai-gateway'), 'Must use /xpex/ai-gateway endpoint')
+    assert.ok(service.includes('startRAGChatStream'), 'Must reuse the authenticated RAG/GXEON streaming client')
+    assert.ok(!service.includes("fetch('/xpex/ai-gateway'"), 'Must not POST directly to the health-only AI gateway route')
     assert.ok(!service.includes('api.openai.com'), 'Must not call OpenAI directly from browser')
     assert.ok(!service.includes('generativelanguage.googleapis.com'), 'Must not call Gemini directly from browser')
     assert.ok(!service.includes('api.anthropic.com'), 'Must not call Anthropic directly from browser')
