@@ -1,54 +1,64 @@
+'use client'
+
 import React from 'react'
-import { Newspaper } from 'lucide-react'
 import type { PulseNewsItem } from '@/types/pulse'
 
 interface PulseNewsBlockProps {
   items: PulseNewsItem[]
-  label: string
+  label?: string
 }
 
-/** Notícias/Atualizações block — curated external links, no scraping. */
-export function PulseNewsBlock({ items, label }: PulseNewsBlockProps) {
+export function PulseNewsBlock({ items, label = 'Atualizado' }: PulseNewsBlockProps) {
   return (
-    <section className="pulse-section" aria-labelledby="pulse-news-heading">
-      <div className="pulse-section-header">
-        <div className="pulse-section-title-group">
-          <div className="pulse-section-icon" aria-hidden="true">
-            <Newspaper size={16} />
-          </div>
-          <h2 id="pulse-news-heading" className="pulse-section-title cyan">
-            Notícias <span>Atualizadas</span>
-          </h2>
+    <section className="pulse-news-panel" aria-label="Notícias Atualizadas do Mercado">
+      <div className="pulse-panel-header">
+        <div className="pulse-panel-title-wrap">
+          <span className="pulse-panel-accent-tag">FEED GLOBAL</span>
+          <h3 className="pulse-panel-title">NOTÍCIAS ATUALIZADAS</h3>
         </div>
-        <span className="pulse-section-label">{label}</span>
+        <span className="pulse-label-badge">{label}</span>
       </div>
 
-      <div className="pulse-grid-2">
-        {items.map((item) => (
-          <a
-            key={item.id}
-            href={item.url ?? undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pulse-news-card"
-            aria-label={`Leia: ${item.title} — fonte: ${item.source ?? item.domain}`}
-            onClick={() => {
-              import('@/lib/firebase').then(({ trackXpexEvent }) => {
-                trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: 'news' })
-              }).catch(() => {})
-            }}
-          >
-            <div className="pulse-news-icon" aria-hidden="true">
-              <Newspaper size={16} />
+      <div className="pulse-news-list" role="feed">
+        {items.map((news) => (
+          <article key={news.id} className="pulse-news-item" tabIndex={0}>
+            <div className="pulse-news-meta-top">
+              <span className="pulse-news-source">{news.source || 'Fonte Especializada'}</span>
+              <span className="pulse-news-time">{news.publishedRelative || 'Hoje'}</span>
             </div>
-            <div className="pulse-news-content">
-              <h3 className="pulse-news-title">{item.title}</h3>
-              <p className="pulse-news-desc">{item.description}</p>
-              {item.source && (
-                <span className="pulse-news-source">{item.source}</span>
+
+            <h4 className="pulse-news-title">
+              {news.url ? (
+                <a
+                  href={news.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pulse-news-headline-link"
+                >
+                  {news.title}
+                </a>
+              ) : (
+                news.title
+              )}
+            </h4>
+
+            <p className="pulse-news-snippet">{news.description}</p>
+
+            <div className="pulse-news-footer">
+              <span className="pulse-news-readtime">⏱ {news.readTimeMinutes || 4} min de leitura</span>
+              {news.url && (
+                <a
+                  href={news.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pulse-news-read-more"
+                  aria-label={`Ler notícia completa: ${news.title}`}
+                >
+                  Ler na íntegra ↗
+                </a>
               )}
             </div>
-          </a>
+          </article>
         ))}
       </div>
     </section>

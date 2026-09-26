@@ -1,37 +1,45 @@
 import React from 'react'
-import Link from 'next/link'
-import { Radio } from 'lucide-react'
 
-/** Hero banner matching the XPeX Pulse reference image design.
- * Bold gradient title, honest tagline, section nav chips. */
 export function PulseHero() {
   return (
-    <div className="pulse-hero">
-      <div className="pulse-hero-eyebrow">
-        <Radio size={12} aria-hidden="true" />
-        Central Inteligente de Descoberta
+    <header className="pulse-hero" aria-label="Cabeçalho XPeX Pulse">
+      <div className="pulse-hero-content">
+        <div className="pulse-brand-row">
+          <div className="pulse-brand-badge">
+            <span className="pulse-status-dot" aria-hidden="true" />
+            <span className="pulse-badge-text">LIVE INTELLIGENCE V2</span>
+          </div>
+          <div className="pulse-live-indicator" title="Hub de Mídia e Inteligência Operacional">
+            <span className="pulse-radar-wave" aria-hidden="true" />
+            <span>CENTRAL ATIVA</span>
+          </div>
+        </div>
+
+        <h1 className="pulse-hero-title">
+          <span className="pulse-title-gradient">XPeX PULSE</span>
+        </h1>
+        <p className="pulse-hero-tagline">
+          Aprenda. Descubra. Acompanhe o futuro da inteligência artificial.
+        </p>
       </div>
 
-      <h1 className="pulse-hero-title">XPeX PULSE</h1>
-
-      <p className="pulse-hero-sub">
-        Central inteligente de vídeos, tendências e notícias sobre IA
-      </p>
-
-      <p className="pulse-hero-tagline">
-        Aprenda. <em>Descubra.</em> Acompanhe o futuro.
-      </p>
-
-      <nav className="pulse-hero-nav" aria-label="Seções do Pulse">
-        <span className="pulse-hero-nav-item">Vídeos</span>
-        <span className="pulse-hero-nav-item">Notícias</span>
-        <span className="pulse-hero-nav-item">Tendências</span>
-        <span className="pulse-hero-nav-item">Tecnologias</span>
-        <span className="pulse-hero-nav-item">Aprendizado</span>
-        <Link href="/xpex/gxeon" className="pulse-hero-nav-item">
-          GXEON Copilot
-        </Link>
-      </nav>
-    </div>
+      <div className="pulse-hero-aside" aria-hidden="true">
+        <div className="pulse-aside-card">
+          <div className="pulse-aside-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+          </div>
+          <div className="pulse-aside-text">
+            <span className="pulse-aside-badge">RADAR GLOBAL</span>
+            <p className="pulse-aside-motto">
+              CONTEÚDOS REAIS. TENDÊNCIAS ATUALIZADAS. APRENDIZADO CONTÍNUO.
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
   )
 }

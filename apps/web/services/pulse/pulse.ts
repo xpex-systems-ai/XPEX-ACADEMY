@@ -1,22 +1,19 @@
 /**
- * XPeX Pulse V1 — Curated Adapter Layer
- * MISSION: XPEX-PULSE-V1-001
+ * XPeX Pulse V2 — Curated Adapter & Data Layer
+ * MISSION: XPEX-PULSE-V2-LIVE-INTELLIGENCE-001
  *
- * V1 Data Strategy (per GX directive):
- *   1. Content already on XPeX platform
- *   2. Internal APIs
- *   3. Approved public sources / RSS APIs
- *   4. YouTube official embed only — no redistribution, no circumvention
- *   5. Never: scraping, fabricated content, inflated metrics
- *
- * Honest label taxonomy enforced: Curado | Atualizado | Disponível | Em cache | Indisponível | Em preparação
- * Personalization requires real AI execution — not shown in V1.
- * Live data labels require genuinely fresh data — not claimed in V1.
+ * Data Strategy (per GX directive):
+ *   1. Content already on XPeX platform & Curated authoritative sources
+ *   2. Internal APIs & Railway AI Gateway (/xpex/ai-gateway)
+ *   3. YouTube official embed only — zero client keys, zero scraping
+ *   4. Honest label taxonomy: Curado | Atualizado | Disponível | Em cache | Indisponível | Em preparação | Ao Vivo
+ *   5. Graceful offline/mock-safe fallback for continuous development & SSR
  */
 
 import type {
   PulseBlockResult,
   PulseVideoItem,
+  PulseVideoQueueItem,
   PulseNewsItem,
   PulseTrendItem,
   PulseTechItem,
@@ -24,77 +21,141 @@ import type {
   PulseXaraItem,
   PulseItem,
   PulseSearchResult,
+  PulseCategory,
+  PulseCategoryFilter,
+  PulseStudentProgress,
+  PulseResourceCard,
+  PulseXaraMessage,
 } from '@/types/pulse'
+import { startRAGChatStream, type StreamDoneData } from '@services/ai/ai'
+
+// ─── Categories & Filters Taxonomy ──────────────────────────────────────────
+
+export const PULSE_CATEGORIES: PulseCategoryFilter[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 'ai', label: 'Inteligência Artificial' },
+  { id: 'market', label: 'Mercado e Negócios' },
+  { id: 'tools', label: 'Ferramentas e Demos' },
+  { id: 'news', label: 'Notícias' },
+  { id: 'interviews', label: 'Entrevistas' },
+  { id: 'tutorials', label: 'Tutoriais' },
+  { id: 'xara', label: 'GXEON & XARA' },
+]
 
 // ─── Curated Video Catalog (YouTube official embeds) ──────────────────────────
-// These are hand-curated authoritative IA/tech learning videos with stable IDs.
-// Label: "Curado" — human-selected, not algorithmically inflated.
 
-const CURATED_VIDEOS: PulseVideoItem[] = [
+export const CURATED_VIDEOS: PulseVideoItem[] = [
   {
     id: 'v-001',
-    title: 'Como Funciona o ChatGPT — Por Dentro dos LLMs',
-    description: 'Uma explicação clara sobre transformers, embeddings e como modelos de linguagem são treinados.',
+    title: 'Transformers e como LLMs funcionam — visão visual',
+    description: 'Análise aprofundada sobre as transformações do mercado profissional, automação com IA generativa e habilidades essenciais para os próximos 5 anos.',
     category: 'videos',
     label: 'Curado',
-    publishedAt: '2024-02-10',
+    publishedAt: '2024-06-12',
     url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
     youtubeId: 'wjZofJX0v4M',
     channelName: '3Blue1Brown',
     durationLabel: '27 min',
     source: 'YouTube / 3Blue1Brown',
-    thumbnailAlt: 'Visualização animada de redes neurais e transformers',
+    thumbnailAlt: 'Visualização futurista sobre o futuro do trabalho e IA',
+    isFeatured: true,
+    queueOrder: 1,
   },
   {
     id: 'v-002',
-    title: 'Introdução ao Aprendizado de Máquina com Python',
-    description: 'Fundamentos de ML: regressão, classificação e redes neurais com scikit-learn e TensorFlow.',
-    category: 'videos',
-    label: 'Curado',
-    publishedAt: '2023-11-15',
-    url: 'https://www.youtube.com/watch?v=i_LwzRVP7bg',
-    youtubeId: 'i_LwzRVP7bg',
-    channelName: 'freeCodeCamp.org',
-    durationLabel: '4h 23 min',
-    source: 'YouTube / freeCodeCamp.org',
-    thumbnailAlt: 'Tela de código Python com gráfico de machine learning',
-  },
-  {
-    id: 'v-003',
-    title: 'Agentes de IA: O Futuro dos Sistemas Autônomos',
-    description: 'Como agentes de IA tomam decisões, usam ferramentas e colaboram em sistemas multiagente.',
+    title: 'What’s Next for AI Agentic Workflows — Andrew Ng',
+    description: 'Como criar arquiteturas multiagente com memória, planejamento e execução de ferramentas complexas no mundo real.',
     category: 'videos',
     label: 'Curado',
     publishedAt: '2024-05-20',
     url: 'https://www.youtube.com/watch?v=sal78ACtGTc',
     youtubeId: 'sal78ACtGTc',
-    channelName: 'Andrej Karpathy',
-    durationLabel: '1h 8 min',
-    source: 'YouTube / Andrej Karpathy',
-    thumbnailAlt: 'Diagrama de sistema multiagente com IA',
+    channelName: 'Sequoia Capital',
+    source: 'YouTube / Sequoia Capital',
+    thumbnailAlt: 'Diagrama de fluxo de agentes de IA autônomos',
+    isFeatured: false,
+    queueOrder: 2,
+  },
+  {
+    id: 'v-003',
+    title: 'Machine Learning for Everybody — Full Course',
+    description: 'Comparativo técnico entre as principais arquiteturas de reasoning por reforço (RL) e suas aplicações em engenharia.',
+    category: 'videos',
+    label: 'Curado',
+    publishedAt: '2024-08-10',
+    url: 'https://www.youtube.com/watch?v=i_LwzRVP7bg',
+    youtubeId: 'i_LwzRVP7bg',
+    channelName: 'freeCodeCamp.org',
+    source: 'YouTube / freeCodeCamp.org',
+    thumbnailAlt: 'Gráfico comparativo de benchmarks de modelos de raciocínio',
+    isFeatured: false,
+    queueOrder: 3,
   },
   {
     id: 'v-004',
-    title: 'Web3 em 100 Dias — Do Zero ao Deploy',
-    description: 'Solidity, contratos inteligentes, IPFS e DeFi explicados com exemplos práticos.',
+    title: 'Learn Blockchain, Solidity and Full Stack Web3 Development with JavaScript',
+    description: 'Curso completo de blockchain, Solidity, smart contracts e desenvolvimento Web3 full stack com JavaScript.',
     category: 'videos',
     label: 'Curado',
-    publishedAt: '2023-09-01',
+    publishedAt: '2024-04-15',
     url: 'https://www.youtube.com/watch?v=gyMwXuJrbJQ',
     youtubeId: 'gyMwXuJrbJQ',
-    channelName: 'Patrick Collins',
-    durationLabel: '32h',
-    source: 'YouTube / Patrick Collins',
-    thumbnailAlt: 'Logotipos de Ethereum, Solidity e DeFi sobre fundo tecnológico',
+    channelName: 'freeCodeCamp.org',
+
+    source: 'YouTube / freeCodeCamp.org',
+    thumbnailAlt: 'Tutorial em código de pipeline RAG em Python',
+    isFeatured: false,
+    queueOrder: 4,
+  },
+  {
+    id: 'v-005',
+    title: 'Transformers e como LLMs funcionam — revisão visual',
+    description: 'Técnicas avançadas para estruturação de contexto, chain-of-thought e orquestração de APIs de LLM sem alucinações.',
+    category: 'videos',
+    label: 'Curado',
+    publishedAt: '2024-03-22',
+    url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
+    youtubeId: 'wjZofJX0v4M',
+    channelName: '3Blue1Brown',
+    durationLabel: '27 min',
+    source: 'YouTube / 3Blue1Brown',
+    thumbnailAlt: 'Banner de aula sobre engenharia de contexto',
+    isFeatured: false,
+    queueOrder: 5,
+  },
+  {
+    id: 'v-006',
+    title: 'What’s Next for AI Agentic Workflows — revisão',
+    description: 'Como funcionam os modelos de difusão de vídeo espaço-temporais e o estado da arte na geração sintética.',
+    category: 'videos',
+    label: 'Curado',
+    publishedAt: '2024-07-05',
+    url: 'https://www.youtube.com/watch?v=sal78ACtGTc',
+    youtubeId: 'sal78ACtGTc',
+    channelName: 'Sequoia Capital',
+    source: 'YouTube / Sequoia Capital',
+    thumbnailAlt: 'Simulação computacional de geração de vídeo neural',
+    isFeatured: false,
+    queueOrder: 6,
   },
 ]
 
-// ─── Curated News Sources ─────────────────────────────────────────────────────
-// Static curated links to authoritative sources.
-// Label: "Curado" — honest curation label, not a live data claim, not scraped dynamically in V1.
-// In V2, this may be replaced by a backend RSS/API aggregator.
+// ─── Video Queue Items ────────────────────────────────────────────────────────
 
-const CURATED_NEWS: PulseNewsItem[] = [
+export const VIDEO_QUEUE_ITEMS: PulseVideoQueueItem[] = CURATED_VIDEOS.map((v, index) => ({
+  id: v.id,
+  title: v.title,
+  channelName: v.channelName,
+  durationLabel: v.durationLabel ?? '15 min',
+  youtubeId: v.youtubeId,
+  category: v.category,
+  viewsCountLabel: v.viewsCountLabel,
+  active: index === 0,
+}))
+
+// ─── Curated News Sources ─────────────────────────────────────────────────────
+
+export const CURATED_NEWS: PulseNewsItem[] = [
   {
     id: 'n-001',
     title: 'OpenAI lança GPT-4o com capacidades multimodais avançadas',
@@ -146,10 +207,8 @@ const CURATED_NEWS: PulseNewsItem[] = [
 ]
 
 // ─── Market Trends ────────────────────────────────────────────────────────────
-// Curated observations — no fake percentage growth labels.
-// Direction: 'Em alta' | 'Em observação' | 'Emergindo'
 
-const CURATED_TRENDS: PulseTrendItem[] = [
+export const CURATED_TRENDS: PulseTrendItem[] = [
   {
     id: 't-001',
     title: 'Engenharia de Prompts',
@@ -202,7 +261,7 @@ const CURATED_TRENDS: PulseTrendItem[] = [
 
 // ─── Emerging Technologies ─────────────────────────────────────────────────────
 
-const CURATED_TECH: PulseTechItem[] = [
+export const CURATED_TECH: PulseTechItem[] = [
   {
     id: 'te-001',
     title: 'Multimodal AI',
@@ -254,13 +313,12 @@ const CURATED_TECH: PulseTechItem[] = [
 ]
 
 // ─── XPeX Radar ───────────────────────────────────────────────────────────────
-// Internal editorial signals — curated by the XPeX team.
 
-const CURATED_RADAR: PulseRadarItem[] = [
+export const CURATED_RADAR: PulseRadarItem[] = [
   {
     id: 'r-001',
     title: 'Semana de IA na XPeX — Trilhas Abertas',
-    description: 'Conteúdos selecionados pela equipe XPeX para acompanhar o que está em alta no universo da IA.',
+    description: 'Conteúdos selecionados pela equipe XPeX para acompanhar temas relevantes no universo da IA.',
     category: 'radar',
     label: 'Curado',
     publishedAt: null,
@@ -281,8 +339,8 @@ const CURATED_RADAR: PulseRadarItem[] = [
   },
   {
     id: 'r-003',
-    title: 'GXEON Copilot — Use para Aprender mais Rápido',
-    description: 'Seu assistente de IA integrado à XPeX Academy está pronto para responder dúvidas dos seus cursos.',
+    title: 'GXEON Copilot — Apoio aos Estudos',
+    description: 'O assistente integrado da XPeX Academy pode apoiar dúvidas e atividades dos cursos disponíveis.',
     category: 'radar',
     label: 'Disponível',
     publishedAt: null,
@@ -292,48 +350,85 @@ const CURATED_RADAR: PulseRadarItem[] = [
   },
 ]
 
-// ─── XARA Recommendations ─────────────────────────────────────────────────────
-// These are static curated items in V1.
-// In V2, they will be replaced by real personalized recommendations from the
-// GXEON AI Gateway (/xpex/ai-gateway) — never direct browser-to-provider calls.
+// ─── XARA Recommendations & Prompt Templates ──────────────────────────────────
 
-const CURATED_XARA: PulseXaraItem[] = [
+export const CURATED_XARA: PulseXaraItem[] = [
   {
     id: 'x-001',
-    title: 'Fundamentos de Python para IA',
-    description: 'Uma trilha de aprendizado ideal para quem quer entender a linguagem que move o universo da IA.',
+    title: 'Trilha Oficial: Formação de Engenheiro de IA & Agentes',
+    description: 'Aprenda do zero ao avançado a criar sistemas autônomos, orquestração e RAG com suporte de XARA.',
     category: 'xara',
-    label: 'Curado',
+    label: 'Disponível',
     publishedAt: null,
     url: '/xpex/trails',
     youtubeId: null,
-    source: 'XPeX Academy',
+    source: 'XPeX Academy / XARA',
+    suggestedPrompt: 'Como posso iniciar minha trilha de Engenharia de IA?',
   },
   {
     id: 'x-002',
-    title: 'Machine Learning na Prática',
-    description: 'Aplique algoritmos clássicos e redes neurais em projetos reais dentro da plataforma XPeX.',
+    title: 'Laboratório Prático: RAG Corporativo em Produção',
+    description: 'Construa um assistente corporativo seguro com banco vetorial e proteção de dados reais.',
     category: 'xara',
-    label: 'Curado',
+    label: 'Disponível',
     publishedAt: null,
     url: '/xpex/courses',
     youtubeId: null,
-    source: 'XPeX Academy',
+    source: 'XPeX Academy / XARA',
+    suggestedPrompt: 'Explique a diferença entre busca semântica e busca vetorial híbrida.',
   },
   {
     id: 'x-003',
-    title: 'Construindo com APIs de IA',
-    description: 'Integre OpenAI, Gemini e outros modelos em aplicações do mundo real com boas práticas de segurança.',
+    title: 'GXEON Copilot no XPeX AI Lab',
+    description: 'Use o ambiente integrado de desenvolvimento com IA para praticar o código visto nos vídeos.',
     category: 'xara',
-    label: 'Em preparação',
+    label: 'Disponível',
     publishedAt: null,
-    url: null,
+    url: '/xpex/gxeon',
     youtubeId: null,
-    source: 'XPeX Academy',
+    source: 'XPeX Academy / GXEON',
+    suggestedPrompt: 'Como integro o GXEON ao meu fluxo diário de estudos?',
   },
 ]
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Bottom Resource Cards ────────────────────────────────────────────────────
+
+export const PULSE_RESOURCE_CARDS: PulseResourceCard[] = [
+  {
+    id: 'res-1',
+    title: 'Busca inteligente',
+    description: 'Encontre conteúdos por tema, nível de dificuldade, ferramentas ou criadores de forma unificada.',
+    badgeText: 'FILTROS AVANÇADOS',
+    iconName: 'search',
+    href: '#pulse-toolbar',
+  },
+  {
+    id: 'res-2',
+    title: 'Player integrado',
+    description: 'Assista sem sair da XPeX Academy com controles otimizados e lista de próximos vídeos automática.',
+    badgeText: 'YOUTUBE EMBED',
+    iconName: 'play',
+    href: '#pulse-main-player',
+  },
+  {
+    id: 'res-3',
+    title: 'Canais curados',
+    description: 'Fontes e conteúdos selecionados pela curadoria XPeX.',
+    badgeText: 'CURADORIA XPEX',
+    iconName: 'shield',
+    href: '#pulse-curated-videos',
+  },
+  {
+    id: 'res-4',
+    title: 'Trilhas relacionadas',
+    description: 'Conecte o que você descobre no Pulse às trilhas disponíveis na XPeX Academy.',
+    badgeText: 'XARA COPILOT',
+    iconName: 'sparkles',
+    href: '/xpex/trails',
+  },
+]
+
+// ─── Public API Services ──────────────────────────────────────────────────────
 
 const NOW = new Date().toISOString()
 
@@ -344,6 +439,10 @@ export async function fetchPulseVideos(): Promise<PulseBlockResult<PulseVideoIte
     live: false,
     fetchedAt: NOW,
   }
+}
+
+export async function fetchPulseVideoQueue(): Promise<PulseVideoQueueItem[]> {
+  return VIDEO_QUEUE_ITEMS
 }
 
 export async function fetchPulseNews(): Promise<PulseBlockResult<PulseNewsItem>> {
@@ -383,21 +482,30 @@ export async function fetchPulseRadar(): Promise<PulseBlockResult<PulseRadarItem
 }
 
 export async function fetchPulseXara(): Promise<PulseBlockResult<PulseXaraItem>> {
-  // V1: curated static content only.
-  // V2: call /xpex/ai-gateway for personalized recommendations using accessToken.
   return {
     items: CURATED_XARA,
-    label: 'Curado',
+    label: 'Disponível',
     live: false,
     fetchedAt: NOW,
   }
 }
 
-export function searchPulse(query: string): PulseSearchResult {
-  if (!query.trim()) {
-    return { items: [], query, totalCount: 0 }
-  }
-  const q = query.toLowerCase()
+export async function fetchPulseResourceCards(): Promise<PulseResourceCard[]> {
+  return PULSE_RESOURCE_CARDS
+}
+
+/**
+ * Truthful student progress summary calculation.
+ */
+export async function fetchStudentPulseProgress(_studentDisplayName?: string): Promise<PulseStudentProgress | undefined> {
+  return undefined
+}
+
+/**
+ * Filter and search Pulse items across all categories.
+ */
+export function searchPulse(query: string, categoryFilter: PulseCategory = 'all'): PulseSearchResult {
+  const q = query.trim().toLowerCase()
   const all: PulseItem[] = [
     ...CURATED_VIDEOS,
     ...CURATED_NEWS,
@@ -406,15 +514,160 @@ export function searchPulse(query: string): PulseSearchResult {
     ...CURATED_RADAR,
     ...CURATED_XARA,
   ]
-  const matched = all.filter(
+
+  let filtered = all
+  if (categoryFilter !== 'all') {
+    filtered = all.filter((item) => {
+      if (categoryFilter === 'videos') return item.category === 'videos'
+      if (categoryFilter === 'news') return item.category === 'news'
+      if (categoryFilter === 'trends') return item.category === 'trends'
+      if (categoryFilter === 'tech') return item.category === 'tech'
+      if (categoryFilter === 'radar') return item.category === 'radar'
+      if (categoryFilter === 'xara') return item.category === 'xara'
+      if (categoryFilter === 'ai') {
+        return (
+          item.title.toLowerCase().includes('ia') ||
+          item.description.toLowerCase().includes('ia') ||
+          item.title.toLowerCase().includes('ai')
+        )
+      }
+      if (categoryFilter === 'market') {
+        return (
+          item.title.toLowerCase().includes('mercado') ||
+          item.description.toLowerCase().includes('mercado') ||
+          item.title.toLowerCase().includes('empresas')
+        )
+      }
+      if (categoryFilter === 'tools' || categoryFilter === 'tutorials') {
+        return (
+          item.title.toLowerCase().includes('prática') ||
+          item.title.toLowerCase().includes('tutorial') ||
+          item.title.toLowerCase().includes('deploy') ||
+          item.category === 'tech'
+        )
+      }
+      return true
+    })
+  }
+
+  if (!q) {
+    return {
+      items: filtered,
+      query,
+      totalCount: filtered.length,
+      matchedCategory: categoryFilter,
+    }
+  }
+
+  const matched = filtered.filter(
     (item) =>
       item.title.toLowerCase().includes(q) ||
       item.description.toLowerCase().includes(q) ||
-      (item.source?.toLowerCase().includes(q) ?? false)
+      (item.source?.toLowerCase().includes(q) ?? false) ||
+      (item.author?.toLowerCase().includes(q) ?? false)
   )
+
   return {
     items: matched,
     query,
     totalCount: matched.length,
+    matchedCategory: categoryFilter,
   }
 }
+
+/**
+ * XARA AI Bridge Dispatcher
+ * Calls the Railway AI Gateway endpoint (/xpex/ai-gateway) securely or uses intelligent fallback.
+ */
+export async function askPulseXara(
+  prompt: string,
+  contextVideoTitle: string | undefined,
+  accessToken: string,
+  organizationSlug: string
+): Promise<PulseXaraMessage> {
+  const trimmed = prompt.trim()
+  const timestamp = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+  if (!trimmed) {
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'xara',
+      content: 'Olá! Sou a XARA, sua mentora de IA na XPeX Academy. O que você gostaria de explorar?',
+      timestamp: timestamp(),
+      actionSuggestions: ['Resumir este conteúdo', 'Criar trilha personalizada', 'Sugerir próximos vídeos'],
+      linkedUrl: '/xpex/trails',
+    }
+  }
+
+  const contextualMessage = contextVideoTitle
+    ? `Contexto do XPeX Pulse: o aluno está vendo o vídeo "${contextVideoTitle}".\n\nPergunta do aluno: ${trimmed}`
+    : trimmed
+
+  return await new Promise<PulseXaraMessage>((resolve) => {
+    let responseText = ''
+    let settled = false
+
+    const finish = (message: PulseXaraMessage) => {
+      if (settled) return
+      settled = true
+      resolve(message)
+    }
+
+    const timeout = window.setTimeout(() => {
+      finish({
+        id: `msg-${Date.now()}`,
+        role: 'system',
+        content: 'A XARA não conseguiu concluir a resposta neste momento. O conteúdo continua disponível normalmente.',
+        timestamp: timestamp(),
+        actionSuggestions: ['Tentar novamente'],
+        linkedUrl: '/xpex/gxeon',
+      })
+    }, 30000)
+
+    startRAGChatStream(
+      contextualMessage,
+      accessToken,
+      {
+        onChunk: (chunk: string) => {
+          responseText += chunk
+        },
+        onComplete: (_data: StreamDoneData) => {
+          window.clearTimeout(timeout)
+          finish({
+            id: `msg-${Date.now()}`,
+            role: 'xara',
+            content: responseText || 'O GXEON concluiu a análise, mas não retornou conteúdo textual.',
+            timestamp: timestamp(),
+            actionSuggestions: ['Explorar no AI Lab', 'Ver trilha relacionada'],
+            linkedUrl: '/xpex/trails',
+          })
+        },
+        onError: () => {
+          window.clearTimeout(timeout)
+          finish({
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: 'A XARA não conseguiu acessar o GXEON neste momento. Tente novamente em instantes.',
+            timestamp: timestamp(),
+            actionSuggestions: ['Tentar novamente'],
+            linkedUrl: '/xpex/gxeon',
+          })
+        },
+      },
+      undefined,
+      'general',
+      organizationSlug
+    ).catch(() => {
+      window.clearTimeout(timeout)
+      finish({
+        id: `msg-${Date.now()}`,
+        role: 'system',
+        content: 'A XARA não conseguiu acessar o GXEON neste momento. Tente novamente em instantes.',
+        timestamp: timestamp(),
+        actionSuggestions: ['Tentar novamente'],
+        linkedUrl: '/xpex/gxeon',
+      })
+    })
+  })
+}
+

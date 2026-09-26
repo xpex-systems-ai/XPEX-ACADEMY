@@ -1,49 +1,55 @@
+'use client'
+
 import React from 'react'
-import { Lightbulb } from 'lucide-react'
 import type { PulseTechItem } from '@/types/pulse'
 
 interface PulseTechBlockProps {
   items: PulseTechItem[]
-  label: string
+  label?: string
 }
 
-/** Tecnologias Emergentes block — curated tech landscape, tagged. */
-export function PulseTechBlock({ items, label }: PulseTechBlockProps) {
+export function PulseTechBlock({ items, label = 'Curado' }: PulseTechBlockProps) {
   return (
-    <section className="pulse-section" aria-labelledby="pulse-tech-heading">
-      <div className="pulse-section-header">
-        <div className="pulse-section-title-group">
-          <div className="pulse-section-icon" aria-hidden="true">
-            <Lightbulb size={16} />
-          </div>
-          <h2 id="pulse-tech-heading" className="pulse-section-title cyan">
-            Tecnologias <span>Emergentes</span>
-          </h2>
+    <section className="pulse-tech-panel" aria-label="Tecnologias Emergentes">
+      <div className="pulse-panel-header">
+        <div className="pulse-panel-title-wrap">
+          <span className="pulse-panel-accent-tag">FRONTEIRA TECNOLÓGICA</span>
+          <h3 className="pulse-panel-title">TECNOLOGIAS EMERGENTES</h3>
         </div>
-        <span className="pulse-section-label">{label}</span>
+        <span className="pulse-label-badge">{label}</span>
       </div>
 
-      <div className="pulse-grid-4">
+      <div className="pulse-tech-grid">
         {items.map((tech) => (
-          <div key={tech.id} className="pulse-card">
-            <div className="pulse-card-header">
-              <h3 className="pulse-card-title">{tech.title}</h3>
-              <span
-                className="pulse-section-label"
-                aria-label={`Status: ${tech.label}`}
-              >
-                {tech.label}
-              </span>
+          <article key={tech.id} className="pulse-tech-card" tabIndex={0}>
+            <div className="pulse-tech-top-meta">
+              <span className="pulse-tech-provider">{tech.providerOrOrg || 'Tecnologia Aberta'}</span>
+              {tech.stage && <span className="pulse-stage-pill">{tech.stage}</span>}
             </div>
-            <p className="pulse-card-desc">{tech.description}</p>
+
+            <h4 className="pulse-tech-name">{tech.title}</h4>
+            <p className="pulse-tech-desc">{tech.description}</p>
+
             {tech.tags && tech.tags.length > 0 && (
-              <div className="pulse-card-tags" aria-label="Tags">
+              <div className="pulse-tech-tags">
                 {tech.tags.map((tag) => (
-                  <span key={tag} className="pulse-tag">{tag}</span>
+                  <span key={tag} className="pulse-tech-tag">#{tag}</span>
                 ))}
               </div>
             )}
-          </div>
+
+            {tech.url && (
+              <a
+                href={tech.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pulse-tech-explore-link"
+                aria-label={`Explorar documentação de ${tech.title}`}
+              >
+                Documentação oficial ↗
+              </a>
+            )}
+          </article>
         ))}
       </div>
     </section>

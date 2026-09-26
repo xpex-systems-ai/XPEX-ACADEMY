@@ -1,84 +1,202 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { GraduationCap, Bot, ArrowRight } from 'lucide-react'
-import type { PulseXaraItem } from '@/types/pulse'
+import { askPulseXara } from '@services/pulse/pulse'
+import type { PulseXaraItem, PulseXaraMessage } from '@/types/pulse'
 
 interface PulseXaraBlockProps {
   items: PulseXaraItem[]
-  label: string
+  label?: string
+  accessToken: string
+  organizationSlug: string
+  activeVideoTitle?: string
+  initialPrompt?: string
 }
 
-/**
- * Aprenda com XARA block.
- *
- * V1: Curated static recommendations.
- * V2: Will be replaced by real personalized content from GXEON AI Gateway.
- *
- * SECURITY: XARA routes through GXEON Gateway (/xpex/ai-gateway).
- * No direct browser-to-provider calls. No API keys in the frontend.
- */
-export function PulseXaraBlock({ items, label }: PulseXaraBlockProps) {
+export function PulseXaraBlock({
+  items,
+  label = 'Disponível',
+  accessToken,
+  organizationSlug,
+  activeVideoTitle,
+  initialPrompt,
+}: PulseXaraBlockProps) {
+  const [messages, setMessages] = useState<PulseXaraMessage[]>([
+    {
+      id: 'init-msg',
+      role: 'xara',
+      content:
+        'Olá! Sou a XARA, sua mentora de IA na XPeX Academy. Estou pronta para transformar as descobertas do Pulse em conhecimento prático. O que gostaria de analisar agora?',
+      timestamp: 'Agora',
+      actionSuggestions: [
+        'Resumir este conteúdo',
+        'Criar trilha personalizada',
+        'Sugerir próximos vídeos',
+      ],
+      linkedUrl: '/xpex/trails',
+    },
+  ])
+  const [inputValue, setInputValue] = useState(initialPrompt || '')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (initialPrompt) setInputValue(initialPrompt)
+  }, [initialPrompt])
+
+  const handleSend = async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed || loading) return
+
+    setInputValue('')
+    setLoading(true)
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-msg-${prev.length + 1}`,
+        role: 'user',
+        content: trimmed,
+        timestamp: 'Agora',
+      },
+    ])
+
+    try {
+      const reply = await askPulseXara(trimmed, activeVideoTitle, accessToken, organizationSlug)
+      setMessages((prev) => [...prev, reply])
+
+      // Telemetry
+      import('@/lib/firebase')
+        .then(({ trackXpexEvent }) => {
+          trackXpexEvent('pulse_xara_action', { prompt_length: trimmed.length })
+        })
+        .catch(() => {})
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSend(inputValue)
+    }
+  }
+
   return (
-    <section className="pulse-section" aria-labelledby="pulse-xara-heading">
-      <div className="pulse-section-header">
-        <div className="pulse-section-title-group">
-          <div className="pulse-section-icon success" aria-hidden="true">
-            <Bot size={16} />
-          </div>
-          <h2 id="pulse-xara-heading" className="pulse-section-title cyan">
-            Aprenda com <span>XARA</span>
-          </h2>
+    <section className="pulse-xara-panel" id="pulse-xara-panel" aria-label="Aprenda com XARA">
+      <div className="pulse-panel-header">
+        <div className="pulse-panel-title-wrap">
+          <span className="pulse-panel-accent-tag">COPILOT PEDAGÓGICO</span>
+          <h3 className="pulse-panel-title">APRENDA COM XARA</h3>
         </div>
-        <span className="pulse-section-label">{label}</span>
+        <div className="pulse-xara-status-pills">
+          <span className="pulse-badge-gxeon">GXEON ENGINE</span>
+          <span className="pulse-label-badge">{label}</span>
+        </div>
       </div>
 
-      <div className="pulse-status-notice" role="note">
-        <Bot size={16} aria-hidden="true" />
-        <span>
-          Conteúdos e recomendações selecionados pela equipe XPeX.
-          Recomendações personalizadas com IA chegam em breve via GXEON Copilot.
-        </span>
-      </div>
+      <div className="pulse-xara-content-box">
+        <div className="pulse-xara-messages-log" role="log" aria-live="polite">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`pulse-xara-bubble-row is-${msg.role}`}>
+              {msg.role === 'xara' && (
+                <div className="pulse-xara-avatar" aria-hidden="true">
+                  <span>X</span>
+                </div>
+              )}
+              <div className="pulse-xara-bubble">
+                <p className="pulse-xara-text">{msg.content}</p>
 
-      <div className="pulse-grid-3">
-        {items.map((item) => (
-          <div key={item.id} className="pulse-xara-card">
-            <div className="pulse-xara-label">
-              <GraduationCap size={12} aria-hidden="true" />
-              {item.label}
+                {msg.actionSuggestions && msg.actionSuggestions.length > 0 && (
+                  <div className="pulse-xara-suggestions">
+                    {msg.actionSuggestions.map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        className="pulse-xara-chip"
+                        onClick={() => handleSend(sug)}
+                        disabled={loading}
+                      >
+                        {sug}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {msg.linkedUrl && (
+                  <div className="pulse-xara-link-row">
+                    <Link href={msg.linkedUrl} className="pulse-xara-direct-link">
+                      Acessar trilhas conectadas →
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
-            <h3 className="pulse-card-title">{item.title}</h3>
-            <p className="pulse-card-desc">{item.description}</p>
-            {item.url && item.label !== 'Em preparação' ? (
-              <Link
-                href={item.url}
-                className="pulse-card-link"
-                onClick={() => {
-                  import('@/lib/firebase').then(({ trackXpexEvent }) => {
-                    trackXpexEvent('pulse_content_started', { content_id: item.id, content_type: 'xara' })
-                  }).catch(() => {})
-                }}
-              >
-                Começar <ArrowRight size={13} aria-hidden="true" />
-              </Link>
-            ) : (
-              <span className="pulse-card-link" style={{ opacity: 0.45, cursor: 'default' }}>
-                Em preparação
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
 
-      <div className="pulse-status-notice" role="note">
-        <GraduationCap size={16} aria-hidden="true" />
-        <span>
-          Use o{' '}
-          <Link href="/xpex/gxeon" style={{ color: 'var(--pulse-cyan)', textDecoration: 'none', fontWeight: 600 }}>
-            GXEON Copilot
-          </Link>{' '}
-          para tirar dúvidas sobre seus cursos com IA agora mesmo.
-        </span>
+          {loading && (
+            <div className="pulse-xara-bubble-row is-xara">
+              <div className="pulse-xara-avatar" aria-hidden="true">
+                <span>X</span>
+              </div>
+              <div className="pulse-xara-bubble is-loading">
+                <span className="pulse-typing-indicator">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="pulse-typing-label">XARA está analisando o contexto...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pulse-xara-input-row">
+          <label htmlFor="pulse-xara-input" className="sr-only">
+            Pergunte algo para XARA
+          </label>
+          <input
+            id="pulse-xara-input"
+            type="text"
+            className="pulse-xara-input-field"
+            placeholder="Pergunte algo para XARA (ex: 'Como aplico este conceito em um projeto?')..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            className="pulse-xara-send-btn"
+            onClick={() => handleSend(inputValue)}
+            disabled={!inputValue.trim() || loading}
+            aria-label="Enviar mensagem para XARA"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
+
+        {items && items.length > 0 && (
+          <div className="pulse-xara-recommended-strip">
+            <span className="pulse-strip-label">Sugestões de estudo:</span>
+            <div className="pulse-strip-items">
+              {items.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  className="pulse-strip-chip"
+                  onClick={() => handleSend(it.suggestedPrompt || `Quero saber mais sobre ${it.title}`)}
+                >
+                  {it.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

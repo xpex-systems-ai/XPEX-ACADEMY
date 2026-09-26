@@ -32,6 +32,7 @@ export default async function PulsePage() {
         </header>
 
         <PulseHome
+          accessToken={learning.accessToken}
           displayName={learning.displayName}
           organizationSlug={organizationSlug}
         />
