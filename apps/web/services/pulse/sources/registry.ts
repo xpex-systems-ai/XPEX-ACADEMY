@@ -89,11 +89,11 @@ export class PulseSourceRegistry {
       id: v.id,
       title: v.title,
       channelName: v.channelName,
-      durationLabel: v.durationLabel ?? '15 min',
+      durationLabel: v.durationLabel ?? '—',
       youtubeId: v.youtubeId,
       category: v.category,
       viewsCountLabel: v.viewsCountLabel,
-      publishedAtRelative: index === 0 ? 'Em reprodução' : `há ${index * 2 + 1} dias`,
+      publishedAtRelative: index === 0 ? 'Em reprodução' : undefined,
       active: index === 0,
     })) || FALLBACK_QUEUE_ITEMS
   }
