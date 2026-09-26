@@ -1,16 +1,16 @@
 /**
  * XPeX Pulse — Server-Side YouTube Live Discovery Adapter
- * MISSION: XPEX-PULSE-RELEASE-PATCH-001
+ * MISSION: XPEX-PULSE-FINAL-RELEASE-PATCH-001
  *
  * Discovers approved YouTube learning content via official API when configured.
  * Does NOT proxy streams or download media.
  * Uses official embed IDs and youtube-nocookie.com.
  * Gracefully degrades if YOUTUBE_API_KEY is missing or disabled.
  *
- * Trust Model & Exact Matching:
- * - Approved channels matched strictly by exact channelId or exact normalized channelTitle.
- * - Substring matching is strictly rejected.
- * - Non-approved channels are rejected during normalization.
+ * Trust Model & Channel ID Precedence:
+ * - For approved entries WITH channelId: requires exact channelId equality; title-alone is rejected.
+ * - For approved entries WITHOUT channelId: exact normalized title matching is allowed as fallback.
+ * - Substring and partial matching are strictly rejected.
  * - Dates are parsed safely via parseYouTubeDateOrNull (returns null on malformed dates).
  * - Never fabricates duration or view metrics.
  */
@@ -81,15 +81,13 @@ export function resolveYouTubeChannelTrust(
   }
 
   const matched = APPROVED_YOUTUBE_CHANNELS.find((c) => {
-    // 1. Exact channelId matching if channelId is present
-    if (idTrimmed && c.channelId && idTrimmed === c.channelId) {
-      return true
+    // 1. For approved entries WITH channelId: require exact channelId equality (do not approve based on title alone)
+    if (c.channelId) {
+      return Boolean(idTrimmed && idTrimmed === c.channelId)
     }
-    // 2. Exact normalized title matching (no substring/partial match)
-    if (titleLower && titleLower === c.channelTitle.toLowerCase().trim()) {
-      return true
-    }
-    return false
+
+    // 2. For approved entries WITHOUT channelId: exact normalized title fallback is allowed
+    return Boolean(titleLower && titleLower === c.channelTitle.toLowerCase().trim())
   })
 
   if (matched) {

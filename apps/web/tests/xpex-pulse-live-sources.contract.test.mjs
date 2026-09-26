@@ -209,4 +209,23 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     assert.ok(!registry.includes('index * 2 + 1'), 'Publication age must not be fabricated from queue position')
   })
 
+  it('25 server feature flag gate prevents client query params from elevating disabled flags', () => {
+    const route = readWebFile('app/xpex/pulse/feed/route.ts')
+    assert.ok(route.includes('getServerPulseFeatureFlags'), 'Feed route must resolve server feature flags')
+    assert.ok(route.includes('serverLiveSourcesEnabled && clientRequestedLive'), 'Must enforce server live flag conjunction')
+    assert.ok(route.includes('serverYouTubeEnabled && clientRequestedYouTube'), 'Must enforce server YouTube flag conjunction')
+    assert.ok(route.includes('serverNewsEnabled && clientRequestedNews'), 'Must enforce server News flag conjunction')
+  })
+
+  it('26 YouTube channel ID precedence enforces exact channelId match for ID-backed channels', () => {
+    const yt = readWebFile('services/pulse/sources/youtube.ts')
+    assert.ok(yt.includes('c.channelId'), 'Trust resolver must check c.channelId')
+    assert.ok(yt.includes('Boolean(idTrimmed && idTrimmed === c.channelId)'), 'Entries with channelId must require exact ID match and reject title-alone match')
+  })
+
+  it('27 YouTube trust matcher permits exact title fallback only when channelId is absent and rejects partial match', () => {
+    const yt = readWebFile('services/pulse/sources/youtube.ts')
+    assert.ok(!yt.includes('.includes('), 'Must never use substring or partial matching in trust resolver')
+    assert.ok(yt.includes('titleLower === c.channelTitle.toLowerCase().trim()'), 'Must require exact normalized title matching')
+  })
 })
