@@ -164,4 +164,33 @@ describe('XPeX Pulse Live Sources — Source Contracts & Registry', () => {
     assert.ok(doc, 'Manifesto document must exist')
     assert.ok(doc.includes('XPEX-PULSE-LIVE-SOURCES-001'), 'Must have mission ID')
   })
+  it('21 live source fabric is exposed only through authenticated server route', () => {
+    const route = readWebFile('app/xpex/pulse/feed/route.ts')
+    const service = readWebFile('services/pulse/pulse.ts')
+    assert.ok(route, 'Authenticated Pulse feed route must exist')
+    assert.ok(route.includes("import 'server-only'"), 'Feed route must be server-only')
+    assert.ok(route.includes('getAuthorizedStudentLearning'), 'Feed route must enforce student authorization')
+    assert.ok(route.includes('pulseRegistry'), 'Feed route must use server-side Pulse registry')
+    assert.ok(!service.includes("from './sources/registry'"), 'Client-facing Pulse service must not import live server registry')
+  })
+
+  it('22 student progress never fabricates placeholder metrics', () => {
+    const service = readWebFile('services/pulse/pulse.ts')
+    assert.ok(service.includes('return undefined'), 'Pulse progress must remain unavailable until authoritative backend data is wired')
+    assert.ok(!service.includes('completionPercentage: 75'), 'Must not ship fabricated 75% progress')
+    assert.ok(!service.includes('watchedVideosCount: 28'), 'Must not ship fabricated watched-video count')
+  })
+
+  it('23 XARA fallback never fabricates a content summary', () => {
+    const service = readWebFile('services/pulse/pulse.ts')
+    assert.ok(!service.includes('Resumo inteligente: O conteúdo destaca'), 'Fallback must not invent a summary without GXEON')
+    assert.ok(service.includes('não conseguiu acessar o GXEON para resumir'), 'Fallback must disclose GXEON unavailability')
+  })
+
+  it('24 queue does not fabricate unknown duration or publication age', () => {
+    const registry = readWebFile('services/pulse/sources/registry.ts')
+    assert.ok(!registry.includes("durationLabel: v.durationLabel ?? '15 min'"), 'Unknown durations must not be fabricated')
+    assert.ok(!registry.includes('index * 2 + 1'), 'Publication age must not be fabricated from queue position')
+  })
+
 })
