@@ -1,7 +1,7 @@
 'use client'
 
 import { signOut } from '@components/Contexts/AuthContext'
-import { Award, Bell, BookOpen, Bot, BrainCircuit, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Search, ShieldCheck, Users, X } from 'lucide-react'
+import { Award, Bell, BookOpen, Bot, BrainCircuit, FileText, LayoutDashboard, LogOut, Map, Menu, MessageCircle, Radio, Search, ShieldCheck, Users, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -58,6 +58,7 @@ function StudentNavigation({ organizationSlug, adminAccess = false, onNavigate }
     { label: 'Trilhas', icon: Map, href: '/xpex/trails' },
     { label: 'Atividades', icon: FileText, href: '/xpex/activities' },
     { label: 'GXEON Copilot', icon: BrainCircuit, href: '/xpex/gxeon', isGxeon: true },
+    { label: 'XPeX Pulse', icon: Radio, href: '/xpex/pulse' },
     { label: 'Laboratório de IA', icon: Bot, href: '/xpex/ai-lab' },
     { label: 'Comunidade', icon: Users, href: '/xpex/community' },
     { label: 'Certificados', icon: Award, href: '/xpex/certificates' },
