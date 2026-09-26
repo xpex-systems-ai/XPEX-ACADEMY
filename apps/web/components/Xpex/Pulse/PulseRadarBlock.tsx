@@ -39,6 +39,7 @@ export function PulseRadarBlock({ items, label = 'Curado' }: PulseRadarBlockProp
           <div className="pulse-radar-list">
             {items.map((item, index) => {
               const rank = item.rank || index + 1
+
               return (
                 <div key={item.id} className="pulse-radar-topic-item" tabIndex={0}>
                   <div className="pulse-radar-topic-top">
@@ -50,6 +51,7 @@ export function PulseRadarBlock({ items, label = 'Curado' }: PulseRadarBlockProp
                   </div>
 
                   <p className="pulse-radar-desc">{item.description}</p>
+
                   {typeof item.interestPercentage === 'number' && (
                     <div className="pulse-radar-meter-row">
                       <div className="pulse-radar-bar-track" aria-hidden="true">
@@ -61,8 +63,20 @@ export function PulseRadarBlock({ items, label = 'Curado' }: PulseRadarBlockProp
                       <span className="pulse-radar-percent-label">{item.interestPercentage}%</span>
                     </div>
                   )}
+
+                  {item.url && (
+                    <div className="pulse-radar-action-wrap">
+                      <Link href={item.url} className="pulse-radar-trail-link">
+                        Explorar trilha correspondente →
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
