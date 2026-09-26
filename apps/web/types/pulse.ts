@@ -78,7 +78,7 @@ export interface PulseVideoQueueItem {
   id: string
   title: string
   channelName: string
-  durationLabel: string
+  durationLabel?: string
   youtubeId: string
   thumbnailUrl?: string
   category: string
@@ -92,6 +92,7 @@ export interface PulseNewsItem extends PulseItem {
   category: 'news'
   domain?: string
   readTimeMinutes?: number
+  estimatedReadTimeMinutes?: number
   publishedRelative?: string
 }
 
@@ -171,6 +172,10 @@ export interface PulseBlockResult<T extends PulseItem> {
   live: boolean
   /** ISO timestamp of the last known data refresh */
   fetchedAt: string
+  /** Source state for observability and truthful UI indicators */
+  sourceState?: 'live' | 'fresh-cache' | 'stale-cache' | 'curated' | 'unavailable'
+  /** Age of cached data in milliseconds if retrieved from cache */
+  freshnessAgeMs?: number
 }
 
 /** Search result */

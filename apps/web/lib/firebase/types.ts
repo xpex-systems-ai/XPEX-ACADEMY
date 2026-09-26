@@ -56,6 +56,11 @@ export type XpexFeatureFlagKey =
   | 'pulse_trends_enabled'
   | 'pulse_xara_enabled'
   | 'pulse_personalization_enabled'
+  | 'pulse_cache_enabled'
+  | 'pulse_creator_feed_enabled'
+  | 'pulse_tech_feed_enabled'
+  | 'pulse_radar_enabled'
+  | 'pulse_search_enabled'
   | 'toolhub_enabled'
   | 'project_vault_enabled'
   | 'vision_studio_enabled'
@@ -83,6 +88,11 @@ export const XPEX_FEATURE_FLAG_DEFAULTS: Record<XpexFeatureFlagKey, boolean | st
   pulse_trends_enabled: true,
   pulse_xara_enabled: true,
   pulse_personalization_enabled: false,
+  pulse_cache_enabled: true,
+  pulse_creator_feed_enabled: false,
+  pulse_tech_feed_enabled: true,
+  pulse_radar_enabled: true,
+  pulse_search_enabled: true,
   toolhub_enabled: false,
   project_vault_enabled: false,
   vision_studio_enabled: false,
@@ -133,6 +143,12 @@ export type XpexEventName =
   | 'pulse_xara_opened'
   | 'pulse_xara_action'
   | 'pulse_topic_followed'
+  | 'pulse_source_loaded'
+  | 'pulse_video_selected'
+  | 'pulse_news_opened'
+  | 'pulse_technology_opened'
+  | 'pulse_creator_opened'
+  | 'pulse_search_result_selected'
   // Projects & Studios
   | 'project_created'
   | 'vision_job_started'
