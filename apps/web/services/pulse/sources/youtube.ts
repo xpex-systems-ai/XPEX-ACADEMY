@@ -8,6 +8,8 @@
  * Gracefully degrades if YOUTUBE_API_KEY is missing or disabled.
  */
 
+import 'server-only'
+
 import type {
   PulseLiveSource,
   PulseSourceHealthRecord,
