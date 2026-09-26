@@ -87,7 +87,8 @@ export function GxeonChatShell({
   // label for confirmed Google aliases. All other providers remain behind the
   // provider-neutral GXEON AI identity.
   const provider = gatewayHealth?.provider?.toLowerCase()
-  const providerBadge = provider === 'google' || provider === 'google-gla' || provider === 'gemini'
+  const isGoogleProvider = gatewayHealth?.provider?.toLowerCase() === 'google' || provider === 'google-gla' || provider === 'gemini'
+  const providerBadge = isGoogleProvider
     ? 'Gemini'
     : 'GXEON AI'
 

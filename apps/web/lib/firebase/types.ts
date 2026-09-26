@@ -70,7 +70,7 @@ export type XpexFeatureFlagKey =
 export const XPEX_FEATURE_FLAG_DEFAULTS: Record<XpexFeatureFlagKey, boolean | string | number> = {
   xara_enabled: true,
   xara_rag_enabled: true,
-  pulse_enabled: false,
+  pulse_enabled: true,
   toolhub_enabled: false,
   project_vault_enabled: false,
   vision_studio_enabled: false,
