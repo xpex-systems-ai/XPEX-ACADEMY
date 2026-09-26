@@ -49,6 +49,8 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
     news: true,
     trends: true,
     xara: true,
+    liveSources: false,
+    youtubeApi: false,
   })
   const [videos, setVideos] = useState<PulseVideoItem[]>([])
   const [activeVideo, setActiveVideo] = useState<PulseVideoItem | null>(null)
@@ -77,9 +79,17 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
         const newsEnabled = isFeatureEnabled('pulse_news_enabled')
         const trendsEnabled = isFeatureEnabled('pulse_trends_enabled')
         const xaraEnabled = isFeatureEnabled('pulse_xara_enabled')
+        const liveSourcesEnabled = isFeatureEnabled('pulse_live_sources_enabled')
+        const youtubeApiEnabled = isFeatureEnabled('pulse_youtube_api_enabled')
         if (!mounted) return
         setPulseEnabled(enabled)
-        setModuleFlags({ news: newsEnabled, trends: trendsEnabled, xara: xaraEnabled })
+        setModuleFlags({
+          news: newsEnabled,
+          trends: trendsEnabled,
+          xara: xaraEnabled,
+          liveSources: liveSourcesEnabled,
+          youtubeApi: youtubeApiEnabled,
+        })
         if (enabled) {
           trackXpexEvent('pulse_opened', {})
         }
@@ -99,7 +109,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
 
     let mounted = true
     async function loadAll() {
-      const [v, n, tr, te, r, x, p, res] = await Promise.all([
+      const [fallbackVideos, fallbackNews, tr, te, r, x, p, res] = await Promise.all([
         fetchPulseVideos(),
         fetchPulseNews(),
         fetchPulseTrends(),
@@ -109,6 +119,31 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
         fetchStudentPulseProgress(displayName),
         fetchPulseResourceCards(),
       ])
+
+      let v = fallbackVideos
+      let n = fallbackNews
+
+      if (moduleFlags.liveSources) {
+        try {
+          const params = new URLSearchParams({
+            youtube: moduleFlags.youtubeApi ? '1' : '0',
+            news: moduleFlags.news ? '1' : '0',
+          })
+          const response = await fetch(`/xpex/pulse/feed?${params.toString()}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+          })
+
+          if (response.ok) {
+            const livePayload = await response.json()
+            if (livePayload?.videos?.items?.length) v = livePayload.videos
+            if (livePayload?.news?.items?.length) n = livePayload.news
+          }
+        } catch {
+          // Curated fallback remains active if the live source fabric is unavailable.
+        }
+      }
 
       if (!mounted) return
       setVideos(v.items)
@@ -128,7 +163,7 @@ export function PulseHome({ accessToken, displayName = 'Aluno XPeX', organizatio
     return () => {
       mounted = false
     }
-  }, [pulseEnabled, displayName])
+  }, [pulseEnabled, displayName, moduleFlags.liveSources, moduleFlags.youtubeApi, moduleFlags.news])
 
   const handleSelectVideo = useCallback((video: PulseVideoItem) => {
     setActiveVideo(video)
