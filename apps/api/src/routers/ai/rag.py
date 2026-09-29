@@ -1,3 +1,4 @@
+# ruff: noqa: B008, I001, UP045
 """
 RAG (Retrieval-Augmented Generation) API router.
 
@@ -20,7 +21,7 @@ from src.db.organization_config import OrganizationConfig
 from src.db.organizations import Organization
 from src.db.users import PublicUser, AnonymousUser, APITokenUser
 from src.security.auth import get_current_user, get_authenticated_user, resolve_acting_user_id
-from src.security.features_utils.usage import reserve_ai_credit
+from src.security.features_utils.usage import refund_ai_credit, reserve_ai_credit
 from src.security.org_auth import is_org_member, require_org_admin
 from src.services.ai.base import (
     get_chat_session_history,
@@ -81,6 +82,7 @@ async def rag_chat_event_generator(
     is_new_session: bool = False,
     mode: str = "course_only",
     org_id: Optional[int] = None,
+    provider_unavailable: bool = False,
 ):
     """Convert async generator to SSE format with source references."""
     from src.security.features_utils.usage import refund_ai_credit
@@ -104,6 +106,12 @@ async def rag_chat_event_generator(
 
         # Send done event
         yield f"data: {json.dumps({'type': 'done', 'aichat_uuid': aichat_uuid})}\n\n"
+
+        # A controlled provider/embedding outage is already the complete response.
+        # Skip all optional AI enrichment so it cannot trigger another provider call
+        # or a second refund after the API layer restored the reserved credits.
+        if provider_unavailable:
+            return
 
         # Generate follow-up suggestions
         follow_ups = await generate_follow_up_suggestions(
@@ -248,8 +256,9 @@ async def api_rag_chat(
     # Get or create chat session
     chat_session = get_chat_session_history(chat_request.aichat_uuid)
 
-    # Perform RAG query with streaming
-    stream, sources = await query_course_rag_stream(
+    # Perform RAG query with streaming. Keep compatibility with older/mocked
+    # two-item returns while the service now also reports controlled degradation.
+    rag_query_result = await query_course_rag_stream(
         question=chat_request.message,
         org_id=org_id,
         db_session=db_session,
@@ -257,6 +266,20 @@ async def api_rag_chat(
         course_id=course_id,
         mode=chat_request.mode or "course_only",
     )
+    if len(rag_query_result) == 3:
+        stream, sources, provider_unavailable = rag_query_result
+    else:
+        stream, sources = rag_query_result
+        provider_unavailable = False
+
+    if provider_unavailable:
+        try:
+            refund_ai_credit(org_id, 2)
+        except Exception:
+            logger.warning(
+                "Could not refund RAG credits after provider/embedding outage",
+                exc_info=True,
+            )
 
     return StreamingResponse(
         rag_chat_event_generator(
@@ -271,6 +294,7 @@ async def api_rag_chat(
             is_new_session=is_new_session,
             mode=chat_request.mode,
             org_id=org_id,
+            provider_unavailable=provider_unavailable,
         ),
         media_type="text/event-stream",
         headers={

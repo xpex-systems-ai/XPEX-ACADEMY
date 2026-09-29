@@ -10,7 +10,6 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.security.features_utils.usage import refund_ai_credit
 from src.services.ai.base import ask_ai_stream
 from src.services.ai.llm import model_for_tier
 from src.services.ai.llm.provider import AINotConfiguredError
@@ -120,9 +119,9 @@ async def query_course_rag(
 async def _provider_unavailable_stream() -> AsyncGenerator[str]:
     """Return a truthful student-facing status instead of leaking a provider exception."""
     yield (
-        "O assistente GX está temporariamente indisponível porque o provedor de IA "
-        "ainda não está configurado neste ambiente. Seu curso, progresso e atividades "
-        "continuam disponíveis normalmente."
+        "O assistente GX está temporariamente indisponível porque a camada de IA "
+        "ou de busca semântica não respondeu neste momento. Seu curso, progresso e "
+        "atividades continuam disponíveis normalmente. Tente novamente em instantes."
     )
 
 
@@ -133,8 +132,12 @@ async def query_course_rag_stream(
     message_history: list,
     course_id: int | None = None,
     mode: str = "course_only",
-) -> tuple[AsyncGenerator[str], list[dict]]:
-    """Perform RAG retrieval and return a streaming LLM response."""
+) -> tuple[AsyncGenerator[str], list[dict], bool]:
+    """Perform RAG retrieval and return a streaming LLM response.
+
+    The third return value marks a controlled provider/embedding degradation.
+    Credit accounting stays in the API layer that reserved the credits.
+    """
     try:
         rag_result = await query_course_rag(
             question=question,
@@ -142,22 +145,13 @@ async def query_course_rag_stream(
             db_session=db_session,
             course_id=course_id,
         )
-    except AINotConfiguredError:
-        # api_rag_chat reserves two credits immediately before calling this service.
-        # A missing provider is an operator configuration state, not student usage.
-        # Refund the reservation and return a controlled SSE response instead of a 500.
-        try:
-            refund_ai_credit(org_id, 2)
-        except Exception:
-            logger.warning(
-                "Could not refund RAG credits after provider-unavailable state",
-                exc_info=True,
-            )
+    except (AINotConfiguredError, RuntimeError):
         logger.warning(
-            "RAG provider unavailable for org_id=%s; returning controlled status",
+            "RAG retrieval provider unavailable for org_id=%s; returning controlled status",
             org_id,
+            exc_info=True,
         )
-        return _provider_unavailable_stream(), []
+        return _provider_unavailable_stream(), [], True
 
     context = rag_result["context"]
     sources = rag_result["sources"]
@@ -214,4 +208,4 @@ async def query_course_rag_stream(
         model_name=model_for_tier("standard"),
     )
 
-    return stream, sources
+    return stream, sources, False
