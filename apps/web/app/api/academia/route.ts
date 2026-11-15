@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         method: 'POST', body: JSON.stringify({ email, password }),
       })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) return result({ error: response.status === 429 ? 'Muitas tentativas. Tente novamente mais tarde.' : 'Cadastro ou credenciais não aceitos. Confira seu e-mail e a confirmação da conta.' }, response.status === 429 ? 429 : 400)
+      if (!response.ok) return result({ error: response.status === 429 ? 'Muitas tentativas. Tente novamente mais tarde.' : body.action === 'login' ? 'Não foi possível entrar. Se este é seu primeiro acesso, clique em Cadastrar conta autorizada e confirme o e-mail antes do login.' : 'Cadastro não concluído. Verifique se seu e-mail está autorizado, a senha e as orientações de confirmação.' }, response.status === 429 ? 429 : 400)
       if (data.access_token && data.refresh_token && data.user?.id && data.user.email_confirmed_at) {
         const out = result({ authenticated: true, user: { id: data.user.id, email: data.user.email } })
         setSession(out, data.access_token, data.refresh_token, Number(data.expires_in) || 3600)
