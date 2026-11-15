@@ -42,6 +42,9 @@ export default function AcademiaPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [signup, setSignup] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('code')
+  const [loginCode, setLoginCode] = useState('')
+  const [codeRequested, setCodeRequested] = useState(false)
   const [section, setSection] = useState<Section>('inicio')
   const [chosen, setChosen] = useState<string | null>(null)
   const [mobileMenu, setMobileMenu] = useState(false)
@@ -78,6 +81,14 @@ export default function AcademiaPage() {
 
   const onLogin = async (event: FormEvent) => {
     event.preventDefault()
+    if (loginMethod === 'code') {
+      const ok = await send(codeRequested
+        ? { action: 'verify_code', email, code: loginCode }
+        : { action: 'request_code', email })
+      if (ok && !codeRequested) setCodeRequested(true)
+      if (ok && codeRequested) { setLoginCode(''); setCodeRequested(false) }
+      return
+    }
     await send({ action: signup ? 'signup' : 'login', email, password })
     setPassword('')
   }
@@ -153,23 +164,39 @@ export default function AcademiaPage() {
               <div className="mb-7 inline-flex rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4 text-orange-300"><GraduationCap size={32}/></div>
               <h1 className="text-3xl font-black">Bem-vindo à XPeX Academy</h1>
               <p className="mt-3 text-sm leading-relaxed text-slate-300">Entre para acessar o primeiro ambiente acadêmico com matrícula e progresso salvos no banco real. Nesta etapa, somente contas autorizadas para o Polo Kelle conseguem ver os cursos.</p>
-              <form onSubmit={onLogin} className="mt-8 space-y-4">
+              <div className="mt-8 flex gap-2" role="group" aria-label="Método de acesso">
+                <button type="button" onClick={()=>{setLoginMethod('code');setCodeRequested(false);setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='code'?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Entrar sem senha</button>
+                <button type="button" onClick={()=>{setLoginMethod('password');setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='password'?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Senha existente</button>
+              </div>
+              <form onSubmit={onLogin} className="mt-5 space-y-4">
                 <label className="block text-sm text-slate-300">E-mail
-                  <input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com"
+                  <input type="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setCodeRequested(false);setLoginCode('')}} placeholder="seu@email.com"
                     className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
                 </label>
-                <label className="block text-sm text-slate-300">Senha
-                  <input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={10} value={password} onChange={e=>setPassword(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
-                </label>
+                {loginMethod === 'password' ? (
+                  <label className="block text-sm text-slate-300">Senha
+                    <input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={10} value={password} onChange={e=>setPassword(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                  </label>
+                ) : codeRequested ? (
+                  <label className="block text-sm text-slate-300">Código de seis dígitos recebido no e-mail
+                    <input type="text" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} value={loginCode} onChange={e=>setLoginCode(e.target.value.replace(/\D/g,''))}
+                      className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                  </label>
+                ) : <p className="text-sm text-slate-300">Não precisa criar senha. Enviaremos um código para a sua conta autorizada. O envio depende da configuração de e-mail do Supabase.</p>}
                 <button disabled={working} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-bold text-white hover:bg-orange-400 disabled:opacity-50">
-                  {working?'Aguarde...':signup?'Criar conta de teste':'Entrar na Academy'} <ArrowRight size={18}/>
+                  {working?'Aguarde...':loginMethod==='code'?(codeRequested?'Confirmar código':'Solicitar código de acesso'):(signup?'Criar conta de teste':'Entrar na Academy')} <ArrowRight size={18}/>
                 </button>
               </form>
-              <button type="button" onClick={()=>{setSignup(!signup);setError('');setNotice('')}} className="mt-5 text-sm text-sky-300 hover:underline">
-                {signup?'Já tenho uma conta — entrar':'Primeiro acesso — cadastrar conta autorizada'}
-              </button>
-              <p className="mt-6 text-xs leading-relaxed text-slate-400">Este login temporário do piloto utiliza Supabase Auth. Não substitui nem importa automaticamente sua conta LearnHouse anterior. Nenhum pagamento é realizado.</p>
+              {loginMethod==='password' && (
+                <button type="button" onClick={()=>{setSignup(!signup);setError('');setNotice('')}} className="mt-5 text-sm text-sky-300 hover:underline">
+                  {signup?'Já tenho uma conta — entrar':'Primeiro acesso — cadastrar conta autorizada'}
+                </button>
+              )}
+              {loginMethod==='code' && codeRequested && (
+                <p className="mt-4 text-sm text-sky-300">Confira a caixa de entrada e o spam. Se recebeu um link em vez do código, o modelo de e-mail OTP do Supabase ainda precisa ser configurado. Evite solicitar vários códigos seguidos.</p>
+              )}
+              <p className="mt-6 text-xs leading-relaxed text-slate-400">Acesso do piloto via Supabase Auth, restrito a contas autorizadas. O login oficial com ChatGPT depende da habilitação da XPeX como parceiro da OpenAI. Não substitui automaticamente o LearnHouse anterior. Nenhum pagamento é realizado.</p>
             </section>
           )}
 
