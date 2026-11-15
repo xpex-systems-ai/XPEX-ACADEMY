@@ -120,6 +120,41 @@ export async function POST(req: NextRequest) {
   if (!base) return result({ error: 'Integração acadêmica ainda não configurada.' }, 503)
   const body = await req.json().catch(() => null)
   if (!body || typeof body.action !== 'string') return result({ error: 'Solicitação inválida.' }, 400)
+  if (body.action === 'verify_link') {
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const allowed = (process.env.XPEX_PILOT_ALLOWED_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
+    if (!allowed.includes(email)) return result({ error: 'Conta não autorizada para este Polo.' }, 403)
+    // The default Supabase email template sends a magic link instead of the six-digit OTP.
+    // In the pilot, users can securely paste that one-time link into the Academy itself,
+    // avoiding unconfigured external redirect URLs. Never store or log token/link values.
+    let tokenHash = ''
+    let type = ''
+    try {
+      const link = new URL(typeof body.link === 'string' ? body.link : '')
+      if (link.origin !== base.url || link.pathname !== '/auth/v1/verify') throw new Error('origin')
+      tokenHash = link.searchParams.get('token') || link.searchParams.get('token_hash') || ''
+      type = link.searchParams.get('type') || ''
+      if (!/^[a-zA-Z0-9_-]{24,160}$/.test(tokenHash) || !['magiclink', 'email', 'signup'].includes(type)) throw new Error('invalid')
+    } catch {
+      return result({ error: 'Cole o link completo enviado pelo Supabase. Não cole links de outros sites.' }, 400)
+    }
+    try {
+      const verify = await authFetch(base, '/verify', {
+        method: 'POST', body: JSON.stringify({ token_hash: tokenHash, type }),
+      })
+      if (verify.status === 429) return result({ error: 'Muitas tentativas. Aguarde antes de tentar novamente.' }, 429)
+      if (!verify.ok) return result({ error: 'O link expirou ou já foi usado. Aguarde para solicitar outro.' }, 401)
+      const data = await verify.json()
+      if (!data.user?.email_confirmed_at || data.user.email?.toLowerCase() !== email || !data.access_token || !data.refresh_token) {
+        return result({ error: 'Identidade não confirmada para este e-mail.' }, 401)
+      }
+      const out = result({ authenticated: true, user: { id: data.user.id, email: data.user.email } })
+      setSession(out, data.access_token, data.refresh_token, Number(data.expires_in) || 3600)
+      return out
+    } catch {
+      return result({ error: 'Não foi possível validar seu link de acesso.' }, 503)
+    }
+  }
   if (body.action === 'request_code' || body.action === 'verify_code') {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const allowed = (process.env.XPEX_PILOT_ALLOWED_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
