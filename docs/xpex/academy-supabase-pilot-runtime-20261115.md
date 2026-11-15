@@ -15,6 +15,7 @@
 ## Chaves de ambiente (apenas preview da branch)
 - `XPEX_PILOT_SUPABASE_URL`: URL pública do projeto, não é uma senha
 - `XPEX_PILOT_SUPABASE_PUBLISHABLE_KEY`: chave PUBLICÁVEL, sem privilégios administrativos
+- `XPEX_PILOT_ALLOWED_EMAILS`: allowlist privada de e-mails que podem cadastrar contas de teste; não cadastrar usuários públicos nesta etapa.
 - Nunca usar chave Supabase service-role no browser ou na rota do piloto. A autorização é realizada pelo Supabase Auth + RLS.
 - JWT de aluno e refresh token ficam em cookies HttpOnly, Secure, SameSite=Lax, path `/api/academia`, sem persistência em localStorage; refresh via Auth endpoint.
 - O login de teste com Supabase Auth **não substitui** o login canônico LearnHouse/WorkOS anterior. Vinculação de contas e importação de matrículas antigas dependem de migração revisada.
