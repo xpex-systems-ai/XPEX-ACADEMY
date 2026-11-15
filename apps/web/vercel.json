@@ -3,7 +3,6 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm run build",
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"chore/academy-vercel-supabase-migration-audit\" ]; then exit 1; else exit 0; fi",
   "github": {
     "autoJobCancelation": true
   }
