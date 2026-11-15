@@ -17,3 +17,16 @@ Operator report (2026-11-15): the Vercel Academy preview opens, but Polo access 
 5. Add E2E checks and only then promote preview.
 
 This is a diagnostic record, **not a confirmed root cause or a resolved incident**.
+
+## Verification snapshot — 2026-11-15 (read-only)
+- Supabase project `krvoedwbdnvoziiaavwp`: `ACTIVE_HEALTHY`, PostgreSQL 17, region `us-east-1`.
+- `public` tables: zero; Supabase migration records: zero. Do **not** point Academy at this empty database or move student records.
+- Vercel project `prj_EvLi9wcPcy2p7op1ChdvI8kPksKV`: latest preview `dpl_Dtck6KyzjTEehjBomJd7fuhpcxF9`, `READY`, target null, project `live=false`; SSO protection enabled for preview. Previous preview is superseded.
+- GitHub PR #254 remains the migration review gate; no merge or production promotion authorized.
+- No Firebase read/write or backup verification was completed in this snapshot. Do not infer Firebase readiness.
+
+### Next execution gate
+1. Read PR diff and checks; compare deployment commit against PR head before debugging stale previews.
+2. Check nonsecret presence/scope of backend URL in preview and test health endpoint with an authorized session.
+3. Use synthetic teacher/student accounts to validate Polo Kelle login, membership, enrollment, lesson access, progress and certificate generation. Record pass/fail per stage.
+4. Obtain verified source backups and Alembic revision inventory before any dedicated Supabase schema or data migration.
