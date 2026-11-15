@@ -124,6 +124,11 @@ export async function POST(req: NextRequest) {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body.password === 'string' ? body.password : ''
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 10 || password.length > 128) return result({ error: 'Informe um e-mail válido e senha de pelo menos 10 caracteres.' }, 400)
+    // Private pilot: prohibit unsolicited Auth signups even before RLS is evaluated.
+    if (body.action === 'signup') {
+      const allowed = (process.env.XPEX_PILOT_ALLOWED_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
+      if (!allowed.includes(email)) return result({ error: 'Cadastro fechado: solicite autorização para o Polo Kelle.' }, 403)
+    }
     try {
       const response = await authFetch(base, body.action === 'signup' ? '/signup' : '/token?grant_type=password', {
         method: 'POST', body: JSON.stringify({ email, password }),
