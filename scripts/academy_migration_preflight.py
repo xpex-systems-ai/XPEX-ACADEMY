@@ -32,8 +32,12 @@ def main() -> int:
     if url.hostname in {"localhost", "127.0.0.1", "db"}:
         print("BLOCKED: development database hostname; cannot validate dedicated Supabase.")
         return 2
-    if url.hostname not in {"db.krvoedwbdnvoziiaavwp.supabase.co"} and not url.hostname.endswith(".pooler.supabase.com"):
-        print("BLOCKED: DB host not recognized as Academy dedicated Supabase. Review manually.")
+    direct_host = url.hostname == "db.krvoedwbdnvoziiaavwp.supabase.co"
+    pooler_host = url.hostname.endswith(".pooler.supabase.com")
+    # Shared pooler hosts serve multiple projects. Verify the project-scoped username too.
+    pooler_matches_project = pooler_host and bool(url.username) and url.username.endswith(".krvoedwbdnvoziiaavwp")
+    if not (direct_host or pooler_matches_project):
+        print("BLOCKED: connection is not demonstrably scoped to the Academy Supabase project.")
         return 2
     print("PASS: dedicated Supabase hostname shape confirmed (no credentials displayed).")
     if not (API_DIR / "migrations" / "versions").is_dir():
