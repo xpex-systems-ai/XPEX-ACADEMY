@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
   const active = await session(req, base)
   if (!active) return result({ error: 'Faça login novamente.' }, 401)
   if (body.action === 'logout') {
-    try { await authFetch(base, '/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + active.token } }) } catch {}
+    try { await authFetch(base, '/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + active.token } }) } catch { /* Logout is best-effort; the browser cookies are cleared below. */ }
     const out = result({ authenticated: false })
     out.cookies.set(ACCESS_COOKIE, '', cookieOptions(0))
     out.cookies.set(REFRESH_COOKIE, '', cookieOptions(0))
