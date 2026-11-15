@@ -41,7 +41,7 @@ async function session(req: NextRequest, base: { url: string; key: string }): Pr
       const check = await authFetch(base, '/user', { headers: { Authorization: 'Bearer ' + token } })
       if (check.ok) {
         const user = await check.json()
-        if (typeof user?.id === 'string') return { token, user }
+        if (typeof user?.id === 'string' && user.email_confirmed_at) return { token, user }
       }
     } catch { /* Attempt safe refresh below. */ }
   }
@@ -52,7 +52,7 @@ async function session(req: NextRequest, base: { url: string; key: string }): Pr
     })
     if (!response.ok) return null
     const data = await response.json()
-    if (typeof data.access_token !== 'string' || typeof data.refresh_token !== 'string' || !data.user?.id) return null
+    if (typeof data.access_token !== 'string' || typeof data.refresh_token !== 'string' || !data.user?.id || !data.user.email_confirmed_at) return null
     return { token: data.access_token, refresh: data.refresh_token, user: data.user, rotated: true }
   } catch { return null }
 }
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) return result({ error: response.status === 429 ? 'Muitas tentativas. Tente novamente mais tarde.' : 'Cadastro ou credenciais não aceitos. Confira seu e-mail e a confirmação da conta.' }, response.status === 429 ? 429 : 400)
-      if (data.access_token && data.refresh_token && data.user?.id) {
+      if (data.access_token && data.refresh_token && data.user?.id && data.user.email_confirmed_at) {
         const out = result({ authenticated: true, user: { id: data.user.id, email: data.user.email } })
         setSession(out, data.access_token, data.refresh_token, Number(data.expires_in) || 3600)
         return out
