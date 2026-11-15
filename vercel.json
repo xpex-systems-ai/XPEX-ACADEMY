@@ -4,7 +4,7 @@
   "installCommand": "bun install && cd apps/web && bun install --frozen-lockfile",
   "buildCommand": "cd apps/web && bun run build",
   "outputDirectory": "apps/web/.next",
-  "ignoreCommand": "echo 'Vercel legacy decommissioned: canonical stack is GitHub + Firebase + Railway' && exit 0",
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"chore/academy-vercel-supabase-migration-audit\" ]; then exit 1; else echo 'Legacy Vercel build intentionally skipped outside Academy migration preview'; exit 0; fi",
   "github": {
     "autoJobCancelation": true
   }
