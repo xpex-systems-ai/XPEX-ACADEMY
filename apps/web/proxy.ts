@@ -472,6 +472,14 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Public directory only: links and login entry, never private academic data.
+  // Keep every other /xpex route behind the existing session and role checks.
+  if (pathname === '/xpex/acessos') {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
+  }
+
   // Authenticated XpeX shell. The marker only enables an early redirect; the
   // page revalidates the bearer session and organization role with the API.
   if (pathname === '/xpex' || pathname.startsWith('/xpex/')) {
