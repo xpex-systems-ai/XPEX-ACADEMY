@@ -7,6 +7,7 @@ users, courses, submissions, payments, or unrelated tables.
 """
 
 import asyncio
+import os
 
 from config.config import get_learnhouse_config
 from scripts.xpex_launch_course import _to_async_url
@@ -38,6 +39,9 @@ async def run() -> int:
             )
 
             if not assignment_table_exists:
+                if os.getenv("XPEX_ALLOW_FRESH_DB_BOOTSTRAP", "0") != "1":
+                    print("XPEX_DB_BOOTSTRAP BLOCKED: fresh database requires explicit reviewed approval")
+                    return 5
                 # Fresh provider databases have no LearnHouse base schema yet. The
                 # running API normally creates that schema during FastAPI startup,
                 # but this readiness gate intentionally runs before the API starts.
@@ -99,6 +103,9 @@ async def run() -> int:
                 ).scalar_one_or_none()
             )
             if not column_exists:
+                if os.getenv("XPEX_ALLOW_ASSESSMENT_SCHEMA_REPAIR", "0") != "1":
+                    print("XPEX_DB_MIGRATION BLOCKED: assessment column repair requires explicit approval")
+                    return 6
                 await connection.execute(
                     text(
                         "ALTER TABLE assignment "
@@ -127,6 +134,9 @@ async def run() -> int:
                 ).scalar_one_or_none()
             )
             if not constraint_exists:
+                if os.getenv("XPEX_ALLOW_ASSESSMENT_SCHEMA_REPAIR", "0") != "1":
+                    print("XPEX_DB_MIGRATION BLOCKED: assessment constraint repair requires explicit approval")
+                    return 7
                 await connection.execute(
                     text(
                         "ALTER TABLE assignment "
