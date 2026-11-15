@@ -26,9 +26,10 @@
 | E2E-06 | Permissão cruzada | Outro aluno/tenant não acessa o progresso | 403/404 e logs redigidos |
 | E2E-07 | Professor | Professor do Polo visualiza turma autorizada | Captura com dados sintéticos |
 | E2E-08 | Pagamento sandbox | Checkout, webhook assinado, aceite e conciliação | Evento de teste e ledger de sandbox |
+| E2E-09 | Certificado sintético | Após conclusão elegível, certificado único e verificável; aluno/tenant incorretos não podem acessar; regra de revogação verificada | ID sintético, verificação, teste negativo e logs redigidos |
 
 ## Go/no-go
-- **GO para piloto fechado:** E2E-01 a E2E-07 aprovados, migrações/backup comprovados, revisão humana concluída.
+- **GO para piloto fechado:** E2E-01 a E2E-07 e E2E-09 aprovados, migrações/backup comprovados, revisão humana concluída.
 - **GO para matrícula paga:** piloto fechado aprovado + E2E-08 + políticas de privacidade, termos e suporte + aprovação humana.
 - **NO-GO:** backend ausente, banco sem schema, isolamento de Polo não validado, autenticação simulada, checkout não reconciliado.
 
