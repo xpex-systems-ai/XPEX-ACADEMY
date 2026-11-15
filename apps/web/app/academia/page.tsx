@@ -44,6 +44,8 @@ export default function AcademiaPage() {
   const [signup, setSignup] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('code')
   const [loginCode, setLoginCode] = useState('')
+  const [magicLink, setMagicLink] = useState('')
+  const [codeMode, setCodeMode] = useState<'code' | 'link'>('link')
   const [codeRequested, setCodeRequested] = useState(false)
   const [section, setSection] = useState<Section>('inicio')
   const [chosen, setChosen] = useState<string | null>(null)
@@ -83,10 +85,12 @@ export default function AcademiaPage() {
     event.preventDefault()
     if (loginMethod === 'code') {
       const ok = await send(codeRequested
-        ? { action: 'verify_code', email, code: loginCode }
+        ? codeMode === 'link'
+          ? { action: 'verify_link', email, link: magicLink }
+          : { action: 'verify_code', email, code: loginCode }
         : { action: 'request_code', email })
       if (ok && !codeRequested) setCodeRequested(true)
-      if (ok && codeRequested) { setLoginCode(''); setCodeRequested(false) }
+      if (ok && codeRequested) { setLoginCode(''); setMagicLink(''); setCodeRequested(false) }
       return
     }
     await send({ action: signup ? 'signup' : 'login', email, password })
@@ -179,13 +183,28 @@ export default function AcademiaPage() {
                       className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
                   </label>
                 ) : codeRequested ? (
-                  <label className="block text-sm text-slate-300">Código de seis dígitos recebido no e-mail
-                    <input type="text" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} value={loginCode} onChange={e=>setLoginCode(e.target.value.replace(/\D/g,''))}
-                      className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
-                  </label>
-                ) : <p className="text-sm text-slate-300">Não precisa criar senha. Enviaremos um código para a sua conta autorizada. O envio depende da configuração de e-mail do Supabase.</p>}
+                  <>
+                    <div className="flex gap-2 text-xs">
+                      <button type="button" onClick={()=>setCodeMode('link')} className={'rounded-lg px-3 py-2 ' + (codeMode==='link'?'bg-sky-700 text-white':'border border-slate-700 text-slate-300')}>Recebi um link</button>
+                      <button type="button" onClick={()=>setCodeMode('code')} className={'rounded-lg px-3 py-2 ' + (codeMode==='code'?'bg-sky-700 text-white':'border border-slate-700 text-slate-300')}>Recebi um código</button>
+                    </div>
+                    {codeMode === 'code' ? (
+                      <label className="block text-sm text-slate-300">Código de seis dígitos recebido no e-mail
+                        <input type="text" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} value={loginCode} onChange={e=>setLoginCode(e.target.value.replace(/\D/g,''))}
+                          className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                      </label>
+                    ) : (
+                      <label className="block text-sm text-slate-300">Cole o link completo que chegou do Supabase — sem abri-lo antes
+                        <input type="url" required value={magicLink} onChange={e=>setMagicLink(e.target.value)} placeholder="https://...supabase.co/auth/v1/verify?..."
+                          spellCheck={false} autoComplete="off"
+                          className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                        <span className="mt-2 block text-xs text-amber-200">Este link é secreto e de uso único. Cole somente no endereço oficial da Academy; nunca compartilhe com terceiros.</span>
+                      </label>
+                    )}
+                  </>
+                ) : <p className="text-sm text-slate-300">A Academy usa o Supabase para enviar um link de acesso de uso único. Não precisa criar senha. O envio depende dos limites de e-mail do serviço.</p>}
                 <button disabled={working} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-bold text-white hover:bg-orange-400 disabled:opacity-50">
-                  {working?'Aguarde...':loginMethod==='code'?(codeRequested?'Confirmar código':'Solicitar código de acesso'):(signup?'Criar conta de teste':'Entrar na Academy')} <ArrowRight size={18}/>
+                  {working?'Aguarde...':loginMethod==='code'?(codeRequested?'Confirmar acesso':'Enviar acesso para meu e-mail'):(signup?'Criar conta de teste':'Entrar na Academy')} <ArrowRight size={18}/>
                 </button>
               </form>
               {loginMethod==='password' && (
@@ -194,7 +213,7 @@ export default function AcademiaPage() {
                 </button>
               )}
               {loginMethod==='code' && codeRequested && (
-                <p className="mt-4 text-sm text-sky-300">Confira a caixa de entrada e o spam. Se recebeu um link em vez do código, o modelo de e-mail OTP do Supabase ainda precisa ser configurado. Evite solicitar vários códigos seguidos.</p>
+                <p className="mt-4 text-sm text-sky-300">Confira a caixa de entrada e o spam. O Supabase envia links por padrão; copie o link completo e cole acima sem clicar nele. Se seu projeto tiver modelo OTP, use a aba do código. Não solicite várias vezes: o provedor aplica limites de envio.</p>
               )}
               <p className="mt-6 text-xs leading-relaxed text-slate-400">Acesso do piloto via Supabase Auth, restrito a contas autorizadas. O login oficial com ChatGPT depende da habilitação da XPeX como parceiro da OpenAI. Não substitui automaticamente o LearnHouse anterior. Nenhum pagamento é realizado.</p>
             </section>
