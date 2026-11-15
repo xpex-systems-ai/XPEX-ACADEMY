@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 import {
   ArrowRight, BookOpen, BrainCircuit, CheckCircle2, ChevronRight, CircleAlert,
   ClipboardList, GraduationCap, LockKeyhole, LogOut, Menu, ShieldCheck,
@@ -85,7 +85,7 @@ export default function AcademiaPage() {
   const enrollments = data?.enrollments || []
   const lessons = data?.lessons || []
   const progress = data?.progress || []
-  const enrolledIds = useMemo(() => new Set(enrollments.map(e => e.course_id)), [enrollments])
+  const enrolledIds = new Set(enrollments.map(e => e.course_id))
   const selectedCourse = courses.find(c => c.id === chosen) || null
   const selectedEnrollment = enrollments.find(e => e.course_id === selectedCourse?.id)
   const selectedLessons = lessons.filter(l => l.course_id === selectedCourse?.id)
