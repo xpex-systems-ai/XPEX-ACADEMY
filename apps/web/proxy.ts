@@ -226,6 +226,12 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Isolated Supabase pilot: public login page, RLS protects all academic records.
+  // /api/academia is excluded from this proxy by matcher and validates cookies itself.
+  if (pathname === '/academia' || pathname.startsWith('/academia/')) {
+    return NextResponse.next()
+  }
+
   const instance = await getInstanceInfo()
 
   // SEO: canonicalize mixed-case top-level route names (/Login → /login). Scoped
