@@ -120,6 +120,47 @@ export async function POST(req: NextRequest) {
   if (!base) return result({ error: 'Integração acadêmica ainda não configurada.' }, 503)
   const body = await req.json().catch(() => null)
   if (!body || typeof body.action !== 'string') return result({ error: 'Solicitação inválida.' }, 400)
+  if (body.action === 'request_code' || body.action === 'verify_code') {
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const allowed = (process.env.XPEX_PILOT_ALLOWED_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
+    if (!/^\S+@\S+\.\S+$/.test(email) || !allowed.includes(email)) {
+      return result({ error: 'Acesso restrito às contas convidadas para o Polo Kelle.' }, 403)
+    }
+    if (body.action === 'request_code') {
+      try {
+        // Supabase sends a Magic Link by default. To use a six-digit code,
+        // configure its Magic Link email template with {{ .Token }}.
+        const response = await authFetch(base, '/otp', {
+          method: 'POST',
+          body: JSON.stringify({ email, create_user: true }),
+        })
+        if (response.status === 429) return result({ error: 'Limite de e-mails atingido. Aguarde a liberação do Supabase antes de solicitar outro código.' }, 429)
+        if (!response.ok) return result({ error: 'Não foi possível enviar o acesso. Confira a configuração de e-mail do Supabase Auth.' }, 503)
+        return result({ success: true, message: 'Solicitação recebida. Confira seu e-mail. Se chegar um link em vez de código, o modelo OTP ainda precisa ser configurado no Supabase.' })
+      } catch {
+        return result({ error: 'O serviço de envio está indisponível. Nenhum código foi confirmado.' }, 503)
+      }
+    }
+    const code = typeof body.code === 'string' ? body.code.trim() : ''
+    if (!/^\d{6}$/.test(code)) return result({ error: 'Informe o código de seis dígitos enviado ao e-mail.' }, 400)
+    try {
+      const response = await authFetch(base, '/verify', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'email', email, token: code }),
+      })
+      if (response.status === 429) return result({ error: 'Muitas tentativas. Aguarde antes de tentar novamente.' }, 429)
+      if (!response.ok) return result({ error: 'Código inválido ou expirado. Confira o e-mail mais recente.' }, 401)
+      const data = await response.json().catch(() => ({}))
+      if (!data.user?.email_confirmed_at || !data.access_token || !data.refresh_token) {
+        return result({ error: 'O Supabase não confirmou a identidade. O acesso não foi concedido.' }, 401)
+      }
+      const out = result({ authenticated: true, user: { id: data.user.id, email: data.user.email } })
+      setSession(out, data.access_token, data.refresh_token, Number(data.expires_in) || 3600)
+      return out
+    } catch {
+      return result({ error: 'Não foi possível verificar o código.' }, 503)
+    }
+  }
   if (body.action === 'login' || body.action === 'signup') {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body.password === 'string' ? body.password : ''
