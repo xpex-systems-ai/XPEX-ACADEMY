@@ -31,7 +31,8 @@ export default function AcademyEntry() {
       {invites.length > 0 ? <div className="space-y-3">{invites.map((invite, i) => {
         const polo = polos.find(p => p.id === invite.polo_id)
         const role = invite.role === 'admin' ? 'Administração' : invite.role === 'teacher' ? 'Professor / Polo' : invite.role === 'student' ? 'Aluno / Academy' : 'Acesso acadêmico'
-        return <a key={i} href="/xpex/acessos" className="block rounded-xl border border-cyan-400/30 p-4 hover:bg-white/10">{role}{polo ? ' · ' + polo.name : ''} →</a>
+        const href = invite.role === 'admin' ? '/xpex/admin' : invite.role === 'teacher' ? '/xpex/polo' : invite.role === 'student' ? '/xpex/activities' : '/xpex/acessos'
+        return <a key={i} href={href} className="block rounded-xl border border-cyan-400/30 p-4 hover:bg-white/10">{role}{polo ? ' · ' + polo.name : ''} →</a>
       })}</div> : <div className="space-y-3">
         <a className="block rounded-xl bg-white p-4 text-center font-bold text-slate-900" href="/api/academia/oauth/google">Continuar com Google (piloto)</a>
         <a className="block rounded-xl border border-white/25 p-4 text-center" href="/login?next=%2Fxpex%2Facessos">Entrar com e-mail</a>
