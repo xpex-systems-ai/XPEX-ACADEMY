@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         // configure its Magic Link email template with {{ .Token }}.
         const response = await authFetch(base, '/otp', {
           method: 'POST',
-          body: JSON.stringify({ email, create_user: true }),
+          body: JSON.stringify({ email, create_user: false }),
         })
         if (response.status === 429) return result({ error: 'Limite de e-mails atingido. Aguarde a liberação do Supabase antes de solicitar outro código.' }, 429)
         if (!response.ok) return result({ error: 'Não foi possível enviar o acesso. Confira a configuração de e-mail do Supabase Auth.' }, 503)
