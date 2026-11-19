@@ -11,6 +11,7 @@ const entry = read('app/academy/entry/page.tsx')
 const academy = read('app/academia/page.tsx')
 const api = read('app/api/academia/route.ts')
 const landing = read('components/Landings/XpexAcademy/XpexAcademyLanding.tsx')
+const proxy = read('proxy.ts')
 
 test('Google OAuth requires explicit pilot opt-in and PKCE S256', () => {
   assert.match(start, /XPEX_PILOT_GOOGLE_OAUTH_ENABLED/)
@@ -52,4 +53,10 @@ test('Google CTA is disabled without explicit preview configuration and exposes 
   assert.match(status, /no-store/)
   assert.match(entry, /googleAvailable\s*\?/)
   assert.match(entry, /Google em preparação/)
+})
+
+test('Academy entry is never tenant-rewritten by LearnHouse proxy', () => {
+  assert.match(proxy, /pathname === '\/academy\/entry'/)
+  assert.match(proxy, /pathname\.startsWith\('\/academy\/entry\/'\)/)
+  assert.match(proxy, /pathname === '\/academia'/)
 })
