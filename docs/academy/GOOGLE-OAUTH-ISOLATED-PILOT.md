@@ -25,3 +25,15 @@
 The pilot session cookies are scoped to `/api/academia`. Existing legacy pages may use separate auth and therefore may still show their own login. A complete SSO cutover requires explicitly validating each destination's server-side auth middleware; do not claim seamless access until tested.
 
 **Release decision: NO-GO.** No production settings, student accounts, secrets or payment flows were changed.
+
+
+## Mission GX-ACADEMY-READY-001 — 2026-11-19 (code corrections; release still NO-GO)
+
+- `/academy/entry` now links pilot roles to `/academia?section=...`, **not** to the LearnHouse `/xpex/*` panels. This is NOT a working single sign-on for those legacy panels.
+- Public Academy CTAs go to `/academy/entry`; email fallback goes to the existing Supabase Auth form at `/academia`.
+- Google authorization now binds the app-side CSRF state in the `redirect_to` callback URL instead of assuming Supabase's provider-managed OAuth state will be forwarded to the app. Runtime behavior remains **NOT_VERIFIED**.
+- The Next.js Academy page selects a role-appropriate pilot section. UI selection cannot replace Supabase Auth + RLS authorization.
+- Added `apps/web/tests/academy-google-oauth-source-contract.test.mjs` and a Web Lint workflow step. These checks validate repository source contracts only; they do not demonstrate runtime login.
+- Read-only Vercel environment metadata: **zero branch-scoped pilot variables** for `feat/academy-google-oauth-isolated-20261118`. The three pilot variables are instead scoped to `fix/academy-pilot-otp-existing-users-20261117` (PR #259) or a different audit branch. `XPEX_PILOT_GOOGLE_OAUTH_ENABLED` is not configured. No variable values were decrypted. The Google CTA must be considered **disabled/not configured** until Preview-only human-approved configuration.
+
+**Release gates:** branch-specific Preview configuration; provider allowlist for callback query; existing synthetic invited identity; anonymous HTTP 401 and authenticated HTTP 200 captures; OAuth PKCE/state recovery and invalid-state denial; role/Polo isolation; logout->401; email fallback; independent reviewer; human release sign-off. No production changes or students.
