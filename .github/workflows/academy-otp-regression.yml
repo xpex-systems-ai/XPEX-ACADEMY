@@ -5,6 +5,9 @@ on:
     paths:
       - 'apps/web/app/api/academia/route.ts'
       - 'scripts/academy_otp_no_autocreate.test.mjs'
+      - 'scripts/academy_session_boundary.test.mjs'
+      - 'apps/web/lib/auth/server.ts'
+      - 'apps/web/components/Xpex/AuthenticatedXpexExperience.tsx'
       - '.github/workflows/academy-otp-regression.yml'
   workflow_dispatch:
 
@@ -21,4 +24,4 @@ jobs:
         with:
           node-version: '22'
       - name: Verify pilot OTP does not create accounts
-        run: node --test scripts/academy_otp_no_autocreate.test.mjs
+        run: node --test scripts/academy_otp_no_autocreate.test.mjs scripts/academy_session_boundary.test.mjs
