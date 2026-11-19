@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8')
 const start = read('app/api/academia/oauth/google/route.ts')
 const callback = read('app/api/academia/oauth/callback/route.ts')
+const status = read('app/api/academia/oauth/status/route.ts')
 const entry = read('app/academy/entry/page.tsx')
 const academy = read('app/academia/page.tsx')
 const api = read('app/api/academia/route.ts')
@@ -43,4 +44,12 @@ test('pilot API keeps email fallback closed to unsolicited OTP account creation'
   assert.match(api, /XPEX_PILOT_ALLOWED_EMAILS/)
   assert.match(api, /COOKIE_PATH = '\/api\/academia'/)
   assert.match(api, /return result\(\{ authenticated: false \}, 401\)/)
+})
+
+test('Google CTA is disabled without explicit preview configuration and exposes no secrets', () => {
+  assert.match(status, /XPEX_PILOT_GOOGLE_OAUTH_ENABLED/)
+  assert.match(status, /googleAvailable/)
+  assert.match(status, /no-store/)
+  assert.match(entry, /googleAvailable\s*\?/)
+  assert.match(entry, /Google em preparação/)
 })
