@@ -7,8 +7,13 @@ export default function AcademyEntry() {
   const [status, setStatus] = useState('Verificando acesso à Academy…')
   const [invites, setInvites] = useState<Invite[]>([])
   const [polos, setPolos] = useState<{ id: string; name: string }[]>([])
+  const [googleAvailable, setGoogleAvailable] = useState(false)
   useEffect(() => {
     let active = true
+    fetch('/api/academia/oauth/status', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : { googleAvailable: false })
+      .then(data => { if (active) setGoogleAvailable(data.googleAvailable === true) })
+      .catch(() => { if (active) setGoogleAvailable(false) })
     fetch('/api/academia', { credentials: 'same-origin', cache: 'no-store' })
       .then(async r => {
         if (!r.ok) throw new Error('Acesso ainda não autorizado ou dados indisponíveis.')
@@ -36,7 +41,9 @@ export default function AcademyEntry() {
         const href = invite.role === 'teacher' || invite.role === 'admin' ? '/academia?section=polo' : '/academia?section=cursos'
         return <a key={i} href={href} className="block rounded-xl border border-cyan-400/30 p-4 hover:bg-white/10">{role}{polo ? ' · ' + polo.name : ''} →</a>
       })}</div> : <div className="space-y-3">
-        <a className="block rounded-xl bg-white p-4 text-center font-bold text-slate-900" href="/api/academia/oauth/google">Continuar com Google (piloto)</a>
+        {googleAvailable
+          ? <a className="block rounded-xl bg-white p-4 text-center font-bold text-slate-900" href="/api/academia/oauth/google">Continuar com Google (piloto)</a>
+          : <p className="rounded-xl border border-amber-300/30 p-3 text-sm text-amber-200">Google em preparação no ambiente piloto. Use o acesso por e-mail.</p>}
         <a className="block rounded-xl border border-white/25 p-4 text-center" href="/academia">Entrar com e-mail</a>
       </div>}
       <p className="text-xs text-slate-400">Acesso restrito a convites verificados por Supabase Auth e RLS. O Polo e a gestão nesta etapa são visões do piloto /academia; os painéis antigos /xpex exigem login independente. Nenhuma permissão é concedida por este menu.</p>
