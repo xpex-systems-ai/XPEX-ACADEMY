@@ -53,6 +53,9 @@ jobs:
           echo "Strict-linting changed files:"
           echo "$CHANGED"
           echo "$CHANGED" | xargs bun run lint:strict --no-error-on-unmatched-pattern
+      - name: Academy OAuth source isolation contracts (NOT E2E)
+        working-directory: ./apps/web
+        run: node --test tests/academy-google-oauth-source-contract.test.mjs
       - name: XPeX V6-003 Polo + student sandbox contract gate
         working-directory: ./apps/web
         run: bun test tests/xpex-v6-003-kelle-branding.test.mjs
