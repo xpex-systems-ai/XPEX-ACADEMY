@@ -226,9 +226,13 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Isolated Supabase pilot: public login page, RLS protects all academic records.
-  // /api/academia is excluded from this proxy by matcher and validates cookies itself.
-  if (pathname === '/academia' || pathname.startsWith('/academia/')) {
+  // Isolated Supabase pilot: public entry + login routes must not be tenant rewritten.
+  // Academic data remains protected by Supabase Auth and RLS; /api/academia bypasses
+  // this proxy through matcher and validates the scoped session server-side.
+  if (
+    pathname === '/academia' || pathname.startsWith('/academia/') ||
+    pathname === '/academy/entry' || pathname.startsWith('/academy/entry/')
+  ) {
     return NextResponse.next()
   }
 
