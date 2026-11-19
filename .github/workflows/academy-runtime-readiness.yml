@@ -1,0 +1,44 @@
+name: Academy Runtime Readiness Safety
+on:
+  pull_request:
+    paths:
+      - 'scripts/academy_runtime_readiness.py'
+      - '.github/workflows/academy-runtime-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-readiness-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax
+        run: python -m py_compile scripts/academy_runtime_readiness.py
+      - name: Missing API must block
+        env:
+          NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: ''
+        run: |
+          set +e
+          python scripts/academy_runtime_readiness.py > result.txt 2>&1
+          rc=$?
+          set -e
+          cat result.txt
+          test "$rc" -eq 2
+          grep -q 'BLOCKED:' result.txt
+      - name: Localhost API must block
+        env:
+          NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'http://localhost:8000'
+        run: |
+          set +e
+          python scripts/academy_runtime_readiness.py > result.txt 2>&1
+          rc=$?
+          set -e
+          cat result.txt
+          test "$rc" -eq 2
+      - name: Valid HTTPS shape passes (not live connectivity)
+        env:
+          NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL: 'https://api.example.org'
+        run: python scripts/academy_runtime_readiness.py

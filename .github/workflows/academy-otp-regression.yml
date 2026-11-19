@@ -1,0 +1,29 @@
+name: Academy Pilot OTP Regression
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/app/api/academia/route.ts'
+      - 'scripts/academy_otp_no_autocreate.test.mjs'
+      - 'scripts/academy_session_boundary.test.mjs'
+      - 'scripts/academy_certificate_gate.test.mjs'
+      - 'apps/web/app/academia/page.tsx'
+      - 'apps/web/lib/auth/server.ts'
+      - 'apps/web/components/Xpex/AuthenticatedXpexExperience.tsx'
+      - '.github/workflows/academy-otp-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  otp-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify pilot OTP does not create accounts
+        run: node --test scripts/academy_otp_no_autocreate.test.mjs scripts/academy_session_boundary.test.mjs scripts/academy_certificate_gate.test.mjs

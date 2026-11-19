@@ -4,7 +4,7 @@ import { XPEX_BRAND } from '@/lib/xpex-brand'
 import '../../Xpex/xpex.css'
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#00D4FF]'
-const academyLoginHref = '/login?next=%2Fxpex'
+const academyLoginHref = '/login?next=%2Fxpex%2Facessos'
 
 const pillars = [
   { icon: BookOpen, title: 'Aprendizagem guiada', description: 'Cursos estruturados, atividades práticas e progresso real em uma jornada contínua.' },

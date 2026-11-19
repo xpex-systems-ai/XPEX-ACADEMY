@@ -226,6 +226,12 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Isolated Supabase pilot: public login page, RLS protects all academic records.
+  // /api/academia is excluded from this proxy by matcher and validates cookies itself.
+  if (pathname === '/academia' || pathname.startsWith('/academia/')) {
+    return NextResponse.next()
+  }
+
   const instance = await getInstanceInfo()
 
   // SEO: canonicalize mixed-case top-level route names (/Login → /login). Scoped
@@ -470,6 +476,14 @@ export default async function proxy(req: NextRequest) {
   // prefix contains presentation media only — never user or organization data.
   if (isPublicBrandAsset(pathname)) {
     return NextResponse.next()
+  }
+
+  // Public directory only: links and login entry, never private academic data.
+  // Keep every other /xpex route behind the existing session and role checks.
+  if (pathname === '/xpex/acessos') {
+    const response = NextResponse.next()
+    setInstanceCookies(response, instance)
+    return response
   }
 
   // Authenticated XpeX shell. The marker only enables an early redirect; the
