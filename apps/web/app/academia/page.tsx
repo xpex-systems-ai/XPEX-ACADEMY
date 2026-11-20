@@ -57,7 +57,12 @@ export default function AcademiaPage() {
       if (res.status === 401) { setData(null); setError(''); return }
       const body = await res.json()
       if (!res.ok) { setError(body.error || 'Não foi possível acessar o banco acadêmico.'); return }
-      setData(body as PilotData)
+      const academic = body as PilotData
+      // Role-specific initial view is navigation only; Supabase RLS enforces access to records.
+      const desired = new URL(window.location.href).searchParams.get('section')
+      const canAccessPolo = academic.invites?.some(invite => invite.role === 'teacher' || invite.role === 'admin') ?? false
+      setSection(canAccessPolo && (desired === 'polo' || !desired) ? 'polo' : 'cursos')
+      setData(academic)
       setError('')
     } catch { setError('Conexão indisponível. Verifique sua internet e tente novamente.') }
     finally { setLoading(false) }
@@ -111,7 +116,7 @@ export default function AcademiaPage() {
   const visit = (id: Section) => { setSection(id); setChosen(null); setMobileMenu(false); setError(''); setNotice('') }
   const nav = (
     <nav className="mt-8 space-y-1" aria-label="Ambientes da XPeX Academy">
-      {sectionNames.map(({ id, label, Icon }) => (
+      {sectionNames.filter(item => item.id !== 'polo' || pilotRole === 'teacher' || pilotRole === 'admin').map(({ id, label, Icon }) => (
         <button key={id} onClick={() => visit(id)} type="button"
           className={'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition ' +
             (section === id ? 'bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/40' : 'text-slate-300 hover:bg-white/5 hover:text-white')}>
