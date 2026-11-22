@@ -238,7 +238,14 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ user_id: active.user.id, course_id: body.courseId }),
       })
       if (!res.ok) return result({ error: 'Matrícula negada. Verifique seu convite e as permissões do Polo.' }, res.status === 403 ? 403 : 409)
-      return persistIfRotated(result({ success: true, message: 'Matrícula registrada no banco acadêmico.' }), active)
+      // A successful INSERT with ignore-duplicates can return no rows; verify the
+      // authorized record through RLS before reporting persistence.
+      const saved = await records(base, active.token, 'academy_enrollments',
+        '?select=id&user_id=eq.' + encodeURIComponent(active.user.id) + '&course_id=eq.' + encodeURIComponent(body.courseId) + '&limit=1')
+      if (!Array.isArray(saved) || saved.length !== 1 || !isUuid(saved[0]?.id)) {
+        return result({ error: 'Matrícula ainda não confirmada. Consulte novamente antes de repetir a operação.' }, 503)
+      }
+      return persistIfRotated(result({ success: true, enrollmentId: saved[0].id, message: 'Matrícula confirmada no banco acadêmico.' }), active)
     } catch { return result({ error: 'Não foi possível registrar a matrícula.' }, 503) }
   }
   if (body.action === 'complete' && isUuid(body.enrollmentId) && isUuid(body.lessonId)) {
@@ -249,7 +256,13 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ user_id: active.user.id, enrollment_id: body.enrollmentId, lesson_id: body.lessonId }),
       })
       if (!res.ok) return result({ error: 'Progresso não autorizado para esta matrícula ou aula.' }, 403)
-      return persistIfRotated(result({ success: true, message: 'Progresso persistido no PostgreSQL.' }), active)
+      // Confirm the persisted row under the student's own RLS-scoped token.
+      const saved = await records(base, active.token, 'academy_progress',
+        '?select=id&user_id=eq.' + encodeURIComponent(active.user.id) + '&enrollment_id=eq.' + encodeURIComponent(body.enrollmentId) + '&lesson_id=eq.' + encodeURIComponent(body.lessonId) + '&limit=1')
+      if (!Array.isArray(saved) || saved.length !== 1 || !isUuid(saved[0]?.id)) {
+        return result({ error: 'Progresso ainda não confirmado. Consulte novamente antes de repetir a operação.' }, 503)
+      }
+      return persistIfRotated(result({ success: true, progressId: saved[0].id, message: 'Progresso confirmado no PostgreSQL.' }), active)
     } catch { return result({ error: 'Não foi possível salvar o progresso.' }, 503) }
   }
   return result({ error: 'Operação não disponível.' }, 400)
