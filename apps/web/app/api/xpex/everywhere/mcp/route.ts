@@ -12,8 +12,28 @@ export async function POST(request: NextRequest) {
   if (!request.headers.get('content-type')?.includes('application/json')) return error(null, -32600, 'Expected application/json', 415)
   const size = Number(request.headers.get('content-length') || 0)
   if (size > 32768) return error(null, -32600, 'Request too large', 413)
+  // Enforce the limit on actual bytes, not only the client-controlled Content-Length.
+  const reader = request.body?.getReader()
+  if (!reader) return error(null, -32700, 'Parse error', 400)
+  const chunks: Uint8Array[] = []
+  let received = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      received += value.byteLength
+      if (received > 32768) {
+        await reader.cancel().catch(() => undefined)
+        return error(null, -32600, 'Request too large', 413)
+      }
+      chunks.push(value)
+    }
+  } catch { return error(null, -32700, 'Parse error', 400) }
+  const bytes = new Uint8Array(received)
+  let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
   let body: unknown
-  try { body = await request.json() } catch { return error(null, -32700, 'Parse error', 400) }
+  try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) } catch { return error(null, -32700, 'Parse error', 400) }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return error(null, -32600, 'Invalid Request', 400)
   const req = body as Record<string, unknown>
   if (req.jsonrpc !== '2.0' || typeof req.method !== 'string') return error(req.id, -32600, 'Invalid Request', 400)
