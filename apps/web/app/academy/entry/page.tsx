@@ -16,11 +16,16 @@ export default function AcademyEntry() {
       .catch(() => { if (active) setGoogleAvailable(false) })
     fetch('/api/academia', { credentials: 'same-origin', cache: 'no-store' })
       .then(async r => {
-        if (!r.ok) throw new Error('Acesso ainda não autorizado ou dados indisponíveis.')
+        if (r.status === 401) {
+          // A visitor without a session is expected here; this is not a system outage.
+          if (active) setStatus('Você ainda não entrou. Use o acesso por e-mail para continuar.')
+          return null
+        }
+        if (!r.ok) throw new Error('Não foi possível verificar o acesso. Tente novamente mais tarde.')
         return r.json() as Promise<SessionData>
       })
       .then(data => {
-        if (!active) return
+        if (!active || !data) return
         if (!data.authenticated || !Array.isArray(data.invites) || data.invites.length === 0) throw new Error('Conta sem convite acadêmico ativo.')
         setInvites(data.invites)
         setPolos(Array.isArray(data.polos) ? data.polos : [])
