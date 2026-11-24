@@ -41,6 +41,7 @@ export default function AcademiaPage() {
   const [notice, setNotice] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [signup, setSignup] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('code')
   const [loginCode, setLoginCode] = useState('')
@@ -98,8 +99,13 @@ export default function AcademiaPage() {
       if (ok && codeRequested) { setLoginCode(''); setMagicLink(''); setCodeRequested(false) }
       return
     }
+    if (signup && password !== confirmPassword) {
+      setError('As senhas não coincidem. Confira e tente novamente.')
+      return
+    }
     await send({ action: signup ? 'signup' : 'login', email, password })
     setPassword('')
+    setConfirmPassword('')
   }
   const courses = data?.courses || []
   const enrollments = data?.enrollments || []
@@ -173,9 +179,10 @@ export default function AcademiaPage() {
               <div className="mb-7 inline-flex rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4 text-orange-300"><GraduationCap size={32}/></div>
               <h1 className="text-3xl font-black">Bem-vindo à XPeX Academy</h1>
               <p className="mt-3 text-sm leading-relaxed text-slate-300">Entre para acessar o primeiro ambiente acadêmico com matrícula e progresso salvos no banco real. Nesta etapa, somente contas autorizadas para o Polo Kelle conseguem ver os cursos.</p>
-              <div className="mt-8 flex gap-2" role="group" aria-label="Método de acesso">
-                <button type="button" onClick={()=>{setLoginMethod('code');setCodeRequested(false);setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='code'?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Entrar sem senha</button>
-                <button type="button" onClick={()=>{setLoginMethod('password');setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='password'?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Senha existente</button>
+              <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Método de acesso">
+                <button type="button" onClick={()=>{setLoginMethod('code');setSignup(false);setCodeRequested(false);setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='code'?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Entrar sem senha</button>
+                <button type="button" onClick={()=>{setLoginMethod('password');setSignup(false);setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='password'&&!signup?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Entrar com senha</button>
+                <button type="button" onClick={()=>{setLoginMethod('password');setSignup(true);setPassword('');setConfirmPassword('');setError('');setNotice('')}} className={'rounded-xl px-4 py-3 text-sm font-semibold ' + (loginMethod==='password'&&signup?'bg-orange-500 text-white':'border border-slate-700 text-slate-300')}>Cadastrar e-mail e senha</button>
               </div>
               <form onSubmit={onLogin} className="mt-5 space-y-4">
                 <label className="block text-sm text-slate-300">E-mail
@@ -183,10 +190,19 @@ export default function AcademiaPage() {
                     className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
                 </label>
                 {loginMethod === 'password' ? (
-                  <label className="block text-sm text-slate-300">Senha
-                    <input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={10} value={password} onChange={e=>setPassword(e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
-                  </label>
+                  <>
+                    <label className="block text-sm text-slate-300">{signup?'Crie sua senha (mínimo de 10 caracteres)':'Senha'}
+                      <input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={10} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                    </label>
+                    {signup && <>
+                      <label className="block text-sm text-slate-300">Confirme sua senha
+                        <input type="password" autoComplete="new-password" required minLength={10} maxLength={128} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}
+                          className="mt-2 w-full rounded-xl border border-sky-700/50 bg-[#050B18] px-4 py-3 text-white outline-none focus:border-orange-400"/>
+                      </label>
+                      <p className="text-xs leading-relaxed text-amber-200">Cadastro exclusivo do piloto XPeX Academy, para e-mails previamente autorizados. Criar a senha não concede acesso de administrador: essa permissão exige convite acadêmico validado no servidor. Não compartilhe sua senha no chat.</p>
+                    </>}
+                  </>
                 ) : codeRequested ? (
                   <>
                     <div className="flex gap-2 text-xs">
@@ -209,13 +225,11 @@ export default function AcademiaPage() {
                   </>
                 ) : <p className="text-sm text-slate-300">A Academy usa o Supabase para enviar um link de acesso de uso único. Não precisa criar senha. O envio depende dos limites de e-mail do serviço.</p>}
                 <button disabled={working} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 font-bold text-white hover:bg-orange-400 disabled:opacity-50">
-                  {working?'Aguarde...':loginMethod==='code'?(codeRequested?'Confirmar acesso':'Enviar acesso para meu e-mail'):(signup?'Criar conta de teste':'Entrar na Academy')} <ArrowRight size={18}/>
+                  {working?'Aguarde...':loginMethod==='code'?(codeRequested?'Confirmar acesso':'Enviar acesso para meu e-mail'):(signup?'Cadastrar e-mail e senha':'Entrar na Academy')} <ArrowRight size={18}/>
                 </button>
               </form>
-              {loginMethod==='password' && (
-                <button type="button" onClick={()=>{setSignup(!signup);setError('');setNotice('')}} className="mt-5 text-sm text-sky-300 hover:underline">
-                  {signup?'Já tenho uma conta — entrar':'Primeiro acesso — cadastrar conta autorizada'}
-                </button>
+              {loginMethod==='password' && signup && (
+                <p className="mt-4 text-xs leading-relaxed text-slate-300">Após o cadastro, confirme seu e-mail caso o Supabase solicite. Se o e-mail não estiver na lista autorizada ou não tiver um convite de administrador, o acesso à gestão continuará bloqueado.</p>
               )}
               {loginMethod==='code' && codeRequested && (
                 <p className="mt-4 text-sm text-sky-300">Confira a caixa de entrada e o spam. O Supabase envia links por padrão; copie o link completo e cole acima sem clicar nele. Se seu projeto tiver modelo OTP, use a aba do código. Não solicite várias vezes: o provedor aplica limites de envio.</p>
